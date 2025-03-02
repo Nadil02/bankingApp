@@ -1,17 +1,18 @@
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.security import OAuth2PasswordBearer
-from database import users_collection
-from models import User
-from security import verify_password
-from auth import create_jwt, create_refresh_token, verify_jwt
+from ..database import collection_user
+from ..models import user
+from ..utils.password_hashing import verify_password
+from ..utils.jwt_authentication import create_jwt, create_refresh_token, verify_jwt
+from motor.motor_asyncio import AsyncIOMotorClient
 
 app = FastAPI()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 @app.post("/login")
-def login(nic: str, passcode: str):
-    db_user = users_collection.find_one({"nic": nic})
+async def login(nic: str, passcode: str):
+    db_user = collection_user.find_one({"NIC": nic})
 
     if not db_user or not verify_password(passcode, db_user["passcode"]):
         raise HTTPException(status_code=401, detail="Invalid NIC or passcode")
