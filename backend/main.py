@@ -1,8 +1,8 @@
 from fastapi import FastAPI
-from routes import router  # import the combined router from routes.py
+from routes import chatbot  
 
 # initialize FastAPI app
 app = FastAPI()
 
-# include the routes from the routes.py file
-app.include_router(router)
+# include the routes from the routes folder
+app.include_router(chatbot.router)
