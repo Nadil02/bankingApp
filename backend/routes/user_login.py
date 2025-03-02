@@ -12,7 +12,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 @app.post("/login")
 async def login(nic: str, passcode: str):
-    db_user = collection_user.find_one({"NIC": nic})
+    db_user = await collection_user.find_one({"NIC": nic})
 
     if not db_user or not verify_password(passcode, db_user["passcode"]):
         raise HTTPException(status_code=401, detail="Invalid NIC or passcode")
