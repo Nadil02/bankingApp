@@ -21,8 +21,11 @@ async def login(nic: str, passcode: str):
     access_token = create_jwt({"sub": db_user["nic"]})
     refresh_token = create_refresh_token({"sub": db_user["nic"]})
 
-    return {
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "token_type": "bearer"
-    }
+    return JSONResponse(
+        content={
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer"
+        }
+    )
+    
