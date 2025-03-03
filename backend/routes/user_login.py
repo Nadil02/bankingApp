@@ -12,16 +12,22 @@ app = FastAPI()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
+#convert_ObjectId_to_string
+def fix_mongo_id(document):
+    if document and "_id" in document:
+        document["_id"] = str(document["_id"])
+    return document
+
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
 
 @app.post("/login")
 async def login(user: userlogin):
-    nic = user.nic
+    NIC = user.NIC
     passcode = user.password
 
-    db_user = await collection_user.find_one({"NIC": nic})
+    db_user = await collection_user.find_one({"NIC": NIC})
 
     if not db_user or not verify_password(passcode, db_user["passcode"]):
         raise HTTPException(status_code=401, detail="Invalid NIC or passcode")
