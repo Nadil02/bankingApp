@@ -7,7 +7,7 @@ from uuid import uuid4
 class user(BaseModel):
     first_name: str
     last_name: str
-    nic: str
+    NIC: str
     phone_number: str
     passcode: str
     user_id: str =Field(default_factory=lambda: str(uuid4()), alias="_id")
