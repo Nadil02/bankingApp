@@ -1,49 +1,107 @@
-from fastapi import FastAPI, HTTPException, Depends
-from fastapi.security import OAuth2PasswordBearer
-from ..database import collection_user
-from ..models import user
-from ..utils.password_hashing import verify_password
-from ..utils.jwt_authentication import create_jwt, create_refresh_token, verify_jwt
+from fastapi import FastAPI, HTTPException, Depends, Query
 from fastapi.responses import JSONResponse
-from ..schemas.user_login import userlogin
+import jwt as pyjwt
+import os
+from datetime import datetime, timedelta
+from pydantic import BaseModel
+import motor.motor_asyncio
+from dotenv import load_dotenv
+import logging
 
+# Load environment variables from the .env file
+load_dotenv()
+
+# MongoDB URI from .env file
+MONGO_URI = os.getenv("MONGO_URI")
+
+# Create a client instance for MongoDB
+client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URI)
+
+# Database
+db = client["project"]
+
+# Collections
+collection_user = db["user_log"]
 
 app = FastAPI()
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+# Secret key and algorithm for signing the JWT
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+REFRESH_TOKEN_EXPIRE_DAYS = 7
 
-#convert_ObjectId_to_string
+# Logging setup
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+class userlogin(BaseModel):
+    NIC: str
+    passcode: str
+
 def fix_mongo_id(document):
     if document and "_id" in document:
-        document["_id"] = str(document["_id"])
+        document["_id"] = str(document["_id"])  # Convert ObjectId to string
     return document
 
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
+def create_jwt(data: dict, expires_delta: timedelta = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + expires_delta
+    to_encode.update({"exp": expire})
 
-@app.post("/login")
+    return pyjwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+def create_refresh_token(data: dict, expires_delta: timedelta = timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + expires_delta
+    to_encode.update({"exp": expire})
+
+    return pyjwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+@app.get("/")
+async def read_root(NIC: str = Query(..., description="National Identity Card number")):
+    db_user = await collection_user.find_one({"NIC": NIC})
+    if db_user:
+        return fix_mongo_id(db_user)
+    return {"error": "User not found"}
+
+@app.post("/loginn_C")
 async def login(user: userlogin):
     NIC = user.NIC
-    passcode = user.password
+    passcode = user.passcode
 
-    db_user = await collection_user.find_one({"NIC": NIC})
+    # Log the incoming NIC and passcode for debugging
+    logger.debug(f"Login attempt with NIC: {NIC} and passcode: {passcode}")
 
-    if not db_user or not verify_password(passcode, db_user["passcode"]):
-        raise HTTPException(status_code=401, detail="Invalid NIC or passcode")
-    
-    #convert_id_from_object_to_string
-    db_user["_id"] = str(db_user["_id"])
+    try:
+        # Query the database for the user with the provided NIC
+        db_user = await collection_user.find_one({"NIC": NIC})
 
-    # generate_JWT_and_refresh_token
-    access_token = create_jwt({"sub": db_user["NIC"]})
-    refresh_token = create_refresh_token({"sub": db_user["NIC"]})
+        if not db_user:
+            logger.error(f"User with NIC {NIC} not found in database.")
+            raise HTTPException(status_code=404, detail="User not found")
 
-    return JSONResponse(
-        content={
-            "access_token": access_token,
-            "refresh_token": refresh_token,
-            "token_type": "bearer"
-        }
-    )
-    
+        # Check if the passcode matches (This example does not use hash comparison, but you can modify it to use hashed passwords)
+        if passcode != db_user.get("passcode"):
+            logger.error(f"Invalid passcode for NIC {NIC}.")
+            raise HTTPException(status_code=401, detail="Invalid NIC or passcode")
+
+        # Fix _id if present
+        db_user = fix_mongo_id(db_user)
+
+        # Generate JWT and refresh tokens
+        access_token = create_jwt({"sub": db_user["NIC"]})
+        refresh_token = create_refresh_token({"sub": db_user["NIC"]})
+
+        # Return tokens in the response
+        return JSONResponse(
+            content={
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+                "token_type": "bearer"
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"An error occurred during login: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
