@@ -7,21 +7,26 @@ from pydantic import BaseModel
 import motor.motor_asyncio
 from dotenv import load_dotenv
 import logging
+#from database import collection_user # Now database.py should be found
 
-# Load environment variables from the .env file
+import motor.motor_asyncio
+import os
+from dotenv import load_dotenv
+
+# load environment variables from the .env file
 load_dotenv()
 
 # MongoDB URI from .env file
 MONGO_URI = os.getenv("MONGO_URI")
 
-# Create a client instance for MongoDB
+# create a client instance for MongoDB
 client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URI)
 
-# Database
-db = client["project"]
+# database
+db = client["project"] 
 
-# Collections
-collection_user = db["user_log"]
+collection_user = db["user"]
+
 
 app = FastAPI()
 
