@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from starlette.responses import JSONResponse
-from models import UserLogin, RefreshTokenRequest
-from auth import create_jwt, create_refresh_token, verify_jwt, verify_token
-from database import user_collection
+from schemas.user_login_schemas import UserLogin, RefreshTokenRequest
+from utils.auth import create_jwt, create_refresh_token, verify_jwt, verify_token
+from database import collection_user as user_collection
 import logging
 
 router = APIRouter()

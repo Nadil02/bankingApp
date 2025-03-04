@@ -2,14 +2,9 @@ from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from datetime import datetime, timedelta
 import jwt
-import os
-from dotenv import load_dotenv
-
 
 # OAuth2PasswordBearer provides a way to get the token from the request
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
-
-load_dotenv()
 
 SECRET_KEY = "your_secret_key"
 ALGORITHM = "HS256"

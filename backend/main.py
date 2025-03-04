@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from routes import router  # import the combined router from routes.py
+from routes.user_routes import router  # import the combined router from routes.py
 
 # initialize FastAPI app
 app = FastAPI()
