@@ -10,7 +10,7 @@ class user(BaseModel):
     nic: str
     phone_number: str
     passcode: str
-    user_id: str =Field(default_factory=lambda: str(uuid4()), alias="_id")
+    user_id: str 
     notification_status: bool
 
 
@@ -33,10 +33,10 @@ class bank(BaseModel):
 
 class OTP(BaseModel):
     otp: str
-    user_id: str
-    otp_id: str =Field(default_factory=lambda: str(uuid4()), alias="_id")
-    expiry_time: datetime
-    verification_count: int
+    # user_id: str
+    otp_id: str #=Field(default_factory=lambda: str(uuid4()), alias="_id")
+    # expiry_time: datetime
+    # verification_count: int
 
 
 class TodoList(BaseModel):
