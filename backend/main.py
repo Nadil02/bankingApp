@@ -1,8 +1,8 @@
 from fastapi import FastAPI
-from routes.user_routes import router  # import the combined router from routes.py
+from routes import user_login
 
 # initialize FastAPI app
 app = FastAPI()
 
 # include the routes from the routes.py file
-app.include_router(router)
+app.include_router(user_login.router)
