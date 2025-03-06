@@ -8,6 +8,7 @@ class user(BaseModel):
     first_name: str
     last_name: str
     NIC: str
+    login_nic:str
     phone_number: str
     passcode: str
     user_id: str 

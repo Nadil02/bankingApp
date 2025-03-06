@@ -4,6 +4,12 @@ from models import OTP,user
 # from utils.OTP import sendOtp
 from utils.encrypt_and_decrypt import encrypt, decrypt_user_data
 import random
+from argon2 import PasswordHasher
+import hashlib
+import bcrypt
+
+
+ph = PasswordHasher()
 
 async def sign_in_validation(sign_in_request: SignInRequest) -> SignInResponse:
 
@@ -44,13 +50,25 @@ async def otp_validation(otp_request: OtpRequest) -> OtpResponse:
         next_user_id = str(int(last_user["user_id"]) + 1)
     else:
         next_user_id = "1"  #from 1 if no otp exist
+
+    nic_bytes = otp_request.nic.encode('utf-8')
+    sha256_hash = hashlib.sha256()
+    sha256_hash.update(nic_bytes)
+    hashed_nic = sha256_hash.hexdigest()
+
+    print("hashed_nic",hashed_nic)
+
+    salt=bcrypt.gensalt()
+    hashed_passcode=bcrypt.hashpw(otp_request.passcode.encode('utf-8'),salt)
     
     user_data = user(
         first_name=encrypt(otp_request.first_name),
         last_name=encrypt(otp_request.last_name),
         NIC=encrypt(otp_request.nic),
+        login_nic=hashed_nic,
         phone_number=encrypt(otp_request.phone_number),
-        passcode=otp_request.passcode,
+        # passcode=ph.hash(otp_request.passcode),
+        passcode=hashed_passcode.decode('utf-8'),
         user_id=next_user_id,
         notification_status=True,
     )
