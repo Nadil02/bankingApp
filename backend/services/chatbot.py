@@ -6,7 +6,8 @@ from dotenv import load_dotenv
 from database import collection_chatbot
 from models import ChatBot
 import json
-
+from llmAgentTools import get_month_summary, get_week_summary,  get_total_spendings_for_given_time_period, get_total_incomes_for_given_time_period, get_last_transaction
+from datetime import datetime
 # import functions from llmAgentTools.py
 # from .llmAgentTools import get_week_summary, get_month_summary
 
@@ -27,6 +28,10 @@ conversation = ConversationChain(
 #add tools here
 tools = [
     # {"name": "get_week_summary", "func": get_week_summary, "description": "Use this tool to get week transaction summary."},
+    {"name": "get_month_summary", "func": get_month_summary, "description": "Use this tool to get month transaction summary."},
+    {"name": "get_total_spendings_for_given_time_period", "func": get_total_spendings_for_given_time_period, "description": "Use this tool to get total spendings for a given time period."},
+    {"name": "get_total_incomes_for_given_time_period", "func": get_total_incomes_for_given_time_period, "description": "Use this tool to get total incomes for a given time period."},
+    {"name": "get_last_transaction", "func": get_last_transaction, "description": "Use this tool to get the last transaction."}
     
 ]
 
