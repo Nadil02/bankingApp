@@ -70,4 +70,5 @@ def get_monthly_summary_for_given_month(user_id: str, month: int) -> str:
     for i in monthly_summary:
         return f"your total incomes are {i['total_incomes']} and total spendings are {i['total_spendings']} for the month {month}"
     return "No transactions found"
+
     
