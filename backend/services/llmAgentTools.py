@@ -1,5 +1,5 @@
 from models import transaction
-from database import collection_transaction
+from database import collection_transaction,collection_predicted_income,collection_predicted_expense,collection_predicted_balance
 from datetime import datetime
 
 
@@ -83,3 +83,31 @@ def get_all_transactions_for_given_date(user_id: str, date: datetime) -> str:
         return transactions_list
     else:
         return "No transactions found"
+    
+#create_too_for_get_next_month_total_incomes
+def get_next_month_total_incomes(user_id: str) -> str:
+    next_month = datetime.now().month + 1
+    next_month_summary = collection_predicted_income.aggregate(
+        [
+            {"$match": {"user_id": user_id, "date": {"$month": next_month}}},
+            {"$group": {"_id": "$user_id", "total_incomes": {"$sum": "$amount"}}}
+        ]
+    )
+    for i in next_month_summary:
+        return f"your total incomes for the next month are {i['total_incomes']}"
+    return "No transactions found"
+
+#create_tool_for_get_next_month_total_spendings
+def get_next_month_total_spendings(user_id: str) -> str:
+    next_month = datetime.now().month + 1
+    next_month_summary = collection_predicted_expense.aggregate(
+        [
+            {"$match": {"user_id": user_id, "date": {"$month": next_month}}},
+            {"$group": {"_id": "$user_id", "total_spendings": {"$sum": "$amount"}}}
+        ]
+    )
+    for i in next_month_summary:
+        return f"your total spendings for the next month are {i['total_spendings']}"
+    return "No transactions found"
+
+
