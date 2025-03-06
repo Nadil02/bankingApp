@@ -35,16 +35,16 @@ def get_total_spendings_for_given_time_period(user_id: str, start_date: datetime
         return f"your total spendings are {i['total_spendings']} for the period {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
     return "No transactions found"
 
-#create_tool_for_get_total_incomes
-def get_total_incomes(user_id: str) -> str:
+#create_tool_for_get_total_incomes_for_given_time_period
+def get_total_incomes_for_given_time_period(user_id: str, start_date: datetime, end_date: datetime) -> str:
     total_incomes = collection_transaction.aggregate(
         [
-            {"$match": {"user_id": user_id}},
+            {"$match": {"user_id": user_id, "date": {"$gte": start_date, "$lte": end_date}}},
             {"$group": {"_id": "$user_id", "total_incomes": {"$sum": "$receipt"}}}
         ]
     )
     for i in total_incomes:
-        return f"your total incomes are {i['total_incomes']}"
+        return f"your total incomes are {i['total_incomes']} for the period {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
     return "No transactions found"
 
 #create_tool_for_get_last_transaction
