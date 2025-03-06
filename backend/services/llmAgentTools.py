@@ -59,3 +59,15 @@ def get_last_transaction(user_id: str) -> str:
     else:
         return "No transactions found"
     
+#create_tool_for_get_monthly_summary_for_given_month
+def get_monthly_summary_for_given_month(user_id: str, month: int) -> str:
+    monthly_summary = collection_transaction.aggregate(
+        [
+            {"$match": {"user_id": user_id, "date": {"$month": month}}},
+            {"$group": {"_id": "$user_id", "total_incomes": {"$sum": "$receipt"}, "total_spendings": {"$sum": "$payment"}}}
+        ]
+    )
+    for i in monthly_summary:
+        return f"your total incomes are {i['total_incomes']} and total spendings are {i['total_spendings']} for the month {month}"
+    return "No transactions found"
+    
