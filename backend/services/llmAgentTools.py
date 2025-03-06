@@ -23,14 +23,39 @@ from datetime import datetime
 
 
 
-#create_tool_for_get_total_spendings
-def get_total_spendings(user_id: str) -> str:
+#create_tool_for_get_total_spendings_for_given_time_period
+def get_total_spendings_for_given_time_period(user_id: str, start_date: datetime, end_date: datetime) -> str:
     total_spendings = collection_transaction.aggregate(
         [
-            {"$match": {"user_id": user_id}},
+            {"$match": {"user_id": user_id, "date": {"$gte": start_date, "$lte": end_date}}},
             {"$group": {"_id": "$user_id", "total_spendings": {"$sum": "$payment"}}}
         ]
     )
     for i in total_spendings:
-        return f"your total spendings are {i['total_spendings']}"
+        return f"your total spendings are {i['total_spendings']} for the period {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
     return "No transactions found"
+
+#create_tool_for_get_total_incomes
+def get_total_incomes(user_id: str) -> str:
+    total_incomes = collection_transaction.aggregate(
+        [
+            {"$match": {"user_id": user_id}},
+            {"$group": {"_id": "$user_id", "total_incomes": {"$sum": "$receipt"}}}
+        ]
+    )
+    for i in total_incomes:
+        return f"your total incomes are {i['total_incomes']}"
+    return "No transactions found"
+
+#create_tool_for_get_last_transaction
+def get_last_transaction(user_id: str) -> str:
+    last_transaction = collection_transaction.find_one(
+        {"user_id": user_id},
+        sort=[("date", -1)]
+    )
+    if last_transaction:
+        txn= transaction(**last_transaction).dict()
+        return f"your last transaction was {txn.payment} on {txn.date.strftime('%Y-%m-%d')} description : {txn.description}"
+    else:
+        return "No transactions found"
+    
