@@ -132,3 +132,13 @@ def get_next_spending(user_id: str) -> str:
         return f"your next income is {next_spending['amount']} on {next_spending['date'].strftime('%Y-%m-%d')}"
     else:
         return "No spending found"
+
+
+#create_tool_for_handle_incomplete_dates
+def handle_incomplete_time_periods(user_id: str, start_date: datetime = None, end_date: datetime = None) -> str:
+    if not start_date and not end_date:
+        return "Please provide both the start date and end date for the time period."
+    elif not start_date:
+        return "Please provide the start date for the time period."
+    elif not end_date:
+        return "Please provide the end date for the time period."
