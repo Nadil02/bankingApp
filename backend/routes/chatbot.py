@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from schemas.chatbot import ChatbotRequest, ChatbotResponse
-from services.chatbot import get_chatbot_response
+from services.chatbotTest import get_chatbot_response
 
 router= APIRouter()
 
