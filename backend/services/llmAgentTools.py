@@ -23,6 +23,8 @@ from datetime import datetime
 
 
 
+#transaction_tools.
+
 #create_tool_for_get_total_spendings_for_given_time_period
 def get_total_spendings_for_given_time_period(user_id: str, start_date: datetime, end_date: datetime) -> str:
     # Step 1: Find the user's accounts
@@ -225,56 +227,188 @@ def get_all_transactions_for_given_date(user_id: str, date: datetime) -> str:
     
 
 
-
+#prediction_tools.
     
 #create_too_for_get_next_month_total_incomes
 def get_next_month_total_incomes(user_id: str) -> str:
-    next_month = datetime.now().month + 1
-    next_month_summary = collection_predicted_income.aggregate(
-        [
-            {"$match": {"user_id": user_id, "date": {"$month": next_month}}},
-            {"$group": {"_id": "$user_id", "total_incomes": {"$sum": "$amount"}}}
+    try:
+        # Step 1: Find the user's accounts
+        user_accounts = collection_account.find({"user_id": user_id})
+        account_ids = [account["account_id"] for account in user_accounts]
+
+        if not account_ids:
+            return f"No accounts found for user ID: {user_id}"
+
+        # Step 2: Determine the next month’s date range
+        today = datetime.today()
+        next_month_start = datetime(today.year + (today.month // 12), (today.month % 12) + 1, 1)
+        next_month_end = datetime(next_month_start.year + (next_month_start.month // 12), (next_month_start.month % 12) + 1, 1)
+
+        # Step 3: Aggregate predicted incomes from 'predicted_incomes' collection
+        pipeline = [
+            {
+                "$match": {
+                    "account_id": {"$in": account_ids},
+                    "date": {"$gte": next_month_start, "$lt": next_month_end}
+                }
+            },
+            {
+                "$group": {
+                    "_id": None,
+                    "total_predicted_income": {"$sum": "$amount"}
+                }
+            }
         ]
-    )
-    for i in next_month_summary:
-        return f"your total incomes for the next month are {i['total_incomes']}"
-    return "No transactions found"
+
+        result = next(collection_predicted_income.aggregate(pipeline), None)
+
+        # Step 4: Format the response
+        if result:
+            total_predicted_income = result.get("total_predicted_income", 0)
+            return (
+                f" Predicted Total Income for {next_month_start.strftime('%Y-%m')}\n"
+                f" Estimated Income: {total_predicted_income:.2f} (based on trend and seasonality)"
+            )
+        else:
+            return f"No predicted incomes found for {next_month_start.strftime('%Y-%m')}"
+
+    except Exception as e:
+        return f"An error occurred: {str(e)}"
 
 #create_tool_for_get_next_month_total_spendings
 def get_next_month_total_spendings(user_id: str) -> str:
-    next_month = datetime.now().month + 1
-    next_month_summary = collection_predicted_expense.aggregate(
-        [
-            {"$match": {"user_id": user_id, "date": {"$month": next_month}}},
-            {"$group": {"_id": "$user_id", "total_spendings": {"$sum": "$amount"}}}
+    try:
+        # Step 1: Find the user's accounts
+        user_accounts = collection_account.find({"user_id": user_id})
+        account_ids = [account["account_id"] for account in user_accounts]
+
+        if not account_ids:
+            return f"No accounts found for user ID: {user_id}"
+
+        # Step 2: Determine the next month’s date range
+        today = datetime.today()
+        next_month_start = datetime(today.year + (today.month // 12), (today.month % 12) + 1, 1)
+        next_month_end = datetime(next_month_start.year + (next_month_start.month // 12), (next_month_start.month % 12) + 1, 1)
+
+        # Step 3: Aggregate predicted spendings from 'predicted_expenses' collection
+        pipeline = [
+            {
+                "$match": {
+                    "account_id": {"$in": account_ids},
+                    "date": {"$gte": next_month_start, "$lt": next_month_end}
+                }
+            },
+            {
+                "$group": {
+                    "_id": None,
+                    "total_predicted_spendings": {"$sum": "$amount"}
+                }
+            }
         ]
-    )
-    for i in next_month_summary:
-        return f"your total spendings for the next month are {i['total_spendings']}"
-    return "No transactions found"
+
+        result = next(collection_predicted_expense.aggregate(pipeline), None)
+
+        # Step 4: Format the response
+        if result:
+            total_predicted_spendings = result.get("total_predicted_spendings", 0)
+            return (
+                f" Predicted Total Spendings for {next_month_start.strftime('%Y-%m')}\n"
+                f" Estimated Spendings: {total_predicted_spendings:.2f} (based on trend and seasonality)"
+            )
+        else:
+            return f"No predicted spendings found for {next_month_start.strftime('%Y-%m')}"
+
+    except Exception as e:
+        return f"An error occurred: {str(e)}"
 
 
 #create_tool_for_get_next_income
 def get_next_income(user_id: str) -> str:
-    next_income = collection_predicted_income.find_one(
-        {"user_id": user_id},
-        sort=[("date", 1)]
-    )
-    if next_income:
-        return f"your next income is {next_income['amount']} on {next_income['date'].strftime('%Y-%m-%d')}"
-    else:
-        return "No transactions found"
+    try:
+        # Step 1: Find the user's accounts
+        user_accounts = collection_account.find({"user_id": user_id})
+        account_ids = [account["account_id"] for account in user_accounts]
+
+        if not account_ids:
+            return f"No accounts found for user ID: {user_id}"
+
+        # Step 2: Find the next predicted income (sorted by date)
+        pipeline = [
+            {
+                "$match": {
+                    "account_id": {"$in": account_ids},
+                    "date": {"$gte": datetime.today()}
+                }
+            },
+            {
+                "$sort": {"date": 1}  # Get the nearest future transaction
+            },
+            {
+                "$limit": 1  # Get only the next predicted income
+            }
+        ]
+
+        result = next(collection_predicted_income.aggregate(pipeline), None)
+
+        # Step 3: Format the response
+        if result:
+            date = result["date"].strftime('%Y-%m-%d')
+            amount = result["amount"]
+            description = result.get("description", "No description available")
+            return (
+                f" Next Predicted Income: {date}\n"
+                f" Amount: {amount:.2f}\n"
+                f" Description: {description}"
+            )
+        else:
+            return "No upcoming predicted incomes found."
+
+    except Exception as e:
+        return f"An error occurred: {str(e)}"
     
 #crate_tool_for_the_get_next_spending
 def get_next_spending(user_id: str) -> str:
-    next_spending = collection_predicted_expense.find_one(
-        {"user_id":user_id},
-        sort=[("date",1)]
-    )
-    if next_spending:
-        return f"your next income is {next_spending['amount']} on {next_spending['date'].strftime('%Y-%m-%d')}"
-    else:
-        return "No spending found"
+    try:
+        # Step 1: Find the user's accounts
+        user_accounts = collection_account.find({"user_id": user_id})
+        account_ids = [account["account_id"] for account in user_accounts]
+
+        if not account_ids:
+            return f"No accounts found for user ID: {user_id}"
+
+        # Step 2: Find the next predicted spending (sorted by date)
+        pipeline = [
+            {
+                "$match": {
+                    "account_id": {"$in": account_ids},
+                    "date": {"$gte": datetime.today()}
+                }
+            },
+            {
+                "$sort": {"date": 1}  # Get the nearest future transaction
+            },
+            {
+                "$limit": 1  # Get only the next predicted spending
+            }
+        ]
+
+        result = next(collection_predicted_expense.aggregate(pipeline), None)
+
+        # Step 3: Format the response
+        if result:
+            date = result["date"].strftime('%Y-%m-%d')
+            amount = result["amount"]
+            description = result.get("description", "No description available")
+            return (
+                f" Next Predicted Spending: {date}\n"
+                f" Amount: {amount:.2f}\n"
+                f" Description: {description}"
+            )
+        else:
+            return "No upcoming predicted spendings found."
+
+    except Exception as e:
+        return f"An error occurred: {str(e)}"
 
 
 #create_tool_for_handle_incomplete_dates
