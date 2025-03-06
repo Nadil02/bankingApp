@@ -122,3 +122,13 @@ def get_next_income(user_id: str) -> str:
     else:
         return "No transactions found"
     
+#crate_tool_for_the_get_next_spending
+def get_next_spending(user_id: str) -> str:
+    next_spending = collection_predicted_expense.find_one(
+        {"user_id":user_id},
+        sort=[("date",1)]
+    )
+    if next_spending:
+        return f"your next income is {next_spending['amount']} on {next_spending['date'].strftime('%Y-%m-%d')}"
+    else:
+        return "No spending found"
