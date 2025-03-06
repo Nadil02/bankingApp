@@ -111,3 +111,14 @@ def get_next_month_total_spendings(user_id: str) -> str:
     return "No transactions found"
 
 
+#create_tool_for_get_next_income
+def get_next_income(user_id: str) -> str:
+    next_income = collection_predicted_income.find_one(
+        {"user_id": user_id},
+        sort=[("date", 1)]
+    )
+    if next_income:
+        return f"your next income is {next_income['amount']} on {next_income['date'].strftime('%Y-%m-%d')}"
+    else:
+        return "No transactions found"
+    
