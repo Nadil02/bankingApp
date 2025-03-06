@@ -71,4 +71,15 @@ def get_monthly_summary_for_given_month(user_id: str, month: int) -> str:
         return f"your total incomes are {i['total_incomes']} and total spendings are {i['total_spendings']} for the month {month}"
     return "No transactions found"
 
-    
+#create_tool_for_get_all_transactions_for_given_date
+def get_all_transactions_for_given_date(user_id: str, date: datetime) -> str:
+    transactions = collection_transaction.find(
+        {"user_id": user_id, "date": date}
+    )
+    transactions_list = []
+    for txn in transactions:
+        transactions_list.append(transaction(**txn).dict())
+    if transactions_list:
+        return transactions_list
+    else:
+        return "No transactions found"
