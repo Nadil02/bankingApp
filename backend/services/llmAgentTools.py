@@ -1,5 +1,8 @@
-# from models import transaction
-# from database import collection_transaction
+from models import transaction
+from database import collection_transaction
+from datetime import datetime
+
+
 
 # # def get_last_transaction(user_id: str, account_id: str) -> str:
 # #     last_transaction = collection_transaction.find_one(
@@ -17,3 +20,17 @@
     
 # def get_month_summary(user_id: str) -> str:
 #     return "total 2300 incomes were there in the last month"
+
+
+
+#create_tool_for_get_total_spendings
+def get_total_spendings(user_id: str) -> str:
+    total_spendings = collection_transaction.aggregate(
+        [
+            {"$match": {"user_id": user_id}},
+            {"$group": {"_id": "$user_id", "total_spendings": {"$sum": "$payment"}}}
+        ]
+    )
+    for i in total_spendings:
+        return f"your total spendings are {i['total_spendings']}"
+    return "No transactions found"
