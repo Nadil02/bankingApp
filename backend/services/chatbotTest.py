@@ -10,8 +10,8 @@ from models import ChatBot,transaction
 from datetime import datetime
 from langchain_core.tools import StructuredTool
 from pydantic import BaseModel
-from schemas.chatbot import GetTotalSpendingsArgs,GetTotalIncomeArgs,GetAllTransactionsForDateArgs,GetLastTransactionArgs,GetMonthlySummaryArgs,GetNextIncomeArgs,GetNextMonthTotalIncomesArgs,GetNextMonthTotalSpendingsArgs,GetNextSpendingArgs,HandleIncompleteTimePeriodsArgs
-from services.llmAgentTools import get_total_spendings_for_given_time_period,get_next_month_total_spendings,get_all_transactions_for_given_date,get_last_transaction,get_monthly_summary,get_next_income,get_next_month_total_incomes,get_next_spending,get_total_incomes_for_given_time_period,handle_incomplete_time_periods
+from schemas.chatbot import GetTotalSpendingsArgs,GetTotalIncomeArgs,GetLastTransactionArgs,GetMonthlySummaryArgs,GetAllTransactionsForDateArgs,GetNextMonthTotalIncomesArgs,GetNextMonthTotalSpendingsArgs,GetNextIncomeArgs,GetNextSpendingArgs
+from services.llmAgentTools import get_total_spendings_for_given_time_period,get_total_incomes_for_given_time_period,get_last_transaction,get_monthly_summary,get_all_transactions_for_given_date,get_next_month_total_incomes,get_next_month_total_spendings,get_next_income,get_next_spending
 
 # load environment variables
 load_dotenv()
@@ -26,31 +26,25 @@ llm = ChatGoogleGenerativeAI(
 
 # Define structured tools for all functions
 tools = [
-    StructuredTool(
-        name="get_total_spendings_for_given_time_period",
-        func=get_total_spendings_for_given_time_period,
-        description="""Retrieves the total amount spent by a user within a specified time period.
+     StructuredTool(
+        name="get_next_month_total_spendings",
+        func=get_next_month_total_spendings,
+        description="""Retrieves total spending for the next month.
         **Parameters:**
         - `user_id` (str): Unique identifier of the user.
-        - `start_date` (datetime, format: YYYY-MM-DD): Start date of the period to analyze.
-        - `end_date` (datetime, format: YYYY-MM-DD): End date of the period to analyze.
         
         **Usage Example:**
-        If a user asks: *"How much did I spend between January 1, 2024, and January 31, 2024?"*
+        If a user asks: *"How much will I spend next month?"*
         The function will be called as:
         ```python
-        get_total_spendings_for_given_time_period(
-            user_id="12345",
-            start_date=datetime(2024, 1, 1),
-            end_date=datetime(2024, 1, 31)
-        )
+        get_next_month_total_spendings(user_id="12345")
         ```
-        The function returns spending amount as a NUMBER. Example: 556.31
+        The function returns the predicted total spending for the upcoming month.
         """,
-        args_schema=GetTotalSpendingsArgs,
-        coroutine=get_total_spendings_for_given_time_period
-    ),
-    
+        args_schema=GetNextMonthTotalSpendingsArgs,
+        coroutine=get_next_month_total_spendings
+    )
+    ,
     StructuredTool(
         name="get_total_incomes_for_given_time_period",
         func=get_total_incomes_for_given_time_period,
@@ -98,7 +92,7 @@ tools = [
     StructuredTool(
         name="get_monthly_summary",
         func=get_monthly_summary,
-        description="""Provides a summary of financial activity for a specific month.
+        description="""Retrieves a summary of financial activity for a specific month.
         **Parameters:**
         - `user_id` (str): Unique identifier of the user.
         - `year` (int): Year for the monthly summary (format: YYYY).
@@ -119,7 +113,6 @@ tools = [
         args_schema=GetMonthlySummaryArgs,
         coroutine=get_monthly_summary
     ),
-    
     StructuredTool(
         name="get_all_transactions_for_given_date",
         func=get_all_transactions_for_given_date,
@@ -142,11 +135,10 @@ tools = [
         args_schema=GetAllTransactionsForDateArgs,
         coroutine=get_all_transactions_for_given_date
     ),
-    
     StructuredTool(
-        name="get_next_month_total_incomes",
+        name="get_next_month_income",
         func=get_next_month_total_incomes,
-        description="""Provides a prediction of total income for the next month based on trends and seasonality.
+        description="""Retrieves total income for the next month. these are predicted values.
         **Parameters:**
         - `user_id` (str): Unique identifier of the user.
         
@@ -161,26 +153,29 @@ tools = [
         args_schema=GetNextMonthTotalIncomesArgs,
         coroutine=get_next_month_total_incomes
     ),
-    
     StructuredTool(
-        name="get_next_month_total_spendings",
-        func=get_next_month_total_spendings,
-        description="""Provides a prediction of total spending for the next month based on trends and seasonality.
+        name="get_total_spendings_for_given_time_period",
+        func=get_total_spendings_for_given_time_period,
+        description="""Retrieves the total amount spent by a user within a specified time period.
         **Parameters:**
         - `user_id` (str): Unique identifier of the user.
+        - `start_date` (datetime, format: YYYY-MM-DD): Start date of the period to analyze.
+        - `end_date` (datetime, format: YYYY-MM-DD): End date of the period to analyze.
         
         **Usage Example:**
-        If a user asks: *"How much will I spend next month?"*
+        If a user asks: *"How much did I spend between January 1, 2024, and January 31, 2024?"*
         The function will be called as:
         ```python
-        get_next_month_total_spendings(user_id="12345")
+        get_total_spendings_for_given_time_period(
+            user_id="12345",
+            start_date=datetime(2024, 1, 1),
+            end_date=datetime(2024, 1, 31)
+        )
         ```
-        The function returns the predicted total spending for the upcoming month.
         """,
-        args_schema=GetNextMonthTotalSpendingsArgs,
-        coroutine=get_next_month_total_spendings
+        args_schema=GetTotalSpendingsArgs,
+        coroutine=get_total_spendings_for_given_time_period
     ),
-    
     StructuredTool(
         name="get_next_income",
         func=get_next_income,
@@ -199,8 +194,7 @@ tools = [
         args_schema=GetNextIncomeArgs,
         coroutine=get_next_income
     ),
-    
-    StructuredTool(
+     StructuredTool(
         name="get_next_spending",
         func=get_next_spending,
         description="""Retrieves details about the next predicted spending transaction.
@@ -217,31 +211,6 @@ tools = [
         """,
         args_schema=GetNextSpendingArgs,
         coroutine=get_next_spending
-    ),
-    
-    StructuredTool(
-        name="handle_incomplete_time_periods",
-        func=handle_incomplete_time_periods,
-        description="""Handles incomplete time period specifications and provides appropriate guidance.
-        **Parameters:**
-        - `user_id` (str): Unique identifier of the user.
-        - `start_date` (datetime, format: YYYY-MM-DD, optional): Start date of the period.
-        - `end_date` (datetime, format: YYYY-MM-DD, optional): End date of the period.
-        
-        **Usage Example:**
-        If a user provides an incomplete time range: *"How much did I spend until January 31, 2024?"* (missing start date)
-        The function will be called as:
-        ```python
-        handle_incomplete_time_periods(
-            user_id="12345",
-            start_date=None,
-            end_date=datetime(2024, 1, 31)
-        )
-        ```
-        The function returns guidance about providing complete date information.
-        """,
-        args_schema=HandleIncompleteTimePeriodsArgs,
-        coroutine=handle_incomplete_time_periods
     )
 ]
 

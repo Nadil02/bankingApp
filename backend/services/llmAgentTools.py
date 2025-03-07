@@ -1,49 +1,59 @@
 from models import transaction
 from database import collection_transaction, collection_predicted_income, collection_predicted_expense, collection_predicted_balance, collection_user, collection_account
 from datetime import datetime
+from database import collection_account, collection_transaction, collection_predicted_income, collection_predicted_expense, collection_user, collection_predicted_balance
 
 async def get_total_spendings_for_given_time_period(user_id: str, start_date: datetime, end_date: datetime) -> str:
-    try:
-        # Step 1: Find the user's accounts
-        user_accounts = await collection_account.find({"user_id": user_id}).to_list(length=None)
-        
-        # Get all account_ids associated with this user
-        account_ids = [account["account_id"] for account in user_accounts]
-        if not account_ids:
-            return f"No accounts found for user ID: {user_id}"
-        
-        # Step 2: Find transactions for these accounts within the date range
-        pipeline = [
-            {
-                "$match": {
-                    "account_id": {"$in": account_ids},
-                    "date": {"$gte": start_date, "$lte": end_date},
-                    "payment": {"$gt": 0}  # Only count outgoing payments
-                }
-            },
-            {
-                "$group": {
-                    "_id": None,
-                    "total_spendings": {"$sum": "$payment"}
-                }
-            }
-        ]
-        
-        total_spendings_cursor = collection_transaction.aggregate(pipeline)
-        result_list = await total_spendings_cursor.to_list(length=None)
+    # Step 1: Find the user's accounts
+    print("inside total spendings")
 
-        if result_list and "total_spendings" in result_list[0]:
-            total_amount = result_list[0]["total_spendings"]
-            formatted_start = start_date.strftime('%Y-%m-%d')
-            formatted_end = end_date.strftime('%Y-%m-%d')
-            return f"user`s total spendings are ${total_amount} for the period {formatted_start} to {formatted_end} use this and return ${total_amount} were spent by the user in the given time period. here {total_amount} is the amount, add that to the response. "
-        else:
-            return f"No transactions found for the period {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
-    except Exception as e:
-        return f"An error occurred: {str(e)}"
+    user_accounts = collection_account.find({"user_id": user_id})
+    user_accounts = await user_accounts.to_list(length=None)    
+    # Get all account_ids associated with this user
+    account_ids = [account["account_id"] for account in user_accounts]
+    if not account_ids:
+        return f"No accounts found for user ID: {user_id}"
+    
+    # Step 2: Find transactions for these accounts within the date range
+    pipeline = [
+        {
+            "$match": {
+                "account_id": {"$in": account_ids},
+                "date": {"$gte": start_date, "$lte": end_date},
+                "payment": {"$gt": 0}  # Only count outgoing payments
+            }
+        },
+        {
+            "$group": {
+                "_id": None,
+                "total_spendings": {"$sum": "$payment"}
+            }
+        }
+    ]
+    
+    total_spendings_result = collection_transaction.aggregate(pipeline)
+    
+    # Process the result
+    # result_list = list(total_spendings_result)
+    result_list = await total_spendings_result.to_list(length=None)
+
+    if result_list and "total_spendings" in result_list[0]:
+        total_amount = result_list[0]["total_spendings"]
+        formatted_start = start_date.strftime('%Y-%m-%d')
+        formatted_end = end_date.strftime('%Y-%m-%d')
+        print("total_amount",total_amount)
+        # return f"user`s total spendings are ${total_amount} for the period {formatted_start} to {formatted_end} use this and return ${total_amount} were spent by the user in the given time period. here {total_amount} is the amount, add that to the response. "
+        return f"""{{ 
+
+        "amount": {total_amount}
+    }}"""
+    else:
+        print("No transactions found")
+        return f"No transactions found for the period {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
 
 
 async def get_total_incomes_for_given_time_period(user_id: str, start_date: datetime, end_date: datetime) -> str:
+    print("inside income")
     try:
         # Step 1: Find the user's accounts
         user_accounts = await collection_account.find({"user_id": user_id}).to_list(length=None)
@@ -73,18 +83,23 @@ async def get_total_incomes_for_given_time_period(user_id: str, start_date: date
         
         total_incomes_cursor = collection_transaction.aggregate(pipeline)
         result_list = await total_incomes_cursor.to_list(length=None)
-
+        print("result_list",result_list)
         if result_list and "total_incomes" in result_list[0]:
             total_amount = result_list[0]["total_incomes"]
             formatted_start = start_date.strftime('%Y-%m-%d')
             formatted_end = end_date.strftime('%Y-%m-%d')
-            return f"Your total incomes are ${total_amount:.2f} for the period {formatted_start} to {formatted_end}"
+            # return f"Your total incomes are ${total_amount:.2f} for the period {formatted_start} to {formatted_end}"
+            print("total_amount",total_amount)
+            return f"""{{ 
+        "amount": {total_amount}
+    }}"""
         else:
             return f"No transactions found for the period {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
     except Exception as e:
         return f"An error occurred: {str(e)}"
     
 async def get_last_transaction(user_id: str) -> str:
+    print("inside get last transaction")
     try:
         # Step 1: Find the user's accounts
         user_accounts = await collection_account.find({"user_id": user_id}).to_list(length=None)
@@ -107,12 +122,17 @@ async def get_last_transaction(user_id: str) -> str:
         amount = last_transaction.get("receipt", last_transaction.get("payment", 0))
         transaction_type = "Income" if "receipt" in last_transaction else "Expense"
 
-        return f"Last transaction: {transaction_type} of ${amount:.2f} on {transaction_date}"
+        #return f"Last transaction: {transaction_type} of ${amount:.2f} on {transaction_date}"
+        return f"""{{
+            "transaction_type": "{transaction_type}",
+            "amount": {amount},
+        }}"""
 
     except Exception as e:
         return f"An error occurred: {str(e)}"
     
 async def get_monthly_summary(user_id: str, year: int, month: int) -> str:
+    print("inside get monthly summary")
     try:
         # Step 1: Find the user's accounts
         user_accounts = await collection_account.find({"user_id": user_id}).to_list(length=None)
@@ -167,6 +187,7 @@ async def get_monthly_summary(user_id: str, year: int, month: int) -> str:
         return f"An error occurred: {str(e)}"
     
 async def get_all_transactions_for_given_date(user_id: str, date: datetime) -> str:
+    print("inside get all transactions")
     try:
         # Step 1: Find the user's accounts
         user_accounts = await collection_account.find({"user_id": user_id}).to_list(length=None)
@@ -203,9 +224,8 @@ async def get_all_transactions_for_given_date(user_id: str, date: datetime) -> s
     except Exception as e:
         return f"An error occurred: {str(e)}"
     
-# Prediction tools
-    
 async def get_next_month_total_incomes(user_id: str) -> str:
+    print("inside next month total income")
     try:
         # Step 1: Find the user's accounts
         user_accounts = await collection_account.find({"user_id": user_id}).to_list(length=None)
@@ -250,8 +270,9 @@ async def get_next_month_total_incomes(user_id: str) -> str:
 
     except Exception as e:
         return f"An error occurred: {str(e)}"
-
+    
 async def get_next_month_total_spendings(user_id: str) -> str:
+    print("inside next month total spendings")
     try:
         # Step 1: Find the user's accounts
         user_accounts = await collection_account.find({"user_id": user_id}).to_list(length=None)
@@ -298,6 +319,7 @@ async def get_next_month_total_spendings(user_id: str) -> str:
         return f"An error occurred: {str(e)}"
 
 async def get_next_income(user_id: str) -> str:
+    print("inside next income")
     try:
         # Step 1: Find the user's accounts
         user_accounts = await collection_account.find({"user_id": user_id}).to_list(length=None)
@@ -343,6 +365,7 @@ async def get_next_income(user_id: str) -> str:
         return f"An error occurred: {str(e)}"
     
 async def get_next_spending(user_id: str) -> str:
+    print("inside next spending")
     try:
         # Step 1: Find the user's accounts
         user_accounts = await collection_account.find({"user_id": user_id}).to_list(length=None)
@@ -388,6 +411,7 @@ async def get_next_spending(user_id: str) -> str:
         return f"An error occurred: {str(e)}"
 
 async def handle_incomplete_time_periods(user_id: str, start_date: datetime = None, end_date: datetime = None) -> str:
+    
     try:
         if not start_date and not end_date:
             return "Please provide both the start date and end date for the time period."

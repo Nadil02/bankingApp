@@ -23,6 +23,7 @@ class GetLastTransactionArgs(BaseModel):
 
 class GetMonthlySummaryArgs(BaseModel):
     user_id: str
+    year: int
     month: int
 
 class GetAllTransactionsForDateArgs(BaseModel):
@@ -40,9 +41,3 @@ class GetNextIncomeArgs(BaseModel):
 
 class GetNextSpendingArgs(BaseModel):
     user_id: str
-
-class HandleIncompleteTimePeriodsArgs(BaseModel):
-    user_id: str
-    start_date: datetime
-    end_date: datetime
-
