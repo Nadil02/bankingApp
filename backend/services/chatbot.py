@@ -124,9 +124,27 @@ async def get_chatbot_response(user_id: str, query: str) -> str:
     tool_prompt += "\nReturn the tool names in a format of [\"get_week_summary\", \"get_month_summary\"] if get_week_summary and get_month_summary tools are needed. If no tool is needed, the response should be an empty array []"
     tool_response = llm.invoke(tool_prompt).content.strip()
 
+    tool_date_arguments=("Extract the start date and end date from the user query in the format "
+    '["YYYY-MM-DD", "YYYY-MM-DD"]. If no date range is provided or required, return an empty array []. '
+    "Ensure the extracted dates are valid and properly formatted.")
+    
+    tool__date_argument_response=llm.invoke(tool_date_arguments).content.strip()
     tool_names = json.loads(tool_response) 
-    tool_results = {}
     tool_args = {"user_id": user_id}
+    if tool__date_argument_response:
+        tool_date=json.loads(tool__date_argument_response)
+        if tool_date:  # Ensure it's not an empty array
+            start_date = datetime.strptime(tool_date[0], "%Y-%m-%d")
+            end_date = datetime.strptime(tool_date[1], "%Y-%m-%d")
+            tool_args = {"user_id": user_id, "start_date": start_date, "end_date": end_date}
+    tool_results = {}
+    
+
+
+# Assuming tool_date is extracted as a list like ["2022-01-01", "2022-01-31"]
+    
+    
+    
     for tool_name in tool_names:
         for tool in tools:
             if tool['name'] == tool_name:
