@@ -47,9 +47,10 @@ async def get_total_spendings_for_given_time_period(user_id: str, start_date: da
         return f"No transactions found for the period {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
 
 
-def get_total_incomes_for_given_time_period(user_id: str, start_date: datetime, end_date: datetime) -> str:
+async def get_total_incomes_for_given_time_period(user_id: str, start_date: datetime, end_date: datetime) -> str:
     # Step 1: Find the user's accounts
     user_accounts = collection_account.find({"user_id": user_id})
+    user_accounts = await user_accounts.to_list(length=None)
     
     # Get all account_ids associated with this user
     account_ids = [account["account_id"] for account in user_accounts]
@@ -77,8 +78,8 @@ def get_total_incomes_for_given_time_period(user_id: str, start_date: datetime, 
     total_incomes_result = collection_transaction.aggregate(pipeline)
     
     # Process the result
-    result_list = list(total_incomes_result)
-    
+    result_list = await total_incomes_result.to_list(length=None)
+
     if result_list and "total_incomes" in result_list[0]:
         total_amount = result_list[0]["total_incomes"]
         formatted_start = start_date.strftime('%Y-%m-%d')
@@ -88,17 +89,18 @@ def get_total_incomes_for_given_time_period(user_id: str, start_date: datetime, 
         return f"No transactions found for the period {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
     
 #create_tool_for_get_last_transaction
-def get_last_transaction(user_id: str) -> str:
+async def get_last_transaction(user_id: str) -> str:
     try:
         # Step 1: Find the user's accounts
         user_accounts = collection_account.find({"user_id": user_id})
+        user_accounts = await user_accounts.to_list(length=None)
         account_ids = [account["account_id"] for account in user_accounts]
 
         if not account_ids:
             return f"No accounts found for user ID: {user_id}"
 
         # Step 2: Find the most recent transaction
-        last_transaction = collection_transaction.find_one(
+        last_transaction = await collection_transaction.find_one(
             {"account_id": {"$in": account_ids}},
             sort=[("date", -1)]  # Sort by date in descending order to get the latest transaction
         )
@@ -117,10 +119,10 @@ def get_last_transaction(user_id: str) -> str:
         return f"An error occurred: {str(e)}"
     
 #create_tool_for_get_monthly_summary_for_given_month
-def get_monthly_summary(user_id: str, year: int, month: int) -> str:
+async def get_monthly_summary(user_id: str, year: int, month: int) -> str:
     try:
         # Step 1: Find the user's accounts
-        user_accounts = collection_account.find({"user_id": user_id})
+        user_accounts = await collection_account.find({"user_id": user_id})
         account_ids = [account["account_id"] for account in user_accounts]
 
         if not account_ids:
@@ -170,10 +172,10 @@ def get_monthly_summary(user_id: str, year: int, month: int) -> str:
         return f"An error occurred: {str(e)}"
     
 #create_tool_for_get_all_transactions_for_given_date
-def get_all_transactions_for_given_date(user_id: str, date: datetime) -> str:
+async def get_all_transactions_for_given_date(user_id: str, date: datetime) -> str:
     try:
         # Step 1: Find the user's accounts
-        user_accounts = collection_account.find({"user_id": user_id})
+        user_accounts = await collection_account.find({"user_id": user_id})
         account_ids = [account["account_id"] for account in user_accounts]
 
         if not account_ids:
@@ -210,10 +212,10 @@ def get_all_transactions_for_given_date(user_id: str, date: datetime) -> str:
 #prediction_tools.
     
 #create_too_for_get_next_month_total_incomes
-def get_next_month_total_incomes(user_id: str) -> str:
+async def get_next_month_total_incomes(user_id: str) -> str:
     try:
         # Step 1: Find the user's accounts
-        user_accounts = collection_account.find({"user_id": user_id})
+        user_accounts = await collection_account.find({"user_id": user_id})
         account_ids = [account["account_id"] for account in user_accounts]
 
         if not account_ids:
@@ -256,10 +258,10 @@ def get_next_month_total_incomes(user_id: str) -> str:
         return f"An error occurred: {str(e)}"
 
 #create_tool_for_get_next_month_total_spendings
-def get_next_month_total_spendings(user_id: str) -> str:
+async def get_next_month_total_spendings(user_id: str) -> str:
     try:
         # Step 1: Find the user's accounts
-        user_accounts = collection_account.find({"user_id": user_id})
+        user_accounts = await collection_account.find({"user_id": user_id})
         account_ids = [account["account_id"] for account in user_accounts]
 
         if not account_ids:
@@ -303,10 +305,10 @@ def get_next_month_total_spendings(user_id: str) -> str:
 
 
 #create_tool_for_get_next_income
-def get_next_income(user_id: str) -> str:
+async def get_next_income(user_id: str) -> str:
     try:
         # Step 1: Find the user's accounts
-        user_accounts = collection_account.find({"user_id": user_id})
+        user_accounts = await collection_account.find({"user_id": user_id})
         account_ids = [account["account_id"] for account in user_accounts]
 
         if not account_ids:
@@ -347,10 +349,10 @@ def get_next_income(user_id: str) -> str:
         return f"An error occurred: {str(e)}"
     
 #crate_tool_for_the_get_next_spending
-def get_next_spending(user_id: str) -> str:
+async def get_next_spending(user_id: str) -> str:
     try:
         # Step 1: Find the user's accounts
-        user_accounts = collection_account.find({"user_id": user_id})
+        user_accounts = await collection_account.find({"user_id": user_id})
         account_ids = [account["account_id"] for account in user_accounts]
 
         if not account_ids:
