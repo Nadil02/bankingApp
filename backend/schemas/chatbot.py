@@ -12,3 +12,7 @@ class GetTotalSpendingsArgs(BaseModel):
     user_id: str
     start_date: datetime
     end_date: datetime
+
+
+class getsystemanswer(BaseModel):
+    query: str

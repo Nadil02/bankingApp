@@ -10,8 +10,9 @@ from models import ChatBot,transaction
 from datetime import datetime
 from langchain_core.tools import StructuredTool
 from pydantic import BaseModel
-from schemas.chatbot import GetTotalSpendingsArgs
-from services.llmAgentTools import get_total_spendings_for_given_time_period
+from schemas.chatbot import GetTotalSpendingsArgs, getsystemanswer
+from services.llmAgentTools import get_total_spendings_for_given_time_period, chatbot_system_answer
+
 
 # load environment variables
 load_dotenv()
@@ -49,8 +50,31 @@ tools = [
         """,
         args_schema=GetTotalSpendingsArgs,
         coroutine=get_total_spendings_for_given_time_period
+    ),
+
+    StructuredTool(
+        name="chatbot_system_answer",
+        coroutine=chatbot_system_answer,  # Only use coroutine for async function
+        description="""Retrieves system details to answer user queries about the system.
+
+        **Parameters:**  
+        - `query` (str): The user's question about the system.
+
+        **Usage Example:**  
+        If a user asks: *"What are the features of this system?"*  
+        The function will be called as:  
+        ```python
+        chatbot_system_answer(query="What are the features of this system?")
+        ```
+        **Returns:** A `str` containing the system details. Example:  
+        `"This system includes features like a chatbot, to-do list, goal setting, transaction prediction, and categorization."`
+        """,
+        args_schema=getsystemanswer, # Ensure this is correctly defined
+        
     )
 ]
+
+
 
 SYSTEM_PROMPT = """You are a financial assistant. Use available tools in sequence when needed.
 You can use multiple tools for complex requests. Follow this pattern:
@@ -73,6 +97,9 @@ memory = ConversationBufferMemory(memory_key="chat_history", return_messages=Tru
 agent = create_tool_calling_agent(llm, tools, prompt)
 agent_executor = AgentExecutor(agent=agent, tools=tools, memory=memory, verbose=True,max_iterations=3,handle_parsing_errors=True,early_stopping_method="generate",return_intermediate_steps=False)
 
+
+
+
 async def get_chat_summary(user_id: str) -> str:
     user_data =await collection_chatbot.find_one({"user_id": user_id})
     if not user_data:
@@ -90,6 +117,7 @@ async def update_chat_summary(user_id: str, newSummary: str):
         {"$set": updated_data.dict()},
         upsert=True
     )
+
 
 
 def get_new_summary(query: str, chat_summary: str) -> str:
