@@ -10,8 +10,8 @@ from models import ChatBot,transaction
 from datetime import datetime
 from langchain_core.tools import StructuredTool
 from pydantic import BaseModel
-from schemas.chatbot import GetTotalSpendingsArgs
-from services.llmAgentTools import get_total_spendings_for_given_time_period
+from schemas.chatbot import GetTotalSpendingsArgs,GetTotalIncomeArgs,GetLastTransactionArgs,GetMonthlySummaryArgs,GetAllTransactionsForDateArgs,GetNextMonthTotalIncomesArgs,GetNextMonthTotalSpendingsArgs,GetNextIncomeArgs,GetNextSpendingArgs
+from services.llmAgentTools import get_total_spendings_for_given_time_period,get_total_incomes_for_given_time_period,get_last_transaction,get_monthly_summary,get_all_transactions_for_given_date,get_next_month_total_incomes,get_next_month_total_spendings,get_next_income,get_next_spending
 
 # load environment variables
 load_dotenv()
@@ -25,6 +25,133 @@ llm = ChatGoogleGenerativeAI(
 
 
 tools = [
+     StructuredTool(
+        name="get_next_month_total_spendings",
+        func=get_next_month_total_spendings,
+        description="""Retrieves total spending for the next month.
+        **Parameters:**
+        - `user_id` (str): Unique identifier of the user.
+        
+        **Usage Example:**
+        If a user asks: *"How much will I spend next month?"*
+        The function will be called as:
+        ```python
+        get_next_month_total_spendings(user_id="12345")
+        ```
+        The function returns the predicted total spending for the upcoming month.
+        """,
+        args_schema=GetNextMonthTotalSpendingsArgs,
+        coroutine=get_next_month_total_spendings
+    )
+    ,
+    StructuredTool(
+        name="get_total_incomes_for_given_time_period",
+        func=get_total_incomes_for_given_time_period,
+        description="""Retrieves the total income received by a user within a specified time period.
+        **Parameters:**
+        - `user_id` (str): Unique identifier of the user.
+        - `start_date` (datetime, format: YYYY-MM-DD): Start date of the period to analyze.
+        - `end_date` (datetime, format: YYYY-MM-DD): End date of the period to analyze.
+        
+        **Usage Example:**
+        If a user asks: *"How much did I earn between January 1, 2024, and January 31, 2024?"*
+        The function will be called as:
+        ```python
+        get_total_incomes_for_given_time_period(
+            user_id="12345",
+            start_date=datetime(2024, 1, 1),
+            end_date=datetime(2024, 1, 31)
+        )
+        ```
+        The function returns income amount as a NUMBER. Example: 3500.00
+        """,
+        args_schema=GetTotalIncomeArgs,
+        coroutine=get_total_incomes_for_given_time_period
+    ),
+    
+    StructuredTool(
+        name="get_last_transaction",
+        func=get_last_transaction,
+        description="""Retrieves details about the most recent transaction for a user.
+        **Parameters:**
+        - `user_id` (str): Unique identifier of the user.
+        
+        **Usage Example:**
+        If a user asks: *"What was my last transaction?"*
+        The function will be called as:
+        ```python
+        get_last_transaction(user_id="12345")
+        ```
+        The function returns details about the most recent transaction including type, amount, and date.
+        """,
+        args_schema=GetLastTransactionArgs,
+        coroutine=get_last_transaction
+    ),
+    
+    StructuredTool(
+        name="get_monthly_summary",
+        func=get_monthly_summary,
+        description="""Retrieves a summary of financial activity for a specific month.
+        **Parameters:**
+        - `user_id` (str): Unique identifier of the user.
+        - `year` (int): Year for the monthly summary (format: YYYY).
+        - `month` (int): Month for the summary (1-12).
+        
+        **Usage Example:**
+        If a user asks: *"What was my financial summary for January 2024?"*
+        The function will be called as:
+        ```python
+        get_monthly_summary(
+            user_id="12345",
+            year=2024,
+            month=1
+        )
+        ```
+        The function returns a summary of total income, expenses, and balance for the specified month.
+        """,
+        args_schema=GetMonthlySummaryArgs,
+        coroutine=get_monthly_summary
+    ),
+    StructuredTool(
+        name="get_all_transactions_for_given_date",
+        func=get_all_transactions_for_given_date,
+        description="""Retrieves all transactions that occurred on a specific date.
+        **Parameters:**
+        - `user_id` (str): Unique identifier of the user.
+        - `date` (datetime, format: YYYY-MM-DD): Date to retrieve transactions for.
+        
+        **Usage Example:**
+        If a user asks: *"Show me all transactions from January 15, 2024"*
+        The function will be called as:
+        ```python
+        get_all_transactions_for_given_date(
+            user_id="12345",
+            date=datetime(2024, 1, 15)
+        )
+        ```
+        The function returns a list of all transactions with amounts and descriptions for the specified date.
+        """,
+        args_schema=GetAllTransactionsForDateArgs,
+        coroutine=get_all_transactions_for_given_date
+    ),
+    StructuredTool(
+        name="get_next_month_income",
+        func=get_next_month_total_incomes,
+        description="""Retrieves total income for the next month. these are predicted values.
+        **Parameters:**
+        - `user_id` (str): Unique identifier of the user.
+        
+        **Usage Example:**
+        If a user asks: *"How much income can I expect next month?"*
+        The function will be called as:
+        ```python
+        get_next_month_total_incomes(user_id="12345")
+        ```
+        The function returns the predicted total income for the upcoming month.
+        """,
+        args_schema=GetNextMonthTotalIncomesArgs,
+        coroutine=get_next_month_total_incomes
+    ),
     StructuredTool(
         name="get_total_spendings_for_given_time_period",
         func=get_total_spendings_for_given_time_period, 
@@ -45,10 +172,45 @@ tools = [
             end_date=datetime(2024, 1, 31)
         )
         ```
-        The function returns spending amount as a NUMBER. Example: 556.31
         """,
         args_schema=GetTotalSpendingsArgs,
         coroutine=get_total_spendings_for_given_time_period
+    ),
+    StructuredTool(
+        name="get_next_income",
+        func=get_next_income,
+        description="""Retrieves details about the next predicted income transaction.
+        **Parameters:**
+        - `user_id` (str): Unique identifier of the user.
+        
+        **Usage Example:**
+        If a user asks: *"When is my next income expected?"*
+        The function will be called as:
+        ```python
+        get_next_income(user_id="12345")
+        ```
+        The function returns details about the next expected income including date, amount, and description.
+        """,
+        args_schema=GetNextIncomeArgs,
+        coroutine=get_next_income
+    ),
+     StructuredTool(
+        name="get_next_spending",
+        func=get_next_spending,
+        description="""Retrieves details about the next predicted spending transaction.
+        **Parameters:**
+        - `user_id` (str): Unique identifier of the user.
+        
+        **Usage Example:**
+        If a user asks: *"What's my next upcoming expense?"*
+        The function will be called as:
+        ```python
+        get_next_spending(user_id="12345")
+        ```
+        The function returns details about the next expected expense including date, amount, and description.
+        """,
+        args_schema=GetNextSpendingArgs,
+        coroutine=get_next_spending
     )
 ]
 
