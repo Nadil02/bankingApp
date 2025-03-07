@@ -118,3 +118,9 @@ class Goal(BaseModel):
 class ChatBot(BaseModel):
     user_id: str
     chat_summary: str
+
+
+class chatbot_details(BaseModel):
+    introduction:str
+    
+

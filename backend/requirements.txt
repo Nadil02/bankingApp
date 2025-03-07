@@ -1,0 +1,11 @@
+dotenv
+langchain
+langchain_google_genai 
+chromadb 
+pymongo 
+tiktoken
+fastapi
+motor
+langchain-text-splitters
+langchain-community
+python-dotenv

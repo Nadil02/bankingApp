@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from database import collection_chatbot
 from models import ChatBot
 import json
+from services.llmAgentTools import chatbot_system_answer
 
 # import functions from llmAgentTools.py
 # from .llmAgentTools import get_week_summary, get_month_summary
@@ -27,6 +28,7 @@ conversation = ConversationChain(
 #add tools here
 tools = [
     # {"name": "get_week_summary", "func": get_week_summary, "description": "Use this tool to get week transaction summary."},
+    {"name": "chatbot_system_answer","func": chatbot_system_answer,"description": "Use this tool to answer user questions based on system information stored in Chroma DB."}
     
 ]
 
