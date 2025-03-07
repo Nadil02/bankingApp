@@ -2,37 +2,14 @@ from models import transaction
 from database import collection_transaction,collection_predicted_income,collection_predicted_expense,collection_predicted_balance,collection_user,collection_account
 from datetime import datetime
 
-
-
-# # def get_last_transaction(user_id: str, account_id: str) -> str:
-# #     last_transaction = collection_transaction.find_one(
-# #         {"user_id": user_id, "account_id": account_id},
-# #         sort=[("date", -1)]
-# #     )
-# #     if last_transaction:
-# #         txn= transaction(**last_transaction).dict()
-# #         return f"your last transaction was {txn.payment} on {txn.date.strftime('%Y-%m-%d')} description : {txn.description}"
-# #     else:
-# #         return "No transactions found"
-    
-# def get_week_summary(user_id: str) -> str:
-#     return "total 1300 incomes were there in the last week"
-    
-# def get_month_summary(user_id: str) -> str:
-#     return "total 2300 incomes were there in the last month"
-
-
-
-#transaction_tools.
-
 #create_tool_for_get_total_spendings_for_given_time_period
-def get_total_spendings_for_given_time_period(user_id: str, start_date: datetime, end_date: datetime) -> str:
+async def get_total_spendings_for_given_time_period(user_id: str, start_date: datetime, end_date: datetime) -> str:
     # Step 1: Find the user's accounts
+    print("inside")
     user_accounts = collection_account.find({"user_id": user_id})
-    
+    user_accounts = await user_accounts.to_list(length=None)    
     # Get all account_ids associated with this user
     account_ids = [account["account_id"] for account in user_accounts]
-    
     if not account_ids:
         return f"No accounts found for user ID: {user_id}"
     
@@ -56,17 +33,20 @@ def get_total_spendings_for_given_time_period(user_id: str, start_date: datetime
     total_spendings_result = collection_transaction.aggregate(pipeline)
     
     # Process the result
-    result_list = list(total_spendings_result)
-    
+    # result_list = list(total_spendings_result)
+    result_list = await total_spendings_result.to_list(length=None)
+
     if result_list and "total_spendings" in result_list[0]:
         total_amount = result_list[0]["total_spendings"]
         formatted_start = start_date.strftime('%Y-%m-%d')
         formatted_end = end_date.strftime('%Y-%m-%d')
-        return f"Your total spendings are {total_amount:.2f} for the period {formatted_start} to {formatted_end}"
+        print("total_amount",total_amount)
+        return f"user`s total spendings are ${total_amount} for the period {formatted_start} to {formatted_end} use this and return ${total_amount} were spent by the user in the given time period. here {total_amount} is the amount, add that to the response. "
     else:
+        print("No transactions found")
         return f"No transactions found for the period {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
-    
-#create_tool_for_get_total_incomes_for_given_time_period
+
+
 def get_total_incomes_for_given_time_period(user_id: str, start_date: datetime, end_date: datetime) -> str:
     # Step 1: Find the user's accounts
     user_accounts = collection_account.find({"user_id": user_id})
