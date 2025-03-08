@@ -3,7 +3,7 @@ from database import collection_transaction, collection_predicted_income, collec
 from datetime import datetime
 from database import collection_account, collection_transaction, collection_predicted_income, collection_predicted_expense, collection_user, collection_predicted_balance
 
-async def get_total_spendings_for_given_time_period(user_id: str, start_date: datetime, end_date: datetime) -> str:
+async def get_total_spendings_for_given_time_period(user_id: int, start_date: datetime, end_date: datetime) -> str:
     # Step 1: Find the user's accounts
     print("inside total spendings")
 
@@ -52,7 +52,7 @@ async def get_total_spendings_for_given_time_period(user_id: str, start_date: da
         return f"No transactions found for the period {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
 
 
-async def get_total_incomes_for_given_time_period(user_id: str, start_date: datetime, end_date: datetime) -> str:
+async def get_total_incomes_for_given_time_period(user_id: int, start_date: datetime, end_date: datetime) -> str:
     print("inside income")
     try:
         # Step 1: Find the user's accounts
@@ -98,7 +98,7 @@ async def get_total_incomes_for_given_time_period(user_id: str, start_date: date
     except Exception as e:
         return f"An error occurred: {str(e)}"
     
-async def get_last_transaction(user_id: str) -> str:
+async def get_last_transaction(user_id: int) -> str:
     print("inside get last transaction")
     try:
         # Step 1: Find the user's accounts
@@ -131,7 +131,7 @@ async def get_last_transaction(user_id: str) -> str:
     except Exception as e:
         return f"An error occurred: {str(e)}"
     
-async def get_monthly_summary(user_id: str, year: int, month: int) -> str:
+async def get_monthly_summary(user_id: int, year: int, month: int) -> str:
     print("inside get monthly summary")
     try:
         # Step 1: Find the user's accounts
@@ -186,7 +186,7 @@ async def get_monthly_summary(user_id: str, year: int, month: int) -> str:
     except Exception as e:
         return f"An error occurred: {str(e)}"
     
-async def get_all_transactions_for_given_date(user_id: str, date: datetime) -> str:
+async def get_all_transactions_for_given_date(user_id: int, date: datetime) -> str:
     print("inside get all transactions")
     try:
         # Step 1: Find the user's accounts
@@ -224,7 +224,7 @@ async def get_all_transactions_for_given_date(user_id: str, date: datetime) -> s
     except Exception as e:
         return f"An error occurred: {str(e)}"
     
-async def get_next_month_total_incomes(user_id: str) -> str:
+async def get_next_month_total_incomes(user_id: int) -> str:
     print("inside next month total income")
     try:
         # Step 1: Find the user's accounts
@@ -318,7 +318,7 @@ async def get_next_month_total_spendings(user_id: str) -> str:
     except Exception as e:
         return f"An error occurred: {str(e)}"
 
-async def get_next_income(user_id: str) -> str:
+async def get_next_income(user_id: int) -> str:
     print("inside next income")
     try:
         # Step 1: Find the user's accounts
@@ -364,7 +364,7 @@ async def get_next_income(user_id: str) -> str:
     except Exception as e:
         return f"An error occurred: {str(e)}"
     
-async def get_next_spending(user_id: str) -> str:
+async def get_next_spending(user_id: int) -> str:
     print("inside next spending")
     try:
         # Step 1: Find the user's accounts

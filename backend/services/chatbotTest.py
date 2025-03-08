@@ -31,13 +31,13 @@ tools = [
         func=get_next_month_total_spendings,
         description="""Retrieves total spending for the next month.
         **Parameters:**
-        - `user_id` (str): Unique identifier of the user.
+        - `user_id` (int): Unique identifier of the user.
         
         **Usage Example:**
         If a user asks: *"How much will I spend next month?"*
         The function will be called as:
         ```python
-        get_next_month_total_spendings(user_id="12345")
+        get_next_month_total_spendings(user_id=12345)
         ```
         The function returns the predicted total spending for the upcoming month.
         """,
@@ -50,7 +50,7 @@ tools = [
         func=get_total_incomes_for_given_time_period,
         description="""Retrieves the total income received by a user within a specified time period.
         **Parameters:**
-        - `user_id` (str): Unique identifier of the user.
+        - `user_id` (int): Unique identifier of the user.
         - `start_date` (datetime, format: YYYY-MM-DD): Start date of the period to analyze.
         - `end_date` (datetime, format: YYYY-MM-DD): End date of the period to analyze.
         
@@ -59,7 +59,7 @@ tools = [
         The function will be called as:
         ```python
         get_total_incomes_for_given_time_period(
-            user_id="12345",
+            user_id=12345,
             start_date=datetime(2024, 1, 1),
             end_date=datetime(2024, 1, 31)
         )
@@ -75,13 +75,13 @@ tools = [
         func=get_last_transaction,
         description="""Retrieves details about the most recent transaction for a user.
         **Parameters:**
-        - `user_id` (str): Unique identifier of the user.
+        - `user_id` (int): Unique identifier of the user.
         
         **Usage Example:**
         If a user asks: *"What was my last transaction?"*
         The function will be called as:
         ```python
-        get_last_transaction(user_id="12345")
+        get_last_transaction(user_id=12345)
         ```
         The function returns details about the most recent transaction including type, amount, and date.
         """,
@@ -94,7 +94,7 @@ tools = [
         func=get_monthly_summary,
         description="""Retrieves a summary of financial activity for a specific month.
         **Parameters:**
-        - `user_id` (str): Unique identifier of the user.
+        - `user_id` (int): Unique identifier of the user.
         - `year` (int): Year for the monthly summary (format: YYYY).
         - `month` (int): Month for the summary (1-12).
         
@@ -103,7 +103,7 @@ tools = [
         The function will be called as:
         ```python
         get_monthly_summary(
-            user_id="12345",
+            user_id=12345,
             year=2024,
             month=1
         )
@@ -118,7 +118,7 @@ tools = [
         func=get_all_transactions_for_given_date,
         description="""Retrieves all transactions that occurred on a specific date.
         **Parameters:**
-        - `user_id` (str): Unique identifier of the user.
+        - `user_id` (int): Unique identifier of the user.
         - `date` (datetime, format: YYYY-MM-DD): Date to retrieve transactions for.
         
         **Usage Example:**
@@ -126,7 +126,7 @@ tools = [
         The function will be called as:
         ```python
         get_all_transactions_for_given_date(
-            user_id="12345",
+            user_id=12345,
             date=datetime(2024, 1, 15)
         )
         ```
@@ -140,13 +140,13 @@ tools = [
         func=get_next_month_total_incomes,
         description="""Retrieves total income for the next month. these are predicted values.
         **Parameters:**
-        - `user_id` (str): Unique identifier of the user.
+        - `user_id` (int): Unique identifier of the user.
         
         **Usage Example:**
         If a user asks: *"How much income can I expect next month?"*
         The function will be called as:
         ```python
-        get_next_month_total_incomes(user_id="12345")
+        get_next_month_total_incomes(user_id=12345)
         ```
         The function returns the predicted total income for the upcoming month.
         """,
@@ -158,7 +158,7 @@ tools = [
         func=get_total_spendings_for_given_time_period,
         description="""Retrieves the total amount spent by a user within a specified time period.
         **Parameters:**
-        - `user_id` (str): Unique identifier of the user.
+        - `user_id` (int): Unique identifier of the user.
         - `start_date` (datetime, format: YYYY-MM-DD): Start date of the period to analyze.
         - `end_date` (datetime, format: YYYY-MM-DD): End date of the period to analyze.
         
@@ -167,7 +167,7 @@ tools = [
         The function will be called as:
         ```python
         get_total_spendings_for_given_time_period(
-            user_id="12345",
+            user_id=12345,
             start_date=datetime(2024, 1, 1),
             end_date=datetime(2024, 1, 31)
         )
@@ -181,13 +181,13 @@ tools = [
         func=get_next_income,
         description="""Retrieves details about the next predicted income transaction.
         **Parameters:**
-        - `user_id` (str): Unique identifier of the user.
+        - `user_id` (int): Unique identifier of the user.
         
         **Usage Example:**
         If a user asks: *"When is my next income expected?"*
         The function will be called as:
         ```python
-        get_next_income(user_id="12345")
+        get_next_income(user_id=12345)
         ```
         The function returns details about the next expected income including date, amount, and description.
         """,
@@ -199,13 +199,13 @@ tools = [
         func=get_next_spending,
         description="""Retrieves details about the next predicted spending transaction.
         **Parameters:**
-        - `user_id` (str): Unique identifier of the user.
+        - `user_id` (int): Unique identifier of the user.
         
         **Usage Example:**
         If a user asks: *"What's my next upcoming expense?"*
         The function will be called as:
         ```python
-        get_next_spending(user_id="12345")
+        get_next_spending(user_id=12345)
         ```
         The function returns details about the next expected expense including date, amount, and description.
         """,
@@ -235,7 +235,7 @@ memory = ConversationBufferMemory(memory_key="chat_history", return_messages=Tru
 agent = create_tool_calling_agent(llm, tools, prompt)
 agent_executor = AgentExecutor(agent=agent, tools=tools, memory=memory, verbose=True,max_iterations=3,handle_parsing_errors=True,early_stopping_method="generate",return_intermediate_steps=False)
 
-async def get_chat_summary(user_id: str) -> str:
+async def get_chat_summary(user_id: int) -> str:
     user_data =await collection_chatbot.find_one({"user_id": user_id})
     if not user_data:
         new_user = ChatBot(user_id=user_id, chat_summary="")
@@ -245,7 +245,7 @@ async def get_chat_summary(user_id: str) -> str:
     return user_data["chat_summary"]
 
 
-async def update_chat_summary(user_id: str, newSummary: str):
+async def update_chat_summary(user_id: int, newSummary: str):
     updated_data = ChatBot(user_id=user_id, chat_summary=newSummary)
     await collection_chatbot.update_one(
         {"user_id": user_id},
@@ -270,7 +270,7 @@ def get_new_summary(query: str, chat_summary: str) -> str:
     
     return new_summary.content.strip()
 
-async def get_chatbot_response(user_id: str, query: str) -> str:
+async def get_chatbot_response(user_id: int, query: str) -> str:
     
     about_user = await get_chat_summary(user_id)
     
