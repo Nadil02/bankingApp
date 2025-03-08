@@ -1,19 +1,34 @@
-# from fastapi import FastAPI, HTTPException
-# from pydantic import BaseModel
-# from twilio.rest import Client
+import httpx
+import os
 
-# TWILIO_ACCOUNT_SID='AC35435fc1972c095c2cf03e2649434490'
-# TWILIO_AUTH_TOKEN='b620529b4de366b8d1351495e071ffe6'
-# TWILIO_PHONE_NUMBER='+94710620915'
+# Load your credentials from environment variables or directly assign them
+USER_ID = os.getenv("NOTIFY_LK_USER_ID", "29160")
+API_KEY = os.getenv("NOTIFY_LK_API_KEY", "0M2hBE8wyTVkIV40pfRN")
+SENDER_ID = os.getenv("NOTIFY_LK_SENDER_ID", "NotifyDEMO")  # Use your approved sender ID
+BASE_URL = "https://app.notify.lk/api/v1"
 
-# client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+def send_sms(to: str, message: str):
+    """Send an SMS using Notify.lk API."""
+    print("Sending SMS to", to)
+    url = f"{BASE_URL}/send"
+    params = {
+        "user_id": USER_ID,
+        "api_key": API_KEY,
+        "sender_id": SENDER_ID,
+        "to": to,
+        "message": message,
+    }
+    response = httpx.get(url, params=params)
+    print(response.json())
+    print(account_status())
+    return response.json()
 
-# def sendOtp(phone_number: str, otp: str):
-#     message=f"your otp is {otp}"
-#     client.messages.create(to=phone_number, from_=TWILIO_PHONE_NUMBER, body=message)
-
-
-
-
-
-
+def account_status():
+    """Check account status and balance."""
+    url = f"{BASE_URL}/status"
+    params = {
+        "user_id": USER_ID,
+        "api_key": API_KEY,
+    }
+    response = httpx.get(url, params=params)
+    return response.json()

@@ -1,7 +1,7 @@
 from schemas.sign_in import SignInRequest, SignInResponse, OtpRequest, OtpResponse
 from database import collection_user,collection_OTP
 from models import OTP,user
-# from utils.OTP import sendOtp
+from utils.OTP import send_sms
 from utils.encrypt_and_decrypt import encrypt, decrypt_user_data
 import random
 from argon2 import PasswordHasher
@@ -15,9 +15,9 @@ async def sign_in_validation(sign_in_request: SignInRequest) -> SignInResponse:
 
     last_otp =await collection_OTP.find_one(sort=[("otp_id", -1)])  #  last otpid 
     if last_otp and "otp_id" in last_otp:
-        next_otp_id = str(int(last_otp["otp_id"]) + 1)
+        next_otp_id = last_otp["otp_id"] + 1
     else:
-        next_otp_id = "1"  #from 1 if no otp exist
+        next_otp_id = 1  #from 1 if no otp exist
 
     await storeAndSendOtp(next_otp_id, sign_in_request.phone_number)
 
@@ -26,7 +26,7 @@ async def sign_in_validation(sign_in_request: SignInRequest) -> SignInResponse:
 def generate_otp():
     return random.randint(10000, 99999)
 
-async def storeAndSendOtp(next_otp_id: str, phone_number: str):
+async def storeAndSendOtp(next_otp_id: int, phone_number: str):
     otp=str(generate_otp())
     otp_data = OTP(
         otp=otp,
@@ -36,8 +36,8 @@ async def storeAndSendOtp(next_otp_id: str, phone_number: str):
     )
 
     await collection_OTP.insert_one(otp_data.dict(by_alias=True))  # Convert OTP model to dictionary
-
-    # sendOtp(phone_number, otp)
+    message="hi this is banking app. Your OTP is: "+otp
+    send_sms(phone_number, message=message)
 
 async def otp_validation(otp_request: OtpRequest) -> OtpResponse:
     
@@ -47,16 +47,16 @@ async def otp_validation(otp_request: OtpRequest) -> OtpResponse:
     
     last_user =await collection_user.find_one(sort=[("user_id", -1)])  #  last userid 
     if last_user and "user_id" in last_user:
-        next_user_id = str(int(last_user["user_id"]) + 1)
+        next_user_id = last_user["user_id"] + 1
     else:
-        next_user_id = "1"  #from 1 if no otp exist
+        next_user_id = 1  #from 1 if no otp exist
 
     nic_bytes = otp_request.nic.encode('utf-8')
     sha256_hash = hashlib.sha256()
     sha256_hash.update(nic_bytes)
     hashed_nic = sha256_hash.hexdigest()
 
-    print("hashed_nic",hashed_nic)
+    # print("hashed_nic",hashed_nic)
 
     salt=bcrypt.gensalt()
     hashed_passcode=bcrypt.hashpw(otp_request.passcode.encode('utf-8'),salt)

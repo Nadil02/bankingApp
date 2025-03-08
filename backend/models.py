@@ -11,7 +11,7 @@ class user(BaseModel):
     login_nic:str
     phone_number: str
     passcode: str
-    user_id: str 
+    user_id: int 
     notification_status: bool
 
 
@@ -35,7 +35,7 @@ class bank(BaseModel):
 class OTP(BaseModel):
     otp: str
     # user_id: str
-    otp_id: str #=Field(default_factory=lambda: str(uuid4()), alias="_id")
+    otp_id: int #=Field(default_factory=lambda: str(uuid4()), alias="_id")
     # expiry_time: datetime
     # verification_count: int
 

@@ -4,12 +4,12 @@ class SignInRequest(BaseModel):
     phone_number: str
 
 class SignInResponse(BaseModel):
-    otp_id: str
+    otp_id: int
     status: str
     message: str
 
 class OtpRequest(BaseModel):
-    otp_id: str
+    otp_id: int
     otp: str
     nic: str
     first_name: str
@@ -20,4 +20,4 @@ class OtpRequest(BaseModel):
 class OtpResponse(BaseModel):
     status: str
     message: str
-    user_id: str
+    user_id: int
