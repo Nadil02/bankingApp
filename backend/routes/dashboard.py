@@ -7,7 +7,7 @@ router = APIRouter(
 )
 
 @router.get("/")
-async def displayDashBoard(user_id:str):
+async def displayDashBoard(user_id:int):
     # get user all bank accounts
     return await load_full_details(user_id)
 
