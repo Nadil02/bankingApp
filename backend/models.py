@@ -10,14 +10,14 @@ class user(BaseModel):
     nic: str
     phone_number: str
     passcode: str
-    user_id: str =Field(default_factory=lambda: str(uuid4()), alias="_id")
+    user_id: int 
     notification_status: bool
 
 
 class account(BaseModel):
     bank_id: str
     account_id: str =Field(default_factory=lambda: str(uuid4()), alias="_id")
-    user_id: str
+    user_id: int
     account_number: str
     account_type: str
     credit_limit: float
@@ -33,7 +33,7 @@ class bank(BaseModel):
 
 class OTP(BaseModel):
     otp: str
-    user_id: str
+    user_id: int
     otp_id: str =Field(default_factory=lambda: str(uuid4()), alias="_id")
     expiry_time: datetime
     verification_count: int
@@ -42,7 +42,7 @@ class OTP(BaseModel):
 class TodoList(BaseModel):
     description: str
     todo_id: str =Field(default_factory=lambda: str(uuid4()), alias="_id")
-    user_id: str
+    user_id: int
     date: datetime
     time: datetime
     repeat_frequency: Optional[str] = None
@@ -90,7 +90,7 @@ class PredictedIncome(BaseModel):
 
 
 class Notification(BaseModel):
-    user_id: str
+    user_id: int
     notification_id: str =Field(default_factory=lambda: str(uuid4()), alias="_id")
     description: str
     date: datetime
@@ -116,7 +116,7 @@ class Goal(BaseModel):
 
 
 class ChatBot(BaseModel):
-    user_id: str
+    user_id: int
     chat_summary: str
 
 
