@@ -455,7 +455,7 @@ async def chatbot_system_answer(query: str) -> str:
     if existing_count > 0:
         # Retrieve existing stored data to compare
         stored_data = chroma_collection.get(include=["documents"])
-        print("Stored Data: ", stored_data)
+        #print("Stored Data: ", stored_data)
         
         stored_texts = set(stored_data["documents"]) if stored_data and "documents" in stored_data else set()
 

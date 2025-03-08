@@ -136,13 +136,13 @@ async def get_chatbot_response(user_id: str, query: str) -> str:
     
     tool__date_argument_response=llm.invoke(tool_date_arguments).content.strip()
     tool_names = json.loads(tool_response) 
-    tool_args = {"user_id": user_id,"query":query}
+    tool_args = {"user_id": user_id}
     if tool__date_argument_response:
         tool_date=json.loads(tool__date_argument_response)
         if tool_date:  # Ensure it's not an empty array
             start_date = datetime.strptime(tool_date[0], "%Y-%m-%d")
             end_date = datetime.strptime(tool_date[1], "%Y-%m-%d")
-            tool_args = {"user_id": user_id,"query":query, "start_date": start_date, "end_date": end_date}
+            tool_args = {"user_id": user_id, "start_date": start_date, "end_date": end_date}
     tool_results = {}
     
 
