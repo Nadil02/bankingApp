@@ -78,6 +78,11 @@ tools = [
         "name": "handle_incomplete_time_periods", 
         "func": handle_incomplete_time_periods, 
         "description": "Helps manage queries with missing date parameters by prompting for the required information. Required parameters: user_id (string), start_date (datetime, optional), end_date (datetime, optional). Use this when the user's query is missing date information needed for financial analysis."
+    },
+    {
+        "name": "chatbot_system_answer",
+        "func": chatbot_system_answer,
+        "description": "Use this tool to answer user questions based on system information stored in ChromaDB. Required parameters are user_query (string)"
     }
 ]
 
@@ -131,13 +136,13 @@ async def get_chatbot_response(user_id: str, query: str) -> str:
     
     tool__date_argument_response=llm.invoke(tool_date_arguments).content.strip()
     tool_names = json.loads(tool_response) 
-    tool_args = {"user_id": user_id}
+    tool_args = {"user_id": user_id,"query":query}
     if tool__date_argument_response:
         tool_date=json.loads(tool__date_argument_response)
         if tool_date:  # Ensure it's not an empty array
             start_date = datetime.strptime(tool_date[0], "%Y-%m-%d")
             end_date = datetime.strptime(tool_date[1], "%Y-%m-%d")
-            tool_args = {"user_id": user_id, "start_date": start_date, "end_date": end_date}
+            tool_args = {"user_id": user_id,"query":query, "start_date": start_date, "end_date": end_date}
     tool_results = {}
     
 

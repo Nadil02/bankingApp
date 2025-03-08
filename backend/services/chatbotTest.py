@@ -10,8 +10,8 @@ from models import ChatBot,transaction
 from datetime import datetime
 from langchain_core.tools import StructuredTool
 from pydantic import BaseModel
-from schemas.chatbot import GetTotalSpendingsArgs ,GetTotalIncomeArgs,GetLastTransactionArgs,GetMonthlySummaryArgs,GetAllTransactionsForDateArgs,GetNextMonthTotalIncomesArgs,GetNextMonthTotalSpendingsArgs,GetNextIncomeArgs,GetNextSpendingArgs
-from services.llmAgentTools import get_total_spendings_for_given_time_period,get_total_incomes_for_given_time_period,get_last_transaction,get_monthly_summary,get_all_transactions_for_given_date,get_next_month_total_incomes,get_next_month_total_spendings,get_next_income,get_next_spending
+from schemas.chatbot import GetSystemAnswerArgs, GetTotalSpendingsArgs ,GetTotalIncomeArgs,GetLastTransactionArgs,GetMonthlySummaryArgs,GetAllTransactionsForDateArgs,GetNextMonthTotalIncomesArgs,GetNextMonthTotalSpendingsArgs,GetNextIncomeArgs,GetNextSpendingArgs
+from services.llmAgentTools import chatbot_system_answer, get_total_spendings_for_given_time_period,get_total_incomes_for_given_time_period,get_last_transaction,get_monthly_summary,get_all_transactions_for_given_date,get_next_month_total_incomes,get_next_month_total_spendings,get_next_income,get_next_spending
 
 # load environment variables
 load_dotenv()
@@ -211,6 +211,27 @@ tools = [
         """,
         args_schema=GetNextSpendingArgs,
         coroutine=get_next_spending
+    ),
+
+    StructuredTool(
+        name="chatbot_system_answer",
+        func=chatbot_system_answer,  
+        description="""Retrieves system details to answer user queries about the system.
+
+        *Parameters:*  
+        - query (str): The user's question about the system suchas: what are the ain features of this system, what is todo list used for, ...
+
+        *Usage Example:*  
+        If a user asks: "What are the features of this system?"  
+        The function will be called as:  
+        python
+        chatbot_system_answer(query="What are the features of this system?")
+        
+        *Returns:* A str containing the system details. Example:  
+        "This system includes features like a chatbot, to-do list, goal setting, transaction prediction, and categorization."
+        """,
+        args_schema=GetSystemAnswerArgs,
+        coroutine=chatbot_system_answer
     )
 ]
 
