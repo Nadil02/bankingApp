@@ -28,7 +28,7 @@ conversation = ConversationChain(
 #add tools here
 tools = [
     # {"name": "get_week_summary", "func": get_week_summary, "description": "Use this tool to get week transaction summary."},
-    #{"name": "chatbot_system_answer","func": chatbot_system_answer,"description": "Use this tool to answer user questions based on system information stored in Chroma DB."}
+    {"name": "chatbot_system_answer","func": chatbot_system_answer,"description": "Use this tool to answer user questions based on system information stored in Chroma DB."}
     
 ]
 

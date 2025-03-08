@@ -8,11 +8,11 @@ class ChatbotRequest(BaseModel):
 class ChatbotResponse(BaseModel):
     response: str
 
-class GetTotalSpendingsArgs(BaseModel):
-    user_id: str
-    start_date: datetime
-    end_date: datetime
+#class GetTotalSpendingsArgs(BaseModel):
+  #  user_id: str
+   # start_date: datetime
+    #end_date: datetime
 
 
-class getsystemanswer(BaseModel):
+class GetSystemAnswer(BaseModel):
     query: str

@@ -87,3 +87,15 @@ async def chatbot_system_answer(query: str) -> str:
     # Retrieve the best results
     retrieved_chunks = results.get("documents", [[]])[0]
     return " ".join(retrieved_chunks).strip() if retrieved_chunks else "No relevant information found."
+
+
+# Test the function
+import asyncio
+
+async def test_chatbot_system_answer():
+    query = "What is todo list in this system?"  # Example query
+    response = await chatbot_system_answer(query)
+    print("Response from chatbot system:", response)
+
+# Run the test function
+asyncio.run(test_chatbot_system_answer())

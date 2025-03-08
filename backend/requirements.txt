@@ -9,3 +9,6 @@ motor
 langchain-text-splitters
 langchain-community
 python-dotenv
+torch
+transformers
+sentence_transformers

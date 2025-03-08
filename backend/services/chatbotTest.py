@@ -5,13 +5,13 @@ from langchain.memory import ConversationBufferMemory
 from langchain.tools import tool,Tool
 import os
 from dotenv import load_dotenv
-from database import collection_chatbot,collection_transaction,collection_predicted_income,collection_predicted_expense,collection_user,collection_account,collection_predicted_balance
+from database import collection_chatbot#,collection_transaction,collection_predicted_income,collection_predicted_expense,collection_user,collection_account,collection_predicted_balance
 from models import ChatBot,transaction
 from datetime import datetime
 from langchain_core.tools import StructuredTool
 from pydantic import BaseModel
-from schemas.chatbot import GetTotalSpendingsArgs, getsystemanswer
-from services.llmAgentTools import get_total_spendings_for_given_time_period, chatbot_system_answer
+from schemas.chatbot import GetSystemAnswer #GetTotalSpendingsArgs, 
+from services.llmAgentTools import chatbot_system_answer# get_total_spendings_for_given_time_period, 
 
 
 # load environment variables
@@ -27,49 +27,24 @@ llm = ChatGoogleGenerativeAI(
 
 tools = [
     StructuredTool(
-        name="get_total_spendings_for_given_time_period",
-        func=get_total_spendings_for_given_time_period, 
-        description="""Retrieves the total amount spent by a user within a specified time period.  
-
-        **Parameters:**  
-        - `user_id` (str): Unique identifier of the user.  
-        - `start_date` (datetime, format: YYYY-MM-DD): Start date of the period to analyze.  
-        - `end_date` (datetime, format: YYYY-MM-DD): End date of the period to analyze.  
-
-        **Usage Example:**  
-        If a user asks: *"How much did I spend between January 1, 2024, and January 31, 2024?"*  
-        The function will be called as:  
-        ```python
-        get_total_spendings_for_given_time_period(
-            user_id="12345",
-            start_date=datetime(2024, 1, 1),
-            end_date=datetime(2024, 1, 31)
-        )
-        ```
-        The function returns spending amount as a NUMBER. Example: 556.31
-        """,
-        args_schema=GetTotalSpendingsArgs,
-        coroutine=get_total_spendings_for_given_time_period
-    ),
-
-    StructuredTool(
         name="chatbot_system_answer",
-        coroutine=chatbot_system_answer,  # Only use coroutine for async function
-        description="""Retrieves system details to answer user queries about the system.
+        func=chatbot_system_answer,  
+        description="""Retrieves system details to answer user queries about the system, system features, scope and finctionality.
 
-        **Parameters:**  
-        - `query` (str): The user's question about the system.
+        *Parameters:*  
+        - query (str): The user's question about the system, features, scope or functionality.
 
-        **Usage Example:**  
-        If a user asks: *"What are the features of this system?"*  
+        *Usage Example:*  
+        If a user asks: "What are the features of this system?"  
         The function will be called as:  
-        ```python
+        python
         chatbot_system_answer(query="What are the features of this system?")
-        ```
-        **Returns:** A `str` containing the system details. Example:  
-        `"This system includes features like a chatbot, to-do list, goal setting, transaction prediction, and categorization."`
+        
+        *Returns:* A str containing the system details. Example:  
+        "This system includes features like a chatbot, to-do list, goal setting, transaction prediction, and categorization."
         """,
-        args_schema=getsystemanswer, # Ensure this is correctly defined
+        args_schema=GetSystemAnswer,
+        coroutine=chatbot_system_answer
         
     )
 ]
