@@ -471,9 +471,10 @@ async def sanizedData(query: str) -> str:
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": f"Redact sensitive details from: {user_input}"}
     ]
-    response = chat(model='llama3.2:3b', messages=messages)
+    response = chat(model='llama3.2:latest', messages=messages)
     content = response['message']['content']
-    #converting to string
+    # llama3.2:3b
+    #converting to string 
     content_dict = json.loads(content)
     # taking dummy values
     dummy_values = content_dict["original"]
@@ -560,7 +561,7 @@ async def desanizedData(item: str, actual_values: dict) -> dict:
         {"role": "user", "content": f"Replace placeholders in: {user_input} using {json.dumps(actual_values)}"}
     ]
 
-    response = chat(model='llama3.2:3b', messages=messages)
+    response = chat(model='llama3.2:latest', messages=messages)
     print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
     content = response['message']['content']
     print("content : ",content)

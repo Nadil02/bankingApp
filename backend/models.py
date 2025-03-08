@@ -43,7 +43,10 @@ class TodoList(BaseModel):
     description: str
     todo_id: str =Field(default_factory=lambda: str(uuid4()), alias="_id")
     user_id: int
-    date: datetime
+    # date: datetime
+    day: int
+    month: str
+    year: int
     time: datetime
     repeat_frequency: Optional[str] = None
 
