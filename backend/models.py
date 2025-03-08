@@ -118,3 +118,10 @@ class Goal(BaseModel):
 class ChatBot(BaseModel):
     user_id: int
     chat_summary: str
+
+class UserDummy(BaseModel):
+    user_id: str
+    amount: Optional[float] = None
+    accountNumber: Optional[str] = None
+    name: Optional[str] = None
+

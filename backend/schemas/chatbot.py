@@ -41,3 +41,7 @@ class GetNextIncomeArgs(BaseModel):
 
 class GetNextSpendingArgs(BaseModel):
     user_id: int
+
+class AddTodoItemArgs(BaseModel):
+    user_id: int
+    item: str

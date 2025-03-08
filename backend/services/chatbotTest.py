@@ -5,14 +5,14 @@ from langchain.memory import ConversationBufferMemory
 from langchain.tools import tool,Tool
 import os
 from dotenv import load_dotenv
-from database import collection_chatbot,collection_transaction,collection_predicted_income,collection_predicted_expense,collection_user,collection_account,collection_predicted_balance
+from database import collection_chatbot,collection_transaction,collection_predicted_income,collection_predicted_expense,collection_user,collection_account,collection_predicted_balance,collection_dummy_values,collection_Todo_list
 from models import ChatBot,transaction
 from datetime import datetime
 from langchain_core.tools import StructuredTool
 from pydantic import BaseModel
-from schemas.chatbot import GetTotalSpendingsArgs,GetTotalIncomeArgs,GetLastTransactionArgs,GetMonthlySummaryArgs,GetAllTransactionsForDateArgs,GetNextMonthTotalIncomesArgs,GetNextMonthTotalSpendingsArgs,GetNextIncomeArgs,GetNextSpendingArgs
-from services.llmAgentTools import get_total_spendings_for_given_time_period,get_total_incomes_for_given_time_period,get_last_transaction,get_monthly_summary,get_all_transactions_for_given_date,get_next_month_total_incomes,get_next_month_total_spendings,get_next_income,get_next_spending
-# this is original agent
+from schemas.chatbot import GetTotalSpendingsArgs,GetTotalIncomeArgs,GetLastTransactionArgs,GetMonthlySummaryArgs,GetAllTransactionsForDateArgs,GetNextMonthTotalIncomesArgs,GetNextMonthTotalSpendingsArgs,GetNextIncomeArgs,GetNextSpendingArgs,AddTodoItemArgs
+from services.llmAgentTools import get_total_spendings_for_given_time_period,get_total_incomes_for_given_time_period,get_last_transaction,get_monthly_summary,get_all_transactions_for_given_date,get_next_month_total_incomes,get_next_month_total_spendings,get_next_income,get_next_spending,add_to_do_item
+
 # load environment variables
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -211,6 +211,50 @@ tools = [
         """,
         args_schema=GetNextSpendingArgs,
         coroutine=get_next_spending
+    ),
+
+    StructuredTool(
+        name="add_to_do_item",
+        func=add_to_do_item,
+        description="""Insert a user’s to-do item into the database.
+
+        **Parameters:**
+        - `user_id` (int): Unique identifier of the user.
+        - `item` (str): The to-do item to be added.
+        
+
+        **Usage Example:**
+        If a user asks: *"I need to pay @amount to @name"*
+        The function will be called as:
+        ```python
+        await add_to_do_item(
+            user_id=1
+            item="pay @amount to @name",
+            
+        )
+        ```
+        If a user asks: *"Need to pay @amount to @account"*
+        The function will be called as:
+        ```python
+        await add_to_do_item(
+            user_id=1,
+            item="pay @amount to @account"
+        )
+        ```
+        If a user asks: *"Need to pay @amount to @name by @date"*
+        The function will be called as:
+        ```python
+        await add_to_do_item(
+            user_id=1,
+            item="pay @amount to @name by @date"
+        )
+        ```
+
+
+        The function returns a success message if the to-do item is successfully added to the database.
+        """,
+        args_schema=AddTodoItemArgs,
+        coroutine=add_to_do_item 
     )
 ]
 
@@ -284,3 +328,4 @@ async def get_chatbot_response(user_id: int, query: str) -> str:
     await update_chat_summary(user_id, new_summary)
     
     return response["output"]
+

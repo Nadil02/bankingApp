@@ -1,7 +1,10 @@
+import json
+from ollama import chat
 from models import transaction
 from database import collection_transaction, collection_predicted_income, collection_predicted_expense, collection_predicted_balance, collection_user, collection_account
+from pymongo.errors import PyMongoError
 from datetime import datetime
-from database import collection_account, collection_transaction, collection_predicted_income, collection_predicted_expense, collection_user, collection_predicted_balance
+from database import collection_account, collection_transaction, collection_predicted_income, collection_predicted_expense, collection_user, collection_predicted_balance,collection_dummy_values,collection_Todo_list
 
 async def get_total_spendings_for_given_time_period(user_id: int, start_date: datetime, end_date: datetime) -> str:
     # Step 1: Find the user's accounts
@@ -424,3 +427,190 @@ async def handle_incomplete_time_periods(user_id: str, start_date: datetime = No
             return f"Time period from {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')} is valid."
     except Exception as e:
         return f"An error occurred while processing the time period: {str(e)}"
+
+
+# creating dummy values for the  user input
+async def sanizedData(query: str) -> str:
+    """Use the local LLM to detect and redact sensitive information."""
+    user_input = query.query
+    user_id = query.user_id
+    system_prompt = (
+        "You are a security assistant. Your task is to identify and redact sensitive financial information in user input. "
+        "Extract and store sensitive details in a structured format, and replace those details in the text with placeholders."
+        
+        "Sensitive details can be: "
+        "1. **Monetary amounts** (e.g., '$1000', '5000 dollars', 'USD 300'). Store this under 'amount' and replace it with '@amount'. " 
+        "2. **Account numbers** (e.g., '123456789'). Store this under 'accountNumber' and replace it with '@account'. "
+        "   Don't keep account numbers like '123456789' in the input field; replace them with '@account'. For example: '123456789' should be replaced with '@account'. "
+        "3. **Names** (e.g., 'John', 'Mr. Smith', 'Kasun'). Store this under 'name' and replace it with '@name'. "
+        "4. **Dates** (e.g., '2022-01-01', '01/01/2022', '1st January 2022'). Store this under 'date' and replace it with '@date'. "
+        "5. **Bank Names** (e.g., 'BOC', 'Sampath', 'Peoples', 'HNB', 'NSB'). Store this under 'account' and replace it with '@bank'. "
+        
+        "Replace these values **only if they exist in the input**. If no sensitive details are found, return the original input unchanged. "
+        "For example : "
+        "If user input is 'I need to pay electricity bill', it should return: 'I need to pay electricity bill.' because there is no any sensitive information in the input. "
+        "You must handle cases where any or all of these types of sensitive information may be present in the input. "
+        
+        "Output a JSON object with two fields: "
+        "1. **'redacted'**: Contains the sanitized sentence with placeholders. "
+        "2. **'original'**: A dictionary containing the extracted sensitive details as key-value pairs. "
+        
+        "For example: "
+        "If a user input contains a monetary amount, such as 'I need to pay $1000 to John.', it should return: "
+        "{'redacted': 'I need to pay @amount to @name.', 'original': {'amount': '1000','name': 'John'}}. "
+        
+        "If a user input contains a bank name, such as 'I have to pay $500 to Sampath bank', it should return: "
+        "{'redacted': 'I have to pay @amount to @account bank', 'original': {'amount': '500', account': 'Sampath'}}. "
+        
+        "Do not keep values in the 'original' field if they are not present in the input. "
+        "Return **ONLY** the JSON output. Do not include any metadata, explanations, or additional information in your response."
+    )
+
+
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": f"Redact sensitive details from: {user_input}"}
+    ]
+    response = chat(model='llama3.2:3b', messages=messages)
+    content = response['message']['content']
+    #converting to string
+    content_dict = json.loads(content)
+    # taking dummy values
+    dummy_values = content_dict["original"]
+    # stioring dummy values with actual values in the database
+    return_message = await store_dummy_values(user_id, dummy_values)
+    print("redacted_string : ",content_dict["redacted"])
+    # restoring dummy values with actual values
+    # correct_string = await add_to_do_item(user_id, content_dict["redacted"])
+    # print("correct_string : ",correct_string)
+    return content_dict["redacted"]
+
+async def desanizedData(item: str, actual_values: dict) -> dict:
+    """Replace dummy values with actual values using the local LLM."""
+    
+    user_input = item
+    print("user_input : ",user_input)
+    print("actual_values : ",actual_values)
+    system_prompt = (
+        "You will receive a prompt containing placeholder values (e.g., '@amount', '@name', '@date', '@bank'). "
+        "You will also receive a dictionary with actual values. Your task is to replace the placeholders "
+        "with their corresponding values from the dictionary.\n"
+        
+        "If there are no placeholders in the input, return the input unchanged.\n"
+        
+        "After replacing placeholders, transform the entire sentence into a usual concise to-do item.\n"
+        
+        "**Rules:**\n"
+        "- Always return a valid **JSON object**.\n"
+        "- **Strictly return only the JSON output with no extra text, markdown formatting, or explanations.**\n"
+        "- If the input contains '@date' **AND** a corresponding 'date' key exists in the dictionary, store its value under 'date'. **Do not include 'date' in the sentence itself.**\n"
+        "- If '@date' is **missing from the sentence OR 'date' does not exist in the dictionary**, **do not include 'date' in the output at all** (do not return 'date': None, 'date': null, or 'date': '').\n"
+        "- If no placeholders exist in the sentence, return it as-is under 'sentence'.\n"
+        
+        "**Examples:**\n"
+        "1. Input:\n"
+        "   - Prompt: 'I need to pay @amount dollars to @name on @date.'\n"
+        "   - Dictionary: {'amount': '500', 'name': 'John', 'date': '2022-01-01'}\n"
+        "   - Output:\n"
+        "     {\n"
+        "       \"sentence\": \"pay 500 to John\",\n"
+        "       \"date\": \"2022-01-01\"\n"
+        "     }\n"
+        
+        "2. Input:\n"
+        "   - Prompt: 'I need to pay @amount to @name.'\n"
+        "   - Dictionary: {'amount': '500', 'name': 'John'}\n"
+        "   - Output:\n"
+        "     {\n"
+        "       \"sentence\": \"pay 500 to John\"\n"
+        "     }\n"
+        
+        "3. Input:\n"
+        "   - Prompt: 'I need to pay @amount to @bank bank.'\n"
+        "   - Dictionary: {'amount': '500', 'bank': 'BOC'}\n"
+        "   - Output:\n"
+        "     {\n"
+        "       \"sentence\": \"pay 500 to BOC bank\"\n"
+        "     }\n"
+        
+        "4. Input:\n"
+        "   - Prompt: 'I need to pay @amount to @bank bank on @date.'\n"
+        "   - Dictionary: {'amount': '500', 'bank': 'BOC', 'date': '2025-03-02'}\n"
+        "   - Output:\n"
+        "     {\n"
+        "       \"sentence\": \"pay 500 to BOC bank\",\n"
+        "       \"date\": \"2025-03-02\"\n"
+        "     }\n"
+        
+        "5. Input:\n"
+        "   - Prompt: 'I need to pay electricity bill.'\n"
+        "   - Dictionary: {}\n"
+        "   - Output:\n"
+        "     {\n"
+        "       \"sentence\": \"I need to pay electricity bill.\"\n"
+        "     }\n"
+    )
+
+
+
+
+
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": f"Replace placeholders in: {user_input} using {json.dumps(actual_values)}"}
+    ]
+
+    response = chat(model='llama3.2:3b', messages=messages)
+    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+    content = response['message']['content']
+    print("content : ",content)
+    
+    try:
+        content = response['message']['content']
+        content_dict = json.loads(content)
+        print("content_dict : ",content_dict)   
+        return content_dict # Return the final replaced text
+    except json.JSONDecodeError:
+        return {"Error":"Error in desanitization"}  # Return original input in case of an error
+
+
+#storing dummy values in the dataabase
+async def store_dummy_values(user_id:int, dummy_values: dict):
+    dummy_dict = {"user_id": user_id}
+    dummy_dict.update({key: value for key, value in dummy_values.items() if value is not None})
+    try:
+        result = await collection_dummy_values.insert_one(dummy_dict)
+        return {"success": True, "inserted_id": str(result.inserted_id)}
+    except PyMongoError as e:
+        return {"success": False, "error": str(e)}
+
+#replace dummy values with actual values
+async def add_to_do_item(user_id: int, item: str) -> dict:
+    # take dummy values from database
+    actual_values = await collection_dummy_values.find_one({"user_id": user_id}, {"_id": 0, "user_id": 0})
+
+    if actual_values is not None:
+        # call another local llm to replace placeholders with actual values
+        desanitizeValues = await desanizedData(item, actual_values)
+        print("|||||||||||||||||||||||||||||||||||||||||||||||")
+        print("desanitizeValues : ",desanitizeValues)
+        document = {
+            "user_id": user_id,
+            "description": desanitizeValues["sentence"],
+            "date": None
+        }
+        if desanitizeValues["date"] is not None:
+            document["date"] = desanitizeValues["date"]
+        
+        try:
+            # store the actual values in the database
+            result = await collection_Todo_list.insert_one(document)
+            # delete dummy values from the database
+            await collection_dummy_values.delete_one({"user_id": user_id})
+            return {"message":"Successfully added to the to-do list"}
+        except PyMongoError as e:
+            return {"message": "unable to add list", "error": str(e)}
+    
+    else:
+        return {"message":"No dummy values found for the user"}
+    

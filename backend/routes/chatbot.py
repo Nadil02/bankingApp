@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends
 from schemas.chatbot import ChatbotRequest, ChatbotResponse
 from services.chatbotTest import get_chatbot_response
+from services.llmAgentTools import sanizedData
 
 router= APIRouter()
 
 @router.post("/chatbot", response_model=ChatbotResponse)
 async def chatbot_endpoint(query: ChatbotRequest):
-    responseText=await get_chatbot_response(query.user_id, query.query)
-    return {"response": responseText}
+    sanitizedData = await sanizedData(query)  #returns a string
+    responseText=await get_chatbot_response(query.user_id, sanitizedData)
+    return {"response": "Success"}
