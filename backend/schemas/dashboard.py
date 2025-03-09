@@ -4,7 +4,7 @@ from typing import List
 from typing import Optional
 
 class SelectAccountRequest(BaseModel):
-    user_id: str
+    user_id: int
     account_id: str
 
 

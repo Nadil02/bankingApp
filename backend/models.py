@@ -10,14 +10,14 @@ class user(BaseModel):
     nic: str
     phone_number: str
     passcode: str
-    user_id: str =Field(default_factory=lambda: str(uuid4()), alias="_id")
+    user_id: int =Field(default_factory=lambda: int(uuid4()), alias="_id")
     notification_status: bool
 
 
 class account(BaseModel):
     bank_id: str
     account_id: str =Field(default_factory=lambda: str(uuid4()), alias="_id")
-    user_id: str
+    user_id: int
     account_number: str
     account_type: str
     credit_limit: float

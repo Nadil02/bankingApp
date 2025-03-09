@@ -99,6 +99,7 @@ async def fetch_past_transactions(account_ids: list, end_date: datetime,days:int
 
     return past_data
 
+days=7
 # predicted data for the graph
 async def fetch_predicted_data(account_id: list, end_date: datetime, days:int):
     """ Fetch upcoming 7 days predicted income, expenses, and balances. """
