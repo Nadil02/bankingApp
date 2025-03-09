@@ -24,3 +24,18 @@ async def add_new_todo(todo: TodoList):
     # Optionally, you can return the inserted document (or just the inserted_id)
     created_todo = await collection_Todo_list.find_one({"_id": todo_dict["_id"]})
     return created_todo
+
+#update_todo_status(ongoing->completed)
+async def update_todo_status(todo_id: int):
+    """
+    Update the status of the todo with the given todo_id from "ongoing" to "Completed".
+    Returns the updated document if the update was successful.
+    """
+    update_result = await collection_Todo_list.update_one(
+        {"todo_id": todo_id},
+        {"$set": {"status": "Completed"}}
+    )
+    if update_result.modified_count == 1:
+        updated_todo = await collection_Todo_list.find_one({"todo_id": todo_id})
+        return updated_todo
+    return None

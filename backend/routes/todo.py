@@ -3,7 +3,7 @@ from schemas.todo import TodoOngoing
 from services.todo import get_ongoing_todos_for_user
 from typing import List
 from models import TodoList
-from services.todo import add_new_todo
+from services.todo import add_new_todo, update_todo_status
 from fastapi import status
 
 
@@ -24,3 +24,10 @@ async def add_todo_item(todo: TodoList):
     if created:
         return created
     raise HTTPException(status_code=400, detail="Failed to create todo item")
+
+@router.patch("/todos/{todo_id}/status", response_model=TodoList)
+async def change_todo_status(todo_id: int):
+    updated_todo = await update_todo_status(todo_id)
+    if updated_todo:
+        return updated_todo
+    raise HTTPException(status_code=404, detail="Todo not found")
