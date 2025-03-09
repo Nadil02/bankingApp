@@ -1,10 +1,11 @@
 import json
 from ollama import chat
-from models import transaction
+from models import transaction, TodoList
 from database import collection_transaction, collection_predicted_income, collection_predicted_expense, collection_predicted_balance, collection_user, collection_account
 from pymongo.errors import PyMongoError
 from datetime import datetime
-from database import collection_account, collection_transaction, collection_predicted_income, collection_predicted_expense, collection_user, collection_predicted_balance,collection_dummy_values,collection_Todo_list
+from database import collection_account, collection_transaction, collection_predicted_income, collection_predicted_expense, collection_user, collection_predicted_balance, collection_dummy_values, collection_Todo_list
+from motor.motor_asyncio import AsyncIOMotorCollection
 
 async def get_total_spendings_for_given_time_period(user_id: int, start_date: datetime, end_date: datetime) -> str:
     # Step 1: Find the user's accounts
@@ -562,8 +563,8 @@ async def desanizedData(item: str, actual_values: dict) -> dict:
 
     response = chat(model='llama3.2:3b', messages=messages)
     print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-    content = response['message']['content']
-    print("content : ",content)
+    # content = response['message']['content']
+    # print("content : ",content)
     
     try:
         content = response['message']['content']
@@ -584,6 +585,23 @@ async def store_dummy_values(user_id:int, dummy_values: dict):
     except PyMongoError as e:
         return {"success": False, "error": str(e)}
 
+# insert user todo document into database in proper structure
+async def insert_todo(collection_Todo_list: AsyncIOMotorCollection, document: dict):
+    try:
+        # Validate and fill missing optional fields with None
+        todo_item = TodoList(**document)
+
+        # Convert to dict with missing fields set to None
+        document = todo_item.model_dump(by_alias=True, exclude_unset=False)
+
+        # Insert into MongoDB
+        result = await collection_Todo_list.insert_one(document)
+
+        return {"success": True, "inserted_id": str(result.inserted_id)}
+    
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
 #replace dummy values with actual values
 async def add_to_do_item(user_id: int, item: str) -> dict:
     # take dummy values from database
@@ -596,15 +614,14 @@ async def add_to_do_item(user_id: int, item: str) -> dict:
         print("desanitizeValues : ",desanitizeValues)
         document = {
             "user_id": user_id,
-            "description": desanitizeValues["sentence"],
-            "date": None
+            "description": desanitizeValues["sentence"]
         }
         if desanitizeValues["date"] is not None:
             document["date"] = desanitizeValues["date"]
         
         try:
             # store the actual values in the database
-            result = await collection_Todo_list.insert_one(document)
+            result = await insert_todo(collection_Todo_list, document)
             # delete dummy values from the database
             await collection_dummy_values.delete_one({"user_id": user_id})
             return {"message":"Successfully added to the to-do list"}
