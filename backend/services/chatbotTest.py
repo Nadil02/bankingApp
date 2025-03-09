@@ -216,7 +216,7 @@ tools = [
     StructuredTool(
         name="chatbot_system_answer",
         func=chatbot_system_answer,  
-        description="""Retrieves system details to answer user queries about the system.
+        description="""Retrieves system details to answer user queries about the system only using the provided information.
 
         *Parameters:*  
         - query (str): The user's question about the system suchas: what are the ain features of this system, what is todo list used for, ...

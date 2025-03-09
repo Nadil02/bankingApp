@@ -446,9 +446,10 @@ async def chatbot_system_answer(query: str) -> str:
     doc = await collection_chatbot_details.find_one({}, {"_id": 0, "introduction": 1})
     if not doc or "introduction" not in doc:
         return "No system details available."
+    print
 
     document_text = doc["introduction"]
-
+    print(document_text)
     # Check if stored embeddings match the latest database entry
     existing_count = chroma_collection.count()
     
@@ -500,10 +501,10 @@ async def chatbot_system_answer(query: str) -> str:
     # ChromaDB for relevant documents
     results = chroma_collection.query(
         query_embeddings=[query_embedding],
-        n_results=2
+        n_results=2,
+        where={"source": "introduction"}
     )
 
     # Retrieve  results
     retrieved_chunks = results.get("documents", [[]])[0]
     return " ".join(retrieved_chunks).strip() if retrieved_chunks else "No relevant information found."
-
