@@ -42,7 +42,7 @@ class OTP(BaseModel):
 class TodoList(BaseModel):
     description: str
     todo_id: str =Field(default_factory=lambda: str(uuid4()), alias="_id")
-    user_id: str
+    user_id: int
     date: datetime
     time: datetime
     repeat_frequency: Optional[str] = None

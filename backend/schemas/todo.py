@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field,validator 
 from datetime import datetime
 from typing import List, Optional
 
@@ -9,3 +9,35 @@ class TodoOngoing(BaseModel):
     repeat_frequency: Optional[str] = None
     date: datetime
     time: datetime
+
+
+class MarkCompletedRequest(BaseModel):
+    user_id: int
+    todo_id: int
+
+
+class RemoveTaskRequest(BaseModel):
+    user_id: int
+    todo_id: int
+
+
+class ConfirmTaskDeletion(BaseModel):
+    user_id: int
+    todo_id: int
+    confirm: bool
+
+
+
+class TaskSchema(BaseModel):
+    description: str
+    date: Optional[datetime] 
+    time: Optional[datetime] 
+    repeat_frequency: Optional[str] = None
+
+
+    #class Config:
+     #   orm_mode = True
+
+class ResponseMessage(BaseModel):
+    message: str
+    
