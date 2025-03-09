@@ -46,6 +46,8 @@ class TodoList(BaseModel):
     date: datetime
     time: datetime
     repeat_frequency: Optional[str] = None
+    amount: Optional[float] = None
+    status: str = Field(default="ongoing")
 
 
 class transaction(BaseModel):
