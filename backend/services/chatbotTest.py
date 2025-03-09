@@ -326,6 +326,5 @@ async def get_chatbot_response(user_id: int, query: str) -> str:
     
     new_summary = get_new_summary(query, about_user)
     await update_chat_summary(user_id, new_summary)
-    
     return response["output"]
 
