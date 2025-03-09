@@ -29,15 +29,14 @@ async def check_todo_item(request: RemoveTaskRequest):
 
 @router.delete("/remove/confirm/")
 async def remove_todo_item(request: ConfirmTaskDeletion):
-    result = await remove_task(request.user_id, request.task_id, request.confirm)
+    result = await remove_task(request.user_id, request.todo_id, request.confirm)
     if result["message"] == "Task not found.":
         raise HTTPException(status_code=404, detail=result["message"])
-    return {"message": "Todo item removed successfully", "description": result["description"]}
+    return {"message": result["message"], "description": result["description"]}
 
 
 @router.get("/task/", response_model=TaskSchema)
 async def fetch_task_details(user_id: int, todo_id: int):
-    """Fetch task details by user_id and task_id"""
     return await get_task_details(user_id, todo_id)
 
 
@@ -45,5 +44,4 @@ async def fetch_task_details(user_id: int, todo_id: int):
 
 @router.put("/tasks/", response_model=ResponseMessage)
 async def edit_task_details_route(user_id: int, todo_id: int, task: TaskSchema):
-    """Edit task details in MongoDB"""
     return await edit_task_details(user_id, todo_id, task.description, task.date, task.time, task.repeat_frequency)
