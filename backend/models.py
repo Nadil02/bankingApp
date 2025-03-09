@@ -118,3 +118,19 @@ class Goal(BaseModel):
 class ChatBot(BaseModel):
     user_id: str
     chat_summary: str
+
+class AccountRemove(BaseModel):
+    account_number: int
+    NIC: str
+    passcode: str
+
+class AccountAdd(BaseModel):
+    bank_account : str
+    bank_id : int
+    account_number : int
+    account_type : str
+    credit_limit : int
+    due_date : datetime
+    balance : int
+    NIC : str
+
