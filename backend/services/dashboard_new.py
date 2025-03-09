@@ -111,18 +111,24 @@ async def fetch_predicted_data(account_id: list, end_date: datetime, days:int):
         {"$project": {"date": 1, "amount":1,"balance":1}},
         {"$sort": {"date": 1}}
     ]
+    # print("###########################################################")
+    # print("Account_id",account_id)
 
     predicted_income_data = await collection_predicted_income.aggregate(transaction_pipeline).to_list(None)
     predicted_expense_data = await collection_predicted_expense.aggregate(transaction_pipeline).to_list(None)
     predicted_balance_data = await collection_predicted_balance.aggregate(transaction_pipeline).to_list(None)
 
     predicted_data = []
-    for i in range(len(predicted_income_data)):
+    # print("++++++++++++++++++++++++++++++++++++++++++")
+    # print("len_predicted_income_data",len(predicted_income_data))
+    # print("len_predicted_expense_data",len(predicted_expense_data))
+    # print("len_predicted_balance_data",len(predicted_balance_data))
+    for i in range(7):   #problem can be occur if predicted data is not available for 7 days
         predicted_data.append({
-            "date": predicted_income_data[i]["date"],  # Extracting "date" from predicted_income_data
-            "predicted_income": predicted_income_data[i]["amount"],  # Extracting "amount" as "income"
-            "predicted_expenses": predicted_expense_data[i]["amount"],  # Extracting "amount" as "expense"
-            "predicted_balance": predicted_balance_data[i]["balance"]  # Extracting "balance" from predicted_balance_data
+            "date": predicted_income_data[i]["date"] if i < len(predicted_income_data) else f"Day {i+1}", # Extracting "date" from predicted_income_data
+            "predicted_income": predicted_income_data[i]["amount"] if i < len(predicted_income_data) else 0,  # Extracting "amount" as "income"
+            "predicted_expenses": predicted_expense_data[i]["amount"] if i < len(predicted_expense_data) else 0,  # Extracting "amount" as "expense"
+            "predicted_balance": predicted_balance_data[i]["balance"]  if i < len(predicted_balance_data) else 0# Extracting "balance" from predicted_balance_data
         })
 
     # return predicted_data
@@ -167,7 +173,7 @@ async def fetch_most_spent_category_100_days(account_id: list, end_date: datetim
     return [most_spent_category_name, most_spent_amount]
 
 # load full details
-async def load_full_details(user_id:str,start_date: Optional[str] = None,end_date: Optional[str] = None):
+async def load_full_details(user_id:int,start_date: Optional[str] = None,end_date: Optional[str] = None):
     account_ids, account_list = await all_accounts(user_id)
 
     # converting all the data into date type
@@ -179,9 +185,12 @@ async def load_full_details(user_id:str,start_date: Optional[str] = None,end_dat
     if not start_date:
         end_date = datetime.now(timezone.utc)
         start_date = end_date - timedelta(days=30)
+        # print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+        # print("start_date",start_date)
+        # print("end_date",end_date)
         second_header = await update_second_header(account_ids,start_date,end_date)
         past_transaction_100_days = await fetch_past_transactions(account_ids,end_date,100)
-        predicted_transaction_7_days = await fetch_predicted_data(account_ids, end_date)
+        predicted_transaction_7_days = await fetch_predicted_data(account_ids, end_date,7)
         most_spending_category_100_days = await fetch_most_spent_category_100_days(account_ids,end_date) 
         return account_list,second_header, past_transaction_100_days, predicted_transaction_7_days,most_spending_category_100_days
     else:
@@ -194,8 +203,8 @@ async def load_specific_account(account_id:str,start_date: Optional[str] = None,
         end_date = datetime.now(timezone.utc)
         start_date = end_date - timedelta(days=30)
         second_header = await update_second_header(account_ids,start_date,end_date)
-        past_transaction_100_days = await fetch_past_transactions(account_ids,end_date)
-        predicted_transaction_7_days = await fetch_predicted_data(account_ids, end_date)
+        past_transaction_100_days = await fetch_past_transactions(account_ids,end_date,100)
+        predicted_transaction_7_days = await fetch_predicted_data(account_ids, end_date,7)
         most_spending_category_100_days = await fetch_most_spent_category_100_days(account_ids,end_date) 
         return second_header, past_transaction_100_days, predicted_transaction_7_days,most_spending_category_100_days
     else:
