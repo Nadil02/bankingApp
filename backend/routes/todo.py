@@ -42,6 +42,6 @@ async def fetch_task_details(user_id: int, todo_id: int):
 
 
 
-@router.put("/tasks/", response_model=ResponseMessage)
+@router.post("/tasks/", response_model=ResponseMessage)
 async def edit_task_details_route(user_id: int, todo_id: int, task: TaskSchema):
     return await edit_task_details(user_id, todo_id, task.description, task.date, task.time, task.repeat_frequency)
