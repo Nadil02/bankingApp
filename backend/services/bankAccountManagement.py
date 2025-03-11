@@ -1,7 +1,7 @@
 import json
 from bson import json_util
 from database import collection_account, collection_bank, collection_user
-from models import AccountRemove, AccountAdd,BankAccount,RemoveAccountResponse
+from schemas.bankAccountManagement import AccountRemove, AccountAdd,BankAccount,RemoveAccountResponse
 
 # get bank account details
 async def getBankAccountDetails(user_id: int) -> list[BankAccount]:
@@ -32,7 +32,7 @@ async def removeBankAccount(user_id: int, request: AccountRemove):
             result = await collection_account.delete_one({"user_id": user_id, "account_number": request.account_number})
             if result.deleted_count == 0:
                 return RemoveAccountResponse(message="Account not found")
-            return RemoveAccountResponse(message="success", description="Account removedsuccessfully")
+            return RemoveAccountResponse(message="success", description="Account removed successfully")
         return RemoveAccountResponse(message = "Passcode is incorrect")
     return RemoveAccountResponse(message= "User not found")
     
@@ -45,27 +45,3 @@ async def addBankAccount(user_id: int, request: AccountAdd):
     else:
         return RemoveAccountResponse(message="Error", description="User not found")
     
-
-
-
-
-# bank_account = request.bank_account
-#         bank_id = request.bank_id
-#         user_id = user_id
-#         account_number = request.account_number
-#         account_type = request.account_number
-#         credit_limit = request.credit_limit
-#         due_date = request.due_date
-#         balance = request.balance
-        
-#         # insert bank account to the database
-#         result = await collection_account.insert_one({
-#             "bank_account": bank_account,
-#             "bank_id": bank_id,
-#             "user_id": user_id,
-#             "account_number": account_number,
-#             "account_type": account_type,
-#             "credit_limit": credit_limit,
-#             "due_date": due_date,
-#             "balance": balance
-#         })

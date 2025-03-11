@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
-from services.SerbankAccountManagement import getBankAccountDetails, removeBankAccount, addBankAccount
-from models import AccountRemove, AccountAdd, BankAccount, RemoveAccountResponse
+from fastapi import APIRouter
+from services.bankAccountManagement import getBankAccountDetails, removeBankAccount, addBankAccount
+from schemas.bankAccountManagement import AccountRemove, AccountAdd,BankAccount,RemoveAccountResponse
 
 router = APIRouter(prefix="/bankAccountManagement", tags=["bankAccountManagement"])
 
