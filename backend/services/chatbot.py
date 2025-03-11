@@ -8,7 +8,6 @@ from pymongo.errors import PyMongoError
 from models import ChatBot
 # from ollama import chat
 import json
-from services.llmAgentTools import chatbot_system_answer
 
 # import functions from llmAgentTools.py
 # from .llmAgentTools import get_week_summary, get_month_summary
@@ -80,11 +79,6 @@ tools = [
         "name": "handle_incomplete_time_periods", 
         "func": handle_incomplete_time_periods, 
         "description": "Helps manage queries with missing date parameters by prompting for the required information. Required parameters: user_id (string), start_date (datetime, optional), end_date (datetime, optional). Use this when the user's query is missing date information needed for financial analysis."
-    },
-    {
-        "name": "chatbot_system_answer",
-        "func": chatbot_system_answer,
-        "description": "Use this tool to answer user questions based on system information stored in ChromaDB. Required parameters are user_query (string)"
     }
 ]
 

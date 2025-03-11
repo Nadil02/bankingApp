@@ -59,10 +59,15 @@ async def get_total_spendings_for_given_time_period(user_id: int, start_date: da
         formatted_start = start_date.strftime('%Y-%m-%d')
         formatted_end = end_date.strftime('%Y-%m-%d')
         print("total_amount",total_amount)
+
+        # Sanitize and store dummy variable for total spending amount
+        dummy_spending_amount = getDummyVariableName(user_id, "@total_spending_amount")
+        StoreResponseDummies(user_id, dummy_spending_amount, total_amount)
+
         # return f"user`s total spendings are ${total_amount} for the period {formatted_start} to {formatted_end} use this and return ${total_amount} were spent by the user in the given time period. here {total_amount} is the amount, add that to the response. "
         return f"""{{ 
 
-        "amount": {total_amount}
+        "amount": {dummy_spending_amount}
     }}"""
     else:
         print("No transactions found")
@@ -105,10 +110,15 @@ async def get_total_incomes_for_given_time_period(user_id: int, start_date: date
             total_amount = result_list[0]["total_incomes"]
             formatted_start = start_date.strftime('%Y-%m-%d')
             formatted_end = end_date.strftime('%Y-%m-%d')
+
+            # Sanitize and store dummy variable for total income amount
+            dummy_income_amount = getDummyVariableName(user_id, "@total_income_amount")
+            StoreResponseDummies(user_id, dummy_income_amount, total_amount)
+
             # return f"Your total incomes are ${total_amount:.2f} for the period {formatted_start} to {formatted_end}"
             print("total_amount",total_amount)
             return f"""{{ 
-        "amount": {total_amount}
+        "amount": {dummy_income_amount}
     }}"""
         else:
             return f"No transactions found for the period {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
@@ -139,10 +149,17 @@ async def get_last_transaction(user_id: int) -> str:
         amount = last_transaction.get("receipt", last_transaction.get("payment", 0))
         transaction_type = "Income" if "receipt" in last_transaction else "Expense"
 
+        # Sanitize and store dummy values for the last transaction
+        dummy_transaction_type = getDummyVariableName(user_id, "@last_transaction_type")
+        StoreResponseDummies(user_id, dummy_transaction_type, transaction_type)
+
+        dummy_transaction_amount = getDummyVariableName(user_id, "@last_transaction_amount")
+        StoreResponseDummies(user_id, dummy_transaction_amount, amount)
+
         #return f"Last transaction: {transaction_type} of ${amount:.2f} on {transaction_date}"
         return f"""{{
-            "transaction_type": "{transaction_type}",
-            "amount": {amount},
+            "transaction_type": "{dummy_transaction_type}",
+            "amount": {dummy_transaction_amount},
         }}"""
 
     except Exception as e:
@@ -191,11 +208,24 @@ async def get_monthly_summary(user_id: int, year: int, month: int) -> str:
             total_income = result.get("total_income", 0)
             total_expense = result.get("total_expense", 0)
             balance = total_income - total_expense
+
+            # Sanitize and store dummy values for income
+            dummy_income = getDummyVariableName(user_id, "@summary_income_amount_1")
+            StoreResponseDummies(user_id, dummy_income, total_income)
+
+            # Sanitize and store dummy values for expense
+            dummy_expense = getDummyVariableName(user_id, "@summary_expense_amount_1")
+            StoreResponseDummies(user_id, dummy_expense, total_expense)
+
+            # Sanitize and store dummy values for balance
+            dummy_balance = getDummyVariableName(user_id, "@summary_balance_amount_1")
+            StoreResponseDummies(user_id, dummy_balance, balance)
+
             return (
                 f" Monthly Summary for {year}-{month:02d}\n"
-                f" Total Income: ${total_income:.2f}\n"
-                f" Total Expenses: ${total_expense:.2f}\n"
-                f" Balance: ${balance:.2f}"
+                f" Total Income: ${dummy_income:.2f}\n"
+                f" Total Expenses: ${dummy_expense:.2f}\n"
+                f" Balance: ${dummy_balance:.2f}"
             )
         else:
             return f"No transactions found for {year}-{month:02d}"
