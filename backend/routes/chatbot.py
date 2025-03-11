@@ -10,5 +10,7 @@ async def chatbot_endpoint(query: ChatbotRequest):
     sanitizedData = await sanizedData(query)  #returns a string
     print(sanitizedData)
     responseText=await get_chatbot_response(query.user_id, sanitizedData)
+    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+    print("responseText",responseText)
     # desanitize isuru
     return {"response":responseText}
