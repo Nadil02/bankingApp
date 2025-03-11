@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from database import collection_chatbot,collection_dummy_values,collection_Todo_list
 from pymongo.errors import PyMongoError
 from models import ChatBot
-from ollama import chat
+# from ollama import chat
 import json
 
 # import functions from llmAgentTools.py

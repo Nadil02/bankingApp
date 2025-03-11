@@ -217,10 +217,16 @@ async def get_all_transactions_for_given_date(user_id: int, date: datetime) -> s
         transaction_details = []
         for transaction in transactions:
             transaction_type = "Income" if "receipt" in transaction and transaction.get("receipt", 0) > 0 else "Expense"
+            dummy_trasaction_type_name = getDummyVariableName(user_id, "@transaction_type")
+            StoreResponseDummies(user_id, dummy_trasaction_type_name, transaction_type)
             amount = transaction.get("receipt", transaction.get("payment", 0))
+            dummy_amount_name= getDummyVariableName(user_id, "@transaction_amount")
+            StoreResponseDummies(user_id, dummy_amount_name, amount)
             description = transaction.get("description", "No description")
+            dummy_description_name = getDummyVariableName(user_id, "@transaction_description")
+            StoreResponseDummies(user_id, dummy_description_name, description)
 
-            transaction_details.append(f"🔹 {transaction_type}: ${amount:.2f} | {description}")
+            transaction_details.append(f"🔹income or expense : {dummy_trasaction_type_name}: amount : ${dummy_amount_name} | description: {dummy_description_name}")
 
         formatted_date = date.strftime('%Y-%m-%d')
         return f" Transactions on {formatted_date}:\n" + "\n".join(transaction_details)
@@ -435,48 +441,161 @@ async def sanizedData(query: str) -> str:
     """Use the local LLM to detect and redact sensitive information."""
     user_input = query.query
     user_id = query.user_id
-    system_prompt = (
-        "You are a security assistant. Your task is to identify and redact sensitive financial information in user input. "
-        "Extract and store sensitive details in a structured format, and replace those details in the text with placeholders."
+    system_prompt=(
+        """"
+        following are the financial information providing services provided by the system.\n"
+    "1. give transaction history related informations.\n"
+    "2. give total spending amount of user between two given dates.\n"
+    "3. give total incomes of user between two given dates.\n"
+    "4. give the last transaction.\n"
+    "5. give monthly summary of a given month.\n"
         
-        "Sensitive details can be: "
-        "1. **Monetary amounts** (e.g., '$1000', '5000 dollars', 'USD 300'). Store this under 'amount' and replace it with '@amount'. " 
-        "2. **Account numbers** (e.g., '123456789'). Store this under 'accountNumber' and replace it with '@account'. "
-        "   Don't keep account numbers like '123456789' in the input field; replace them with '@account'. For example: '123456789' should be replaced with '@account'. "
-        "3. **Names** (e.g., 'John', 'Mr. Smith', 'Kasun'). Store this under 'name' and replace it with '@name'. "
-        "4. **Dates** (e.g., '2022-01-01', '01/01/2022', '1st January 2022'). Store this under 'date' and replace it with '@date'. "
-        "5. **Bank Names** (e.g., 'BOC', 'Sampath', 'Peoples', 'HNB', 'NSB'). Store this under 'account' and replace it with '@bank'. "
         
-        "Replace these values **only if they exist in the input**. If no sensitive details are found, return the original input unchanged. "
-        "For example : "
-        "If user input is 'I need to pay electricity bill', it should return: 'I need to pay electricity bill.' because there is no any sensitive information in the input. "
-        "You must handle cases where any or all of these types of sensitive information may be present in the input. "
-        
-        "Output a JSON object with two fields: "
-        "1. **'redacted'**: Contains the sanitized sentence with placeholders. "
-        "2. **'original'**: A dictionary containing the extracted sensitive details as key-value pairs. "
-        
-        "For example: "
-        "If a user input contains a monetary amount, such as 'I need to pay $1000 to John.', it should return: "
-        "{'redacted': 'I need to pay @amount to @name.', 'original': {'amount': '1000','name': 'John'}}. "
-        
-        "If a user input contains a bank name, such as 'I have to pay $500 to Sampath bank', it should return: "
-        "{'redacted': 'I have to pay @amount to @account bank', 'original': {'amount': '500', account': 'Sampath'}}. "
-        
-        "Do not keep values in the 'original' field if they are not present in the input. "
-        "Return **ONLY** the JSON output. Do not include any metadata, explanations, or additional information in your response."
+    You are a highly rule-based banking security assistant. You must strictly follow the instructions below without deviation:
+
+1. Your main job is to classify user queries into:
+   - "Not a to-do list task" if they relate to the 5 financial services.
+   - "To-do list task" if they do not relate to any of the 5 financial services.
+
+2. If a query has multiple parts, classify each part separately based on the 5 financial services. Use conjunctions ('and', 'or', ',') to split queries logically.
+
+3. If any part of the query is a to-do list task and contains amounts, account numbers, names, dates, or bank names, sanitize them as follows:
+   - Replace amounts (e.g., '$1000', '5000 dollars', 'USD 300') with '@amount'.
+   - Replace account numbers (e.g., '123456789') with '@account'.
+   - Replace names (e.g., 'John', 'Mr. Smith', 'Kasun') with '@name'.
+   - Replace dates (e.g., '2022-01-01', '01/01/2022', '1st January 2022', '2022.3.4') with '@date'.
+   - Replace bank names (e.g., 'BOC', 'Sampath', 'Peoples', 'HNB', 'NSB') with '@bank'.
+
+4. **Strict Constraints**:
+   - **DO NOT** classify a query as a to-do list task unless it **completely does not match** the 5 financial services.
+   - **DO NOT** sanitize any information unless it is part of a recognized **to-do list task**.
+   - **DO NOT** replace anything other than **amounts, accounts, names, dates, and bank names**.
+   - **DO NOT** assume meanings beyond the given text. If unsure, follow the step-by-step process again.
+   - **DO NOT** provide explanations, metadata, or additional details beyond the required JSON output.
+
+5. **Self-Check Before Finalizing Response:**
+   - Verify if classification aligns with the 5 services.
+   - Ensure no over-sanitization (e.g., replacing words incorrectly).
+   - Ensure no under-sanitization (e.g., missing a name or amount).
+   - If errors are found, correct them before output.
+
+6. **Enforced JSON Output Format**:
+   - Output **only** a JSON object with two fields:
+     1. **'redacted'**: Contains the sanitized sentence with placeholders.
+     2. **'original'**: A dictionary containing the extracted sensitive details as key-value pairs.
+   "Do not keep values in the 'original' field if they are not present in the input.\n"
+   - **Return ONLY the JSON output**. Do **not** include metadata, explanations, or additional information in your response.
+   "You are a system that processes user input and returns JSON data. "
+        "Ensure that the response is always in a structured JSON format. "
+    "You must always return a valid JSON response. If you cannot generate a valid response, "
+    'return: {"original": "N/A", "redacted": "N/A"} '
+    "Ensure the response is always in JSON format without additional text."
+
+following Examples must be followed exactly. Any deviation from these instructions is strictly forbidden.
+
+Example 1:
+User Query: "What is my total spending between January 1st, 2024, and February 1st, 2024?"
+Reasoning: The query is asking for the total spending between two dates, which aligns with service #2 (give total spending amount of user between two given dates).
+Classification: Not a to-do list task.
+Sanitized Query: "What is my total spending between January 1st, 2024, and February 1st, 2024?" (No change)
+
+Example 2:
+User Query: "Show me my last transaction details."
+Reasoning: The query requests the last transaction details, which falls under service #4 (give the last transaction).
+Classification: Not a to-do list task.
+Sanitized Query: "Show me my last transaction details." (No change)
+
+Example 3:
+User Query: "Remind me to pay John $5000 next Friday."
+Reasoning: The query is a reminder (to-do list task) and does not match any of the 5 financial services.
+Classification: To-do list task.
+Sanitized Query: "Remind me to pay @name @amount next Friday."
+
+Example 4:
+User Query: "Schedule a payment to my loan account at Sampath Bank on 15th March 2024."
+Reasoning: The user is asking to schedule a payment, which is a to-do list task. It is unrelated to the 5 services.
+Classification: To-do list task.
+Sanitized Query: "Schedule a payment to my loan account at @bank on @date."
+
+Example 5:
+User Query: "Show me my last transaction and remind me to transfer $2000 to Kasun tomorrow."
+Reasoning: - "Show me my last transaction" is a request under service #4 (not a to-do list task).
+
+"Remind me to transfer $2000 to Kasun tomorrow" is a reminder (to-do list task).
+Classification:
+
+Not a to-do list task: "Show me my last transaction."
+To-do list task: "Remind me to transfer @amount to @name tomorrow."
+Sanitized Query: "Show me my last transaction and remind me to transfer @amount to @name tomorrow."
+
+Example 6:
+User Query: "What was my total income last month, and remind me to check my NSB account balance next Monday?"
+Reasoning: - "What was my total income last month?" falls under service #3 (not a to-do list task).
+
+"Remind me to check my NSB account balance next Monday" is a to-do list task.
+Classification:
+
+Not a to-do list task: "What was my total income last month?"
+To-do list task: "Remind me to check my @bank account balance next Monday."
+Sanitized Query: "What was my total income last month, and remind me to check my @bank account balance next Monday?"
+
+
+Example 7:
+User Query: "Set a reminder to send $3000 to Mr. Silva on March 10th."
+Sanitized Query: "Set a reminder to send @amount to @name on @date."
+
+Example 8:
+User Query: "Remind me to transfer money from account 987654321 to my HNB account on April 5th."
+Sanitized Query: "Remind me to transfer money from account @account to my @bank account on @date."
+"""
     )
+
+
+    # system_prompt = (
+    #     "You are a security assistant. Your task is to identify and redact sensitive financial information in user input. \n"
+    #     "Extract and store sensitive details in a structured format, and replace those details in the text with placeholders."
+        
+    #     "Sensitive details can be: "
+        # "1. **Monetary amounts** (e.g., '$1000', '5000 dollars', 'USD 300'). Store this under 'amount' and replace it with '@amount'. " 
+        # "2. **Account numbers** (e.g., '123456789'). Store this under 'accountNumber' and replace it with '@account'. "
+        # "   Don't keep account numbers like '123456789' in the input field; replace them with '@account'. For example: '123456789' should be replaced with '@account'. "
+        # "3. **Names** (e.g., 'John', 'Mr. Smith', 'Kasun'). Store this under 'name' and replace it with '@name'. "
+        # "4. **Dates** (e.g., '2022-01-01', '01/01/2022', '1st January 2022'). Store this under 'date' and replace it with '@date'. "
+        # "5. **Bank Names** (e.g., 'BOC', 'Sampath', 'Peoples', 'HNB', 'NSB'). Store this under 'account' and replace it with '@bank'. "
+        
+    #     "Replace these values **only if they exist in the input**. If no sensitive details are found, return the original input unchanged. "
+    #     "For example : "
+    #     "If user input is 'I need to pay electricity bill', it should return: 'I need to pay electricity bill.' because there is no any sensitive information in the input. "
+    #     "You must handle cases where any or all of these types of sensitive information may be present in the input. "
+        
+        # "Output a JSON object with two fields: "
+        # "1. **'redacted'**: Contains the sanitized sentence with placeholders. "
+        # "2. **'original'**: A dictionary containing the extracted sensitive details as key-value pairs. "
+        
+        # "For example: "
+        # "If a user input contains a monetary amount, such as 'I need to pay $1000 to John.', it should return: "
+        # "{'redacted': 'I need to pay @amount to @name.', 'original': {'amount': '1000','name': 'John'}}. "
+        
+        # "If a user input contains a bank name, such as 'I have to pay $500 to Sampath bank', it should return: "
+        # "{'redacted': 'I have to pay @amount to @account bank', 'original': {'amount': '500', account': 'Sampath'}}. "
+        
+    #     "Do not keep values in the 'original' field if they are not present in the input. "
+    #     "Return **ONLY** the JSON output. Do not include any metadata, explanations, or additional information in your response."
+    # )
 
 
     messages = [
         {"role": "system", "content": system_prompt},
-        {"role": "user", "content": f"Redact sensitive details from: {user_input}"}
+        {"role": "user", "content": f"{user_input}"}
     ]
-    response = chat(model='llama3.2:3b', messages=messages)
+    response = chat(model='llama3.2:latest', messages=messages)
     content = response['message']['content']
-    #converting to string
+    # llama3.2:3b
+    #converting to string 
+    print("content : ",content)
     content_dict = json.loads(content)
     # taking dummy values
+    print("dummy_values : ",content_dict["original"])
     dummy_values = content_dict["original"]
     # stioring dummy values with actual values in the database
     return_message = await store_dummy_values(user_id, dummy_values)
@@ -561,7 +680,7 @@ async def desanizedData(item: str, actual_values: dict) -> dict:
         {"role": "user", "content": f"Replace placeholders in: {user_input} using {json.dumps(actual_values)}"}
     ]
 
-    response = chat(model='llama3.2:3b', messages=messages)
+    response = chat(model='llama3.2:latest', messages=messages)
     print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
     # content = response['message']['content']
     # print("content : ",content)
@@ -631,3 +750,31 @@ async def add_to_do_item(user_id: int, item: str) -> dict:
     else:
         return {"message":"No dummy values found for the user"}
     
+
+async def StoreResponseDummies(user_id: int, dummy_name: str, actual_value: any):
+
+    filter_query = {"user_id": user_id}
+    existing_doc = await collection_dummy_values.find_one(filter_query)
+    
+    if not existing_doc:
+        new_doc = {"user_id": user_id, dummy_name: actual_value}
+        await collection_dummy_values.insert_one(new_doc)
+        return "done"
+    
+    update_query = {"$set": {dummy_name: actual_value}}
+    result = await collection_dummy_values.update_one(filter_query, update_query)
+    
+    return "done" if result.modified_count > 0 else "error"
+
+async def getDummyVariableName(user_id: int, prefix_name: str) -> str:
+
+    filter_query = {"user_id": user_id}
+    existing_doc = await collection_dummy_values.find_one(filter_query)
+    
+    if not existing_doc:
+        return f"{prefix_name}_1"
+    
+    versions = [int(k.split("_")[-1]) for k in existing_doc.keys() if k.startswith(prefix_name) and k.split("_")[-1].isdigit()]
+    new_version = max(versions) + 1 if versions else 1
+    
+    return f"{prefix_name}_{new_version}"
