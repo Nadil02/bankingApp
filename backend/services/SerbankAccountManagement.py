@@ -1,46 +1,50 @@
 import json
 from bson import json_util
 from database import collection_account, collection_bank, collection_user
-from models import AccountRemove, AccountAdd
+from models import AccountRemove, AccountAdd,BankAccount,RemoveAccountResponse
 
 # get bank account details
-async def getBankAccountDetails(user_id: int):
-    bank_account = await collection_account.find({"user_id": user_id}, {"account_number": 1, "account_type": 1, "balance": 1,"bank_id": 1}).to_list(length=None)
+async def getBankAccountDetails(user_id: int) -> list[BankAccount]:
+    bank_account = await collection_account.find({"user_id": user_id}, {"_id":0,"account_number": 1, "account_type": 1, "balance": 1,"bank_id": 1}).to_list(length=None)
     for bank in bank_account:
         bank_id = bank["bank_id"]
-        bank_details = await collection_bank.find_one({"bank_id": bank_id}, {"logo": 1})
+        bank_details = await collection_bank.find_one({"bank_id": bank_id}, {"_id":0,"logo": 1})
         bank.update(bank_details)
+        
     bank_account = json.loads(json_util.dumps(bank_account))
-    return {"message": bank_account}
+    return [BankAccount(**bank) for bank in bank_account]
+
+# check if user exist in the database
+async def checkUserExist(user_id: int, nic: str) -> int:
+    result = await collection_user.find_one({"nic": nic})
+    if result is not None:
+        return 1
+    else:
+        return 0
 
 # remove bank account
 async def removeBankAccount(user_id: int, request: AccountRemove):
-    user_passcode = await collection_user.find_one({"user_id": user_id}, {"passcode": 1})
-    if not user_passcode:
-        return {"message": "User not found"}
-    if user_passcode.get("passcode") == request.passcode:
-        # find user's bank account and delete it
-        bank_account = await collection_account.find_one({"user_id": user_id, "account_number": request.account_number}, {"bank_id": 1})
-        if not bank_account:
-            return {"message": "Bank Account not found"}
-        await collection_account.delete_one({"user_id": user_id, "account_number": request.account_number})
-        # delete bank account from bank collection
-        await collection_bank.delete_one({"bank_id": bank_account["bank_id"]}) # This one works properly
-        return {"message": "Bank Account Removed"}
-    
-    return {"message": "Passcode is incorrect"}
-
-# generate otp and validate user
-# async def generateOTP(user_id: int):
-#     # generate otp
+    # check if the user exist in the database
+    if (await checkUserExist(user_id, request.NIC)) == 1:
+        user_passcode = await collection_user.find_one({"user_id": user_id}, {"_id":0, "passcode": 1})
+        if user_passcode.get("passcode") == request.passcode:
+            # find user's bank account and delete it
+            result = await collection_account.delete_one({"user_id": user_id, "account_number": request.account_number})
+            if result.deleted_count == 0:
+                return RemoveAccountResponse(message="Account not found")
+            return RemoveAccountResponse(message="success", description="Account removedsuccessfully")
+        return RemoveAccountResponse(message = "Passcode is incorrect")
+    return RemoveAccountResponse(message= "User not found")
     
 # add bank account
 async def addBankAccount(user_id: int, request: AccountAdd):
     user_NIC = request.NIC
     #find user exist in the database
-    if (await collection_user.find_one({"user_NIC": user_NIC})) is not None:
-        return {{"status": "success"}, {"message": "User found"}}
-    return {{"status": "Error"}, {"message": "User not found"}}
+    if (await checkUserExist(user_id, user_NIC)) == 1:
+        return RemoveAccountResponse(message="success", description="User found")
+    else:
+        return RemoveAccountResponse(message="Error", description="User not found")
+    
 
 
 

@@ -1,5 +1,5 @@
 from pydantic import BaseModel,Field
-from typing import Optional
+from typing import Optional, List, Dict
 from datetime import datetime
 from uuid import uuid4
 
@@ -128,9 +128,25 @@ class AccountAdd(BaseModel):
     bank_account : str
     bank_id : int
     account_number : int
-    account_type : str
-    credit_limit : int
-    due_date : datetime
-    balance : int
-    NIC : str
+    account_type : str | None = None
+    credit_limit : int | None = None
+    due_date : datetime | None = None
+    balance : float | None = None
+    NIC : str 
+
+class BankAccount(BaseModel):
+    bank_id: int
+    account_number: int
+    account_type: str
+    balance: float
+    logo: str
+
+class BankAccountResponse(BaseModel):
+    message: List[BankAccount]  # Response contains a list of bank accounts
+
+class RemoveAccountResponse(BaseModel):
+    message: str
+    description: str | None = None
+
+
 
