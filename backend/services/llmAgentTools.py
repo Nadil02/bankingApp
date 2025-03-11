@@ -215,6 +215,7 @@ async def get_all_transactions_for_given_date(user_id: int, date: datetime) -> s
         # Step 3: Format the transaction details
         transaction_details = []
         for transaction in transactions:
+
             transaction_type = "Income" if "receipt" in transaction and transaction.get("receipt", 0) > 0 else "Expense"
             dummy_trasaction_type_name = getDummyVariableName(user_id, "@transaction_type")
             StoreResponseDummies(user_id, dummy_trasaction_type_name, transaction_type)
@@ -270,9 +271,14 @@ async def get_next_month_total_incomes(user_id: int) -> str:
         # Step 4: Format the response
         if result_list:
             total_predicted_income = result_list[0].get("total_predicted_income", 0)
+
+            #sanitize income and store it in dummy variables
+            dummy_income_name = getDummyVariableName(user_id, "@predicted_total_income_amount_1")
+            StoreResponseDummies(user_id, dummy_income_name, total_predicted_income)
+
             return (
                 f" Predicted Total Income for {next_month_start.strftime('%Y-%m')}\n"
-                f" Estimated Income: ${total_predicted_income:.2f} (based on trend and seasonality)"
+                f" Estimated Income: ${dummy_income_name} (based on trend and seasonality)"
             )
         else:
             return f"No predicted incomes found for {next_month_start.strftime('%Y-%m')}"
@@ -317,9 +323,14 @@ async def get_next_month_total_spendings(user_id: str) -> str:
         # Step 4: Format the response
         if result_list:
             total_predicted_spendings = result_list[0].get("total_predicted_spendings", 0)
+
+            #sanitize spendings and store it in dummy variables
+            dummy_spendings_name = getDummyVariableName(user_id, "@predicted_total_spendings_amount_1")
+            StoreResponseDummies(user_id, dummy_spendings_name, total_predicted_spendings)
+
             return (
                 f" Predicted Total Spendings for {next_month_start.strftime('%Y-%m')}\n"
-                f" Estimated Spendings: ${total_predicted_spendings:.2f} (based on trend and seasonality)"
+                f" Estimated Spendings: ${dummy_spendings_name} (based on trend and seasonality)"
             )
         else:
             return f"No predicted spendings found for {next_month_start.strftime('%Y-%m')}"
@@ -359,13 +370,21 @@ async def get_next_income(user_id: int) -> str:
         # Step 3: Format the response
         if result_list:
             result = result_list[0]
-            date = result["date"].strftime('%Y-%m-%d')
-            amount = result["amount"]
+            # Sanitize and store dummy variables for date, amount, and description
+            dummy_date_name = getDummyVariableName(user_id, "@predicted_income_date_1")
+            StoreResponseDummies(user_id, dummy_date_name, result["date"].strftime('%Y-%m-%d'))
+            
+            dummy_amount_name = getDummyVariableName(user_id, "@predicted_income_amount_1")
+            StoreResponseDummies(user_id, dummy_amount_name, result["amount"])
+
+            dummy_description_name = getDummyVariableName(user_id, "@predicted_income_description_1")
             description = result.get("description", "No description available")
+            StoreResponseDummies(user_id, dummy_description_name, description)
+
             return (
-                f" Next Predicted Income: {date}\n"
-                f" Amount: ${amount:.2f}\n"
-                f" Description: {description}"
+                f" Next Predicted Income: {dummy_date_name}\n"
+                f" Amount: ${dummy_amount_name:.2f}\n"
+                f" Description: {dummy_description_name}"
             )
         else:
             return "No upcoming predicted incomes found."
@@ -405,13 +424,22 @@ async def get_next_spending(user_id: int) -> str:
         # Step 3: Format the response
         if result_list:
             result = result_list[0]
-            date = result["date"].strftime('%Y-%m-%d')
-            amount = result["amount"]
+
+            # Sanitize and store dummy variables for date, amount, and description
+            dummy_date_name = getDummyVariableName(user_id, "@predicted_spending_date_1")
+            StoreResponseDummies(user_id, dummy_date_name, result["date"].strftime('%Y-%m-%d'))
+
+            dummy_amount_name = getDummyVariableName(user_id, "@predicted_spending_amount_1")
+            StoreResponseDummies(user_id, dummy_amount_name, result["amount"])
+
+            dummy_description_name = getDummyVariableName(user_id, "@predicted_spending_description_1")
             description = result.get("description", "No description available")
+            StoreResponseDummies(user_id, dummy_description_name, description)
+
             return (
-                f" Next Predicted Spending: {date}\n"
-                f" Amount: ${amount:.2f}\n"
-                f" Description: {description}"
+                f" Next Predicted Spending: {dummy_date_name}\n"
+                f" Amount: ${dummy_amount_name:.2f}\n"
+                f" Description: {dummy_description_name}"
             )
         else:
             return "No upcoming predicted spendings found."
