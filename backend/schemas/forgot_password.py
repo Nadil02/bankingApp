@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 class ForgotPasswordRequestSchema(BaseModel):
-    user_id: str
+    user_id: int
     nic: str
     new_password: str
     confirm_password: str

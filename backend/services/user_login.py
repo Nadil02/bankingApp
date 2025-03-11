@@ -47,7 +47,7 @@ async def login_user(user):
     access_token = create_jwt({"sub": db_user["NIC"]})
     refresh_token = create_refresh_token({"sub": db_user["NIC"]})
 
-    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
+    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer", "user_id": db_user["user_id"]}
 
 async def get_user_info_service(token_data):
     user = await user_collection.find_one({"NIC": token_data["sub"]})
