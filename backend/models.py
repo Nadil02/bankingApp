@@ -10,7 +10,7 @@ class user(BaseModel):
     nic: str
     phone_number: str
     passcode: str
-    user_id: str =Field(default_factory=lambda: str(uuid4()), alias="_id")
+    user_id: int
     notification_status: bool
 
 
