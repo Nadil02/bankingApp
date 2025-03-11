@@ -50,7 +50,7 @@ async def login_user(user):
     return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
 
 async def get_user_info_service(token_data):
-    user = await user_collection.find_one({"nic": token_data["sub"]})
+    user = await user_collection.find_one({"NIC": token_data["sub"]})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return await fix_mongo_id(user)
