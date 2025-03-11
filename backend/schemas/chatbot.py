@@ -42,5 +42,6 @@ class GetNextIncomeArgs(BaseModel):
 class GetNextSpendingArgs(BaseModel):
     user_id: int
 
-class GetSystemAnswerArgs(BaseModel):
-    query: str
+class AddTodoItemArgs(BaseModel):
+    user_id: int
+    item: str

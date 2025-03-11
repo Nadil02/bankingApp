@@ -1,12 +1,24 @@
+import json
+import re
+from ollama import chat
 from models import transaction
 from database import collection_transaction, collection_predicted_income, collection_predicted_expense, collection_predicted_balance, collection_user, collection_account
+from pymongo.errors import PyMongoError
 from datetime import datetime
-from database import collection_chatbot_details,collection_account, collection_transaction, collection_predicted_income, collection_predicted_expense, collection_user, collection_predicted_balance
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-import chromadb
+from database import collection_account, collection_transaction, collection_predicted_income, collection_predicted_expense, collection_user, collection_predicted_balance,collection_dummy_values,collection_Todo_list
+import spacy
+import json
+import re
+from nltk.corpus import words  
+import nltk
 
-# HuggingFaceEmbeddings import 
-from langchain_community.embeddings import HuggingFaceEmbeddings
+try:
+    words.words("en")
+except LookupError:
+    nltk.download('words')
+
+nlp = spacy.load("en_core_web_sm")
+
 
 async def get_total_spendings_for_given_time_period(user_id: int, start_date: datetime, end_date: datetime) -> str:
     # Step 1: Find the user's accounts
@@ -218,10 +230,16 @@ async def get_all_transactions_for_given_date(user_id: int, date: datetime) -> s
         transaction_details = []
         for transaction in transactions:
             transaction_type = "Income" if "receipt" in transaction and transaction.get("receipt", 0) > 0 else "Expense"
+            dummy_trasaction_type_name = getDummyVariableName(user_id, "@transaction_type")
+            StoreResponseDummies(user_id, dummy_trasaction_type_name, transaction_type)
             amount = transaction.get("receipt", transaction.get("payment", 0))
+            dummy_amount_name= getDummyVariableName(user_id, "@transaction_amount")
+            StoreResponseDummies(user_id, dummy_amount_name, amount)
             description = transaction.get("description", "No description")
+            dummy_description_name = getDummyVariableName(user_id, "@transaction_description")
+            StoreResponseDummies(user_id, dummy_description_name, description)
 
-            transaction_details.append(f"🔹 {transaction_type}: ${amount:.2f} | {description}")
+            transaction_details.append(f"🔹income or expense : {dummy_trasaction_type_name}: amount : ${dummy_amount_name} | description: {dummy_description_name}")
 
         formatted_date = date.strftime('%Y-%m-%d')
         return f" Transactions on {formatted_date}:\n" + "\n".join(transaction_details)
@@ -429,82 +447,664 @@ async def handle_incomplete_time_periods(user_id: str, start_date: datetime = No
             return f"Time period from {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')} is valid."
     except Exception as e:
         return f"An error occurred while processing the time period: {str(e)}"
-    
 
 
+# creating dummy values for the  user input
+async def sanizedData(query: str) -> str:
+    """Use the local LLM to detect and redact sensitive information."""
+    user_input = query.query
+    user_id = query.user_id
 
-async def chatbot_system_answer(query: str) -> str:
-    # HuggingFaceEmbeddings 
-    from langchain_community.embeddings import HuggingFaceEmbeddings
-    # Initialize embedding model
-    embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
-    # Initialize ChromaDB client and collection
-    chroma_client = chromadb.PersistentClient(path="./chroma_db")
-    chroma_collection = chroma_client.get_or_create_collection(name="system_details")
-
-    # Fetch the latest document from MongoDB
-    doc = await collection_chatbot_details.find_one({}, {"_id": 0, "introduction": 1})
-    if not doc or "introduction" not in doc:
-        return "No system details available."
-    print
-
-    document_text = doc["introduction"]
-    print(document_text)
-    # Check if stored embeddings match the latest database entry
-    existing_count = chroma_collection.count()
-    
-    if existing_count > 0:
-        # Retrieve existing stored data to compare
-        stored_data = chroma_collection.get(include=["documents"])
-        #print("Stored Data: ", stored_data)
+#     system_prompt=(
+#         """"
+#         following are the financial information providing services provided by the system.\n"
+#     "1. give transaction history related informations.\n"
+#     "2. give total spending amount of user between two given dates.\n"
+#     "3. give total incomes of user between two given dates.\n"
+#     "4. give the last transaction.\n"
+#     "5. give monthly summary of a given month.\n"
         
-        stored_texts = set(stored_data["documents"]) if stored_data and "documents" in stored_data else set()
+        
+#     You are a highly rule-based banking security assistant. You must strictly follow the instructions below without deviation:
 
-        if document_text not in stored_texts:
-            print("Database updated. Refreshing ChromaDB...")
+# 1. Your main job is to classify user queries into:
+#    - "Not a to-do list task" if they relate to the 5 financial services.
+#    - "To-do list task" if they do not relate to any of the 5 financial services.
 
-            # Retrieve all document IDs in the collection
-            stored_data = chroma_collection.get(include=["documents"])  # or ["metadatas"]
-            all_documents = stored_data.get("documents", [])
+# 2. If a query has multiple parts, classify each part separately based on the 5 financial services. Use conjunctions ('and', 'or', ',') to split queries logically.
+
+# 3. If any part of the query is a to-do list task and contains amounts, account numbers, names, dates, or bank names, sanitize them as follows:
+#    - Replace amounts (e.g., '$1000', '5000 dollars', 'USD 300') with '@amount'.
+#    - Replace account numbers (e.g., '123456789') with '@account'.
+#    - Replace names (e.g., 'John', 'Mr. Smith', 'Kasun') with '@name'.
+#    - Replace dates (e.g., '2022-01-01', '01/01/2022', '1st January 2022', '2022.3.4') with '@date'.
+#    - Replace bank names (e.g., 'BOC', 'Sampath', 'Peoples', 'HNB', 'NSB') with '@bank'.
+
+# 4. **Strict Constraints**:
+#    - **DO NOT** classify a query as a to-do list task unless it **completely does not match** the 5 financial services.
+#    - **DO NOT** sanitize any information unless it is part of a recognized **to-do list task**.
+#    - **DO NOT** replace anything other than **amounts, accounts, names, dates, and bank names**.
+#    - **DO NOT** assume meanings beyond the given text. If unsure, follow the step-by-step process again.
+#    - **DO NOT** make assumptions or generate **example values** in the JSON output.
+#    - **DO NOT** provide explanations, metadata, or additional details beyond the required JSON output.
+#    -**DO NOT** keep values in the 'original' field if they are not present in the input query.
 
 
-            # Check if all_documents is a list of strings or dictionaries
-            if all_documents and isinstance(all_documents[0], dict):  
-                all_ids = [doc['id'] for doc in all_documents]
-            else:
-                all_ids = [str(i) for i in range(len(all_documents))]  
 
-            if all_ids:
-                chroma_collection.delete(ids=all_ids)  
-                print(f"Deleted documents with IDs: {all_ids}")
+# 5. **Self-Check Before Finalizing Response:**
+#    - Verify if classification aligns with the 5 services.
+#    - Ensure no over-sanitization (e.g., replacing words incorrectly).
+#    - Ensure no under-sanitization (e.g., missing a name or amount).
+#    - If errors are found, correct them before output.
 
-            existing_count = 0  
+# 6. **Enforced JSON Output Format**:
+#    - Output **only** a JSON object with two fields:
+#      1. **'redacted'**: Contains the sanitized sentence with placeholders.
+#      2. **'original'**: A dictionary containing the extracted sensitive details as key-value pairs.
+# - **DO NOT** make assumptions or generate **example values** in the JSON output.
+#    - **DO NOT** provide explanations, metadata, or additional details beyond the required JSON output.
+#    -**DO NOT** keep values in the 'original' field if they are not present in the input query.
 
-    # If ChromaDB is empty, insert the latest system details
-    if existing_count == 0:
-        print("Inserting new data into ChromaDB...")
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=150)
-        chunks = text_splitter.split_text(document_text)
 
-        for idx, chunk in enumerate(chunks):
-            embedding = embedding_model.embed_documents([chunk])[0]
-            chroma_collection.add(
-                ids=[str(idx)],
-                documents=[chunk],
-                embeddings=[embedding]
-            )
-        print(f"Inserted {len(chunks)} chunks into ChromaDB.")
+# """
+#     )
 
-    # Process query to get embedding
-    query_embedding = embedding_model.embed_query(query)
+#     system_prompt=(
+#         """"
+#        You are a highly rule-based banking security assistant. 
+# You must strictly follow the instructions below without deviation. Give quick responses.
 
-    # ChromaDB for relevant documents
-    results = chroma_collection.query(
-        query_embeddings=[query_embedding],
-        n_results=2,
-        where={"source": "introduction"}
+# Following is the main financial information providing service provided by the system.
+
+# **Give transaction history related information when asked and answer transaction history related questions.**
+# This may include:
+# - total spending amount of the user between two given dates,
+# - total incomes of the user between two given dates,
+# - the last transaction that has been done by the user,
+# - monthly summary of a given month of a given year.
+
+      
+# 1. Your main job is to classify user queries into:
+#    - "Not a to-do list task" if they relate to the main financial service provided by the system.
+#    - "To-do list task" if they do not relate to the main financial service provided by the system.
+
+# 2. If a query has multiple parts, you must classify each part separately based on the main financial service provided by the system. Use conjunctions ('and', 'or', ',') to split queries logically.
+
+# 3. If any part of the query is a to-do list task and contains amounts, account numbers, names, dates, or bank names, you must sanitize them as follows:
+#    - Replace amounts (e.g., '$1000', '5000 dollars', 'USD 300') with '@amount'. here amount must be a currency related numarical value.
+#    - Replace account numbers (e.g., '123456789') with '@account'.
+#    - Replace names (e.g., 'John', 'Mr. Smith', 'Kasun') with '@name'.
+#    - Replace dates (e.g., '2022-01-01', '01/01/2022', '1st January 2022', '2022.3.4') with '@date'.
+#    - Replace bank names (e.g., 'BOC', 'Sampath', 'Peoples', 'HNB', 'NSB') with '@bank'\n.
+
+# 4. **Enforced JSON Output Format:**
+#    - Output **only** a single JSON object with two fields:
+#      - **'redacted'**: Contains the sanitized sentence with placeholders (if applicable). If no sanitization occurred, include the original query.
+#      - **'original'**: A dictionary containing the extracted sensitive details as key-value pairs. 
+#        - **DO NOT** keep values in this field if they are not present in the input query.
+#        - If no sensitive details are available, include "status": "NA".
+#        - For every placeholder used in the 'redacted' field (e.g., @amount, @name, @date, @bank, @account), store the corresponding original value in the 'original' field as key-value pairs.
+#        - The 'original' field should never be empty if placeholders exist in 'redacted'.
+#    - **DO NOT** make assumptions or generate example values in the JSON output.
+#    - Do not provide any additional formatting, explanations, metadata, or code block markers (such as triple backticks).ensure output is a json object that can be directly parsed using json.loads() in Python.
+#    - The response must be a plain JSON string that can be directly parsed using json.loads() in Python.
+
+# 5.**Strict Constraints:**
+#    - **DO NOT** classify a query as a to-do list task unless it completely does not match the main financial service of the system.
+#    - **DO NOT** sanitize any information unless it is part of a recognized to-do list task.
+#    - **DO NOT** replace anything other than amounts, accounts, names, dates, and bank names.
+#    - **DO NOT** assume meanings beyond the given text. If unsure, follow the step-by-step process again.
+#    - Other than sanitizing, you are not allowed to change user query or ask any question from the user.
+#    - Strictly follow output instructions.
+
+# 6. **Self-Check these 5 Before Finalizing Response:**
+#    1. check and ensure classification is correct and aligns with the main financial service provided by the system.
+#    2. check and ensure output is a json object that can be directly parsed using json.loads() in Python.
+#    3. check and ensure output is not provide any additional formatting, explanations, metadata, or code block markers (such as triple backticks), classifications. 
+#    4. you have successfully sanitized user query and havent done any other changes.
+#    5. If errors are found, correct them before output.
+# """
+#     )
+
+#  If a new query is similar to an example, you **must think it the same way**. Any deviation is strictly prohibited.
+
+# Example 1:
+# User Query: "What is my total spending between January 1st, 2024, and February 1st, 2024?"
+# Reasoning: The query is asking for the total spending between two dates, which aligns with service #2 (give total spending amount of user between two given dates).
+# Classification: Not a to-do list task.
+# Sanitized Query: "What is my total spending between January 1st, 2024, and February 1st, 2024?" (No change)
+# output :{
+#   "redacted": "What is my total spending between @start_date and @end_date?",
+#   "original": {
+#     "start_date": "January 1st, 2024",
+#     "end_date": "February 1st, 2024"
+#   }
+# }
+
+# Example 2:
+# User Query: "Show me my last transaction details."
+# Reasoning: The query requests the last transaction details, which falls under service #4 (give the last transaction).
+# Classification: Not a to-do list task.
+# Sanitized Query: "Show me my last transaction details." (No change)
+# output :{
+#   "redacted": "Show me my last transaction details.",
+#     "original": {}
+# }
+
+# Example 3:
+# User Query: "Remind me to pay John $5000 next Friday."
+# Reasoning: The query is a reminder (to-do list task) and does not match any of the 5 financial services.
+# Classification: To-do list task.
+# Sanitized Query: "Remind me to pay @name @amount next Friday."
+# output :{
+#     "redacted": "Remind me to pay @name @amount next Friday.",
+#     "original": {
+#         "name": "John",
+#         "amount": "5000"
+#     }
+
+# Example 4:
+# User Query: "Schedule a payment to my loan account at Sampath Bank on 15th March 2024."
+# Reasoning: The user is asking to schedule a payment, which is a to-do list task. It is unrelated to the 5 services.
+# Classification: To-do list task.
+# Sanitized Query: "Schedule a payment to my loan account at @bank on @date."
+# output :{
+#     "redacted": "Schedule a payment to my loan account at @bank on @date.",
+#     "original": {
+#         "bank": "Sampath Bank",
+#         "date": "15th March 2024"
+#     }
+
+# Example 5:
+# User Query: "Show me my last transaction and remind me to transfer $2000 to Kasun tomorrow."
+# Reasoning: - "Show me my last transaction" is a request under service #4 (not a to-do list task).
+
+
+# "Remind me to transfer $2000 to Kasun tomorrow" is a reminder (to-do list task).
+# Classification:
+
+# Not a to-do list task: "Show me my last transaction."
+# To-do list task: "Remind me to transfer @amount to @name tomorrow."
+# Sanitized Query: "Show me my last transaction and remind me to transfer @amount to @name tomorrow."
+# output :{
+#     "redacted": "Show me my last transaction and remind me to transfer @amount to @name tomorrow.",
+#     "original": {
+#         "amount": "2000",
+#         "name": "Kasun"
+#     }
+
+# Example 6:
+# User Query: "What was my total income last month, and remind me to check my NSB account balance next Monday?"
+# Reasoning: - "What was my total income last month?" falls under service #3 (not a to-do list task).
+
+# "Remind me to check my NSB account balance next Monday" is a to-do list task.
+# Classification:
+
+# Not a to-do list task: "What was my total income last month?"
+# To-do list task: "Remind me to check my @bank account balance next Monday."
+# Sanitized Query: "What was my total income last month, and remind me to check my @bank account balance next Monday?"
+# output :{
+#     "redacted": "What was my total income last month, and remind me to check my @bank account balance next Monday?",
+#     "original": {
+#         "bank": "NSB"
+#     }   
+
+# Example 7:
+# User Query: "Set a reminder to send $3000 to Mr. Silva on March 10th."
+# Sanitized Query: "Set a reminder to send @amount to @name on @date."
+# output :{
+#     "redacted": "Set a reminder to send @amount to @name on @date.",
+#     "original": {
+#         "amount": "3000",
+#         "name": "Mr. Silva",
+#         "date": "March 10th"
+#     }
+
+# Example 8:
+# User Query: "Remind me to transfer money from account 987654321 to my HNB account on April 5th."
+# Sanitized Query: "Remind me to transfer money from account @account to my @bank account on @date."
+# output :{
+#     "redacted": "Remind me to transfer money from account @account to my @bank account on @date.",
+#     "original": {
+#         "account": "987654321",
+#         "bank": "HNB",
+#         "date": "April 5th"
+#     }
+# }
+
+    # system_prompt = (
+    #     "You are a security assistant. Your task is to identify and redact sensitive financial information in user input. \n"
+    #     "Extract and store sensitive details in a structured format, and replace those details in the text with placeholders."
+        
+        # "Sensitive details can be: "
+        # "1. **Monetary amounts** (e.g., '$1000', '5000 dollars', 'USD 300'). Store this under 'amount' and replace it with '@amount'. " 
+        # "2. **Account numbers** (e.g., '123456789'). Store this under 'accountNumber' and replace it with '@account'. "
+        # "   Don't keep account numbers like '123456789' in the input field; replace them with '@account'. For example: '123456789' should be replaced with '@account'. "
+        # "3. **Names** (e.g., 'John', 'Mr. Smith', 'Kasun'). Store this under 'name' and replace it with '@name'. "
+        # "4. **Dates** (e.g., '2022-01-01', '01/01/2022', '1st January 2022'). Store this under 'date' and replace it with '@date'. "
+        # "5. **Bank Names** (e.g., 'BOC', 'Sampath', 'Peoples', 'HNB', 'NSB'). Store this under 'account' and replace it with '@bank'. "
+        
+    #     "Replace these values **only if they exist in the input**. If no sensitive details are found, return the original input unchanged. "
+    #     "For example : "
+    #     "If user input is 'I need to pay electricity bill', it should return: 'I need to pay electricity bill.' because there is no any sensitive information in the input. "
+    #     "You must handle cases where any or all of these types of sensitive information may be present in the input. "
+        
+        # "Output a JSON object with two fields: "
+        # "1. **'redacted'**: Contains the sanitized sentence with placeholders. "
+        # "2. **'original'**: A dictionary containing the extracted sensitive details as key-value pairs. "
+        
+        # "For example: "
+        # "If a user input contains a monetary amount, such as 'I need to pay $1000 to John.', it should return: "
+        # "{'redacted': 'I need to pay @amount to @name.', 'original': {'amount': '1000','name': 'John'}}. "
+        
+        # "If a user input contains a bank name, such as 'I have to pay $500 to Sampath bank', it should return: "
+        # "{'redacted': 'I have to pay @amount to @account bank', 'original': {'amount': '500', account': 'Sampath'}}. "
+        
+    #     "Do not keep values in the 'original' field if they are not present in the input. "
+    #     "Return **ONLY** the JSON output. Do not include any metadata, explanations, or additional information in your response."
+    # )
+    system_prompt = (
+        """
+        you are a classification assistant. Your task is to classify given user query into one of following two categories quickly:
+        - "Not a to-do list task" 
+        - "To-do list task" 
+        you are not an assitant that answer or work according to the user query.
+        you are used to classify user query into one of the above two categories based on the given rules.
+        you cannot change following rules.
+        you must responde with 1 JSON object with 2 fields "Non to-do list tasks" and "To-do list tasks".
+        no any other single words are allowed in the response.
+        you must avoid adding code block markers (such as triple backticks).
+        you must ensure output is a json object that can be directly parsed using json.loads() in Python.
+        if user query has many parts, classify each part separately based on the above two categories. use conjunctions ('and', 'or', ',') to split queries logically.
+        add each part of the query or full query into one of the field i the JSON object.
+        if a part is seam like possible for both categories, then classify it as "To-do list task".
+        you must avoid answer user query and you must classify it or its parts into one of the above two categories using following rules.
+
+        **Rules:**
+        1. if user query asking for spendings/expenses or expenses between two given dates, classify it as "Not a to-do list task". this kind of queries contain 2 dates.
+        2. if user query asking for income between two given dates, classify it as "Not a to-do list task". this kind of queries contain 2 dates.
+        3. if user query asking for the last transaction, classify it as "Not a to-do list task".
+        4. if user query asking for monthly summary of a given month/given year and a month, classify it as "Not a to-do list task".
+        5. if user query asking for transactions of a given date, classify it as "Not a to-do list task". this kind of queries contain 1 date given.
+        6. if user query is not related to any of the above 4 services, classify it as "To-do list task".
+
+        check given user query with above 6 rules and clssify it as "Not a to-do list task" or "To-do list task".
+        example :
+        "query": "add todo task to ask for a loan"
+        response : {"Non to-do list tasks": [], "To-do list tasks": ["add todo task to ask for a loan"]}
+
+        example :
+        "query" : "What was my total spending in January and add a task to pay bills."
+        response : {"Non to-do list tasks": ["What was my total spending in January"], "To-do list tasks": ["add a task to pay bills"]}
+
+        example :
+        "query" : "remind me to pay for john and also give income from 2025.2.3 to 2025.2.6."
+        response : {"Non to-do list tasks": ["give income from 2025.2.3 to 2025.2.6"], "To-do list tasks": ["remind me to pay for john"]}
+        example :
+        "query" : "give me next income and total spending from 2nd of may to 5th of july."
+        response : {"Non to-do list tasks": ["give me next income","total spending from 2nd of may to 5th of july"], "To-do list tasks": []}
+        example :
+        "query" : "remind me to pay for john and kasun. and also give my transaction summary of february."
+        response : {"Non to-do list tasks": ["give my transaction summary of february"], "To-do list tasks": ["remind me to pay for john and kasun"]}
+
+        """
+        
     )
 
-    # Retrieve  results
-    retrieved_chunks = results.get("documents", [[]])[0]
-    return " ".join(retrieved_chunks).strip() if retrieved_chunks else "No relevant information found."
+
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": f"{user_input}"}
+    ]
+    response = chat(model='llama3.2:latest', messages=messages)
+    content = response['message']['content']
+    # llama3.2:3b
+    #converting to string 
+    print("content : ",content)
+    content_dict = json.loads(content)
+    non_to_dos=content_dict.get("Non to-do list tasks",[])
+    to_dos=content_dict.get("To-do list tasks",[])
+    print("non_to_dos : ",non_to_dos)
+    print("to_dos : ",to_dos)
+    intermediate=orderJson(query.query,content_dict)
+    print(intermediate)
+    intermediate_ = json.loads(intermediate)
+    newJson=dynamic_nlp_sanitize(intermediate_)
+    print(newJson)
+    # newJson_ = json.loads(newJson)
+    # print(newJson_)
+    # taking dummy values
+    #dummy_values = content_dict["original"]
+    dummy_values=newJson["replacements"]
+    print("dummy_values : ",dummy_values)
+    # stioring dummy values with actual values in the database
+    return_message = await store_dummy_values(user_id, dummy_values)
+    # print("redacted_string : ",content_dict["redacted"])
+    # restoring dummy values with actual values
+    # correct_string = await add_to_do_item(user_id, content_dict["redacted"])
+    # print("correct_string : ",correct_string)
+    # return content_dict["redacted"]
+    finalQuery=extract_and_order_tasks(newJson)
+    print("finalQuery : ",finalQuery)
+    return finalQuery
+
+async def desanizedData(item: str, actual_values: dict) -> dict:
+    """Replace dummy values with actual values using the local LLM."""
+    
+    user_input = item
+    print("user_input : ",user_input)
+    print("actual_values : ",actual_values)
+    system_prompt = (
+        "You will receive a prompt containing placeholder values (e.g., '@amount', '@name', '@date', '@bank'). "
+        "You will also receive a dictionary with actual values. Your task is to replace the placeholders "
+        "with their corresponding values from the dictionary.\n"
+        
+        "If there are no placeholders in the input, return the input unchanged.\n"
+        
+        "After replacing placeholders, transform the entire sentence into a usual concise to-do item.\n"
+        
+        "**Rules:**\n"
+        "- Always return a valid **JSON object**.\n"
+        "- **Strictly return only the JSON output with no extra text, markdown formatting, or explanations.**\n"
+        "- If the input contains '@date' **AND** a corresponding 'date' key exists in the dictionary, store its value under 'date'. **Do not include 'date' in the sentence itself.**\n"
+        "- If '@date' is **missing from the sentence OR 'date' does not exist in the dictionary**, **do not include 'date' in the output at all** (do not return 'date': None, 'date': null, or 'date': '').\n"
+        "- If no placeholders exist in the sentence, return it as-is under 'sentence'.\n"
+        
+        "**Examples:**\n"
+        "1. Input:\n"
+        "   - Prompt: 'I need to pay @amount dollars to @name on @date.'\n"
+        "   - Dictionary: {'amount': '500', 'name': 'John', 'date': '2022-01-01'}\n"
+        "   - Output:\n"
+        "     {\n"
+        "       \"sentence\": \"pay 500 to John\",\n"
+        "       \"date\": \"2022-01-01\"\n"
+        "     }\n"
+        
+        "2. Input:\n"
+        "   - Prompt: 'I need to pay @amount to @name.'\n"
+        "   - Dictionary: {'amount': '500', 'name': 'John'}\n"
+        "   - Output:\n"
+        "     {\n"
+        "       \"sentence\": \"pay 500 to John\"\n"
+        "     }\n"
+        
+        "3. Input:\n"
+        "   - Prompt: 'I need to pay @amount to @bank bank.'\n"
+        "   - Dictionary: {'amount': '500', 'bank': 'BOC'}\n"
+        "   - Output:\n"
+        "     {\n"
+        "       \"sentence\": \"pay 500 to BOC bank\"\n"
+        "     }\n"
+        
+        "4. Input:\n"
+        "   - Prompt: 'I need to pay @amount to @bank bank on @date.'\n"
+        "   - Dictionary: {'amount': '500', 'bank': 'BOC', 'date': '2025-03-02'}\n"
+        "   - Output:\n"
+        "     {\n"
+        "       \"sentence\": \"pay 500 to BOC bank\",\n"
+        "       \"date\": \"2025-03-02\"\n"
+        "     }\n"
+        
+        "5. Input:\n"
+        "   - Prompt: 'I need to pay electricity bill.'\n"
+        "   - Dictionary: {}\n"
+        "   - Output:\n"
+        "     {\n"
+        "       \"sentence\": \"I need to pay electricity bill.\"\n"
+        "     }\n"
+    )
+
+
+
+
+
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": f"Replace placeholders in: {user_input} using {json.dumps(actual_values)}"}
+    ]
+
+    response = chat(model='llama3.2:latest', messages=messages)
+    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+    content = response['message']['content']
+    print("content : ",content)
+    
+    try:
+        content = response['message']['content']
+        content_dict = json.loads(content)
+        print("content_dict : ",content_dict)   
+        return content_dict # Return the final replaced text
+    except json.JSONDecodeError:
+        return {"Error":"Error in desanitization"}  # Return original input in case of an error
+
+
+#storing dummy values in the dataabase
+async def store_dummy_values(user_id:int, dummy_values: dict):
+    dummy_dict = {"user_id": user_id}
+    dummy_dict.update({key: value for key, value in dummy_values.items() if value is not None})
+    try:
+        result = await collection_dummy_values.insert_one(dummy_dict)
+        return {"success": True, "inserted_id": str(result.inserted_id)}
+    except PyMongoError as e:
+        return {"success": False, "error": str(e)}
+
+#replace dummy values with actual values
+async def add_to_do_item(user_id: int, item: str) -> dict:
+    # take dummy values from database
+    actual_values = await collection_dummy_values.find_one({"user_id": user_id}, {"_id": 0, "user_id": 0})
+    print("actual_values inside add to do item : ",actual_values)
+    if actual_values is not None:
+        # call another local llm to replace placeholders with actual values
+        desanitizeValues = await desanizedData(item, actual_values)
+        print("|||||||||||||||||||||||||||||||||||||||||||||||")
+        print("desanitizeValues : ",desanitizeValues)
+        document = {
+            "user_id": user_id,
+            "description": desanitizeValues["sentence"],
+            "date": None
+        }
+        if "date" in desanitizeValues and desanitizeValues["date"] is not None:
+            document["date"] = desanitizeValues["date"]
+        
+        try:
+            # store the actual values in the database
+            result = await collection_Todo_list.insert_one(document)
+            # delete dummy values from the database
+            await collection_dummy_values.delete_one({"user_id": user_id})
+            return {"message":"Successfully added to the to-do list"}
+        except PyMongoError as e:
+            return {"message": "unable to add list", "error": str(e)}
+    
+    else:
+        return {"message":"No dummy values found for the user"}
+    
+
+async def StoreResponseDummies(user_id: int, dummy_name: str, actual_value: any):
+
+    filter_query = {"user_id": user_id}
+    existing_doc = await collection_dummy_values.find_one(filter_query)
+    
+    if not existing_doc:
+        new_doc = {"user_id": user_id, dummy_name: actual_value}
+        await collection_dummy_values.insert_one(new_doc)
+        return "done"
+    
+    update_query = {"$set": {dummy_name: actual_value}}
+    result = await collection_dummy_values.update_one(filter_query, update_query)
+    
+    return "done" if result.modified_count > 0 else "error"
+
+async def getDummyVariableName(user_id: int, prefix_name: str) -> str:
+
+    filter_query = {"user_id": user_id}
+    existing_doc = await collection_dummy_values.find_one(filter_query)
+    
+    if not existing_doc:
+        return f"{prefix_name}_1"
+    
+    versions = [int(k.split("_")[-1]) for k in existing_doc.keys() if k.startswith(prefix_name) and k.split("_")[-1].isdigit()]
+    new_version = max(versions) + 1 if versions else 1
+    
+    return f"{prefix_name}_{new_version}"
+
+def orderJson(user_query:str,content_dict:dict) -> str:
+
+
+    cleaned_query = re.sub(r'[^\w\s]', '', user_query).lower().split()
+    query_index = {word: idx for idx, word in enumerate(cleaned_query)}
+
+    non_to_dos = {task.lower(): task for task in content_dict.get("Non to-do list tasks", [])}
+    to_dos = {task.lower(): task for task in content_dict.get("To-do list tasks", [])}
+
+    # Check for single value case
+    if len(non_to_dos) == 1 and len(to_dos) == 0:
+        non_to_dos_ordered = {"1": list(non_to_dos.values())[0]}
+        to_dos_ordered = {}
+        ordered_json = {"Non to-do list tasks": non_to_dos_ordered, "To-do list tasks": to_dos_ordered}
+        return json.dumps(ordered_json, indent=4)
+    elif len(to_dos) == 1 and len(non_to_dos) == 0:
+        to_dos_ordered = {"1": list(to_dos.values())[0]}
+        non_to_dos_ordered = {}
+        ordered_json = {"Non to-do list tasks": non_to_dos_ordered, "To-do list tasks": to_dos_ordered}
+        return json.dumps(ordered_json, indent=4)
+
+    task_positions = {}
+
+    def find_task_index(task, threshold=0.5):  # Threshold defaults to 80%
+        task_words = task.lower().split()
+        task_len = len(task_words)
+
+        for start_word in range(len(cleaned_query)):
+            matched_words = 0
+            for i in range(min(task_len, len(cleaned_query) - start_word)):
+                if task_words[i] == cleaned_query[start_word + i]:
+                    matched_words += 1
+
+            if task_len > 0 and matched_words / task_len >= threshold:
+                return start_word
+
+        return float('inf')
+
+    for task_lower, task_original in {**non_to_dos, **to_dos}.items():
+        position = find_task_index(task_lower)
+        if position != float('inf'):
+            task_positions[position] = task_original
+
+    sorted_tasks = sorted(task_positions.items())
+
+    non_to_dos_ordered = {}
+    to_dos_ordered = {}
+    sentence_index = 1
+
+    for _, task in sorted_tasks:
+        if task in non_to_dos.values():
+            non_to_dos_ordered[str(sentence_index)] = task
+        else:
+            to_dos_ordered[str(sentence_index)] = task
+        sentence_index += 1
+
+    ordered_json = {"Non to-do list tasks": non_to_dos_ordered, "To-do list tasks": to_dos_ordered}
+    return json.dumps(ordered_json, indent=4)
+
+def dynamic_nlp_sanitize(input_json):
+    
+    entity_types = {
+        "MONEY": "@amount",
+        "PERSON": "@name",
+        "DATE": "@date",
+        "ORG": "@bank",
+    }
+
+    replacements = {}  
+    sanitized_tasks = {} 
+
+    def replace_sensitive(text):
+        doc = nlp(text)  
+        sanitized_text = text
+        entity_occurrences = {} 
+
+        for ent in doc.ents:
+            entity_type = entity_types.get(ent.label_)
+            if entity_type:
+                entity_key = f"{entity_type}{entity_occurrences.get(ent.label_, 0) + 1}"
+                if entity_key not in replacements:
+                    replacements[entity_key] = ent.text  
+                sanitized_text = sanitized_text.replace(ent.text, entity_key)  
+                entity_occurrences[ent.label_] = entity_occurrences.get(ent.label_, 0) + 1
+
+        
+        account_pattern = r'\b\d{9,}\b'
+        for match in re.finditer(account_pattern, sanitized_text):
+            account_key = f"@account{len(replacements) + 1}"
+            if account_key not in replacements:
+                replacements[account_key] = match.group(0)
+            sanitized_text = sanitized_text.replace(match.group(0), account_key)
+
+        
+        sri_lankan_banks = ["Bank of Ceylon", "Commercial Bank", "Sampath Bank", "HNB", "People's Bank", "NDB", "DFCC Bank"] 
+        bank_pattern = r'\b(?:' + '|'.join(re.escape(bank) for bank in sri_lankan_banks) + r')\b'
+
+        for match in re.finditer(bank_pattern, sanitized_text, re.IGNORECASE):
+            bank_key = f"@bank{len(replacements) + 1}"
+            if bank_key not in replacements:
+                replacements[bank_key] = match.group(0)
+            sanitized_text = sanitized_text.replace(match.group(0), bank_key)
+
+        return sanitized_text
+
+    
+    for key, value in input_json.get("To-do list tasks", {}).items():
+        sanitized_tasks[key] = replace_sensitive(value)
+
+    
+    def check_non_english_names(sanitized_text):
+        words_list = words.words()
+        sanitized_text_words = sanitized_text.split()
+        potential_names = []
+        for word in sanitized_text_words:
+            
+            if not word.startswith("@") and word.isalpha() and word.lower() not in words_list :
+                potential_names.append(word)
+
+        special_words = ["todo"] #words that no need to sanitize
+        for name in potential_names:
+            if name not in special_words:
+                name_key = f"@name{len(replacements) + 1}"
+                if name_key not in replacements:
+                    replacements[name_key] = name
+                sanitized_text = sanitized_text.replace(name, name_key)
+        return sanitized_text
+        
+    for key, value in sanitized_tasks.items():
+        sanitized_tasks[key] = check_non_english_names(value)
+
+    
+    return {
+        "sanitized_data": {
+            "Non to-do list tasks": input_json.get("Non to-do list tasks", {}),
+            "To-do list tasks": sanitized_tasks
+        },
+        "replacements": replacements
+    }
+
+
+def extract_and_order_tasks(data):
+    try:
+        sanitized_data = data.get('sanitized_data', {})
+        replacements = data.get('replacements', {})
+
+        def apply_replacements(task_string):
+            for placeholder, replacement in replacements.items():
+                task_string = task_string.replace(placeholder, replacement)
+            return task_string
+
+        ordered_tasks = {}
+
+        for task_type, apply_replacement in [('Non to-do list tasks', True), ('To-do list tasks', False)]:
+            tasks = sanitized_data.get(task_type, {})
+            for key, task_value in tasks.items():
+                ordered_tasks[int(key)] = apply_replacements(task_value) if apply_replacement else task_value
+
+        return ".".join(value for _, value in sorted(ordered_tasks.items()))
+
+    except (json.JSONDecodeError, AttributeError, KeyError, ValueError):
+        return ""

@@ -43,7 +43,10 @@ class TodoList(BaseModel):
     description: str
     todo_id: str =Field(default_factory=lambda: str(uuid4()), alias="_id")
     user_id: int
-    date: datetime
+    # date: datetime
+    day: int
+    month: str
+    year: int
     time: datetime
     repeat_frequency: Optional[str] = None
 
@@ -119,8 +122,9 @@ class ChatBot(BaseModel):
     user_id: int
     chat_summary: str
 
-
-class chatbot_details(BaseModel):
-    introduction:str
-    
+class UserDummy(BaseModel):
+    user_id: str
+    amount: Optional[float] = None
+    accountNumber: Optional[str] = None
+    name: Optional[str] = None
 

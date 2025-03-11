@@ -28,5 +28,4 @@ collection_predicted_expense = db["predicted_expense"]
 collection_predicted_income = db["predicted_income"]
 collection_transaction = db["transaction"]
 collection_transaction_category = db["transaction_category"]
-
-collection_chatbot_details=db["chatbot_details"]
+collection_dummy_values = db["user_dummy"]
