@@ -790,71 +790,76 @@ async def sanizedData(query: str) -> str:
     print("finalQuery : ",finalQuery)
     return finalQuery
 
-async def desanizedData(item: str, actual_values: dict) -> dict:
+async def desanizedData(item: str, actual_values: dict):
     """Replace dummy values with actual values using the local LLM."""
     
     user_input = item
     print("user_input : ",user_input)
     print("actual_values : ",actual_values)
-    system_prompt = ( 
+
+    # replacing dummy values with actual values
+    data_dict = ast.literal_eval(actual_values)
+    def replace_placeholder(match):
+        return data_dict.get(match.group(0), match.group(0))
+    
+    result = re.sub(r'@\w+', replace_placeholder, user_input)
+    print("replaced values : ", result)
+
+    current_year = datetime.now().year
+
+    system_prompt = (
         """
-        You will receive a string containing placeholders such as @amount1, @name1, @date1, @bank1, etc.
+        You will receive a sentence as a string. Your task is to analyze the sentence and extract any date- or time-related information.
 
-        ### Task:
-        - If the string contains any **@date** placeholders (e.g., @date1, @date2), **remove them** from the string.
-        - Replace each removed **@date** placeholder with its corresponding actual value from the provided dictionary.
-        - Other placeholders (**@name, @amount, @bank**, etc.) must remain **unchanged**.
-        - If no **@date** placeholders exist, return the input string as-is.
+        - If the sentence contains a date or time-related information remove it from the sentence and return:
+        * "sentence": The sentence without the date or time.
+        * "year": The extracted year (or "2025" if the year is missing).
+        * "month": The extracted month.
+        * "day": The extracted day (convert day numbers to two-digit format, e.g., "5" → "05").
+        * "time": The extracted time in a consistent format (e.g., "12:00 PM", "10:00 AM", "afternoon", "morning").
+        
+        - If no date or time is present, return:
+        * "year": "None"
+        * "month": "None"
+        * "day": "None"
+        * "time": "None"
+    
+        **Examples:**
 
-        ### Output Format (JSON):
-        - **sentence**: The modified string where **@date placeholders are removed**, but all other placeholders remain.
-        - **date**: A dictionary containing the actual values of replaced **@date** placeholders.
-        - If no **@date** placeholders exist, return only **sentence**.
+        * Input: "Pay $500 to Mr. John on 2022-01-01 at 12:00 PM"
+        * Output: {{"sentence": "Pay $500 to Mr. John on", "year": "2022", "month": "01", "day": "01", "time": "12:00 PM"}}
 
-        ### Examples:
-        1. **Input:**  
-        - **Sentence:** "Transfer @amount1 to @name1 at @bank1 on @date1."  
-        - **Dictionary:** {"amount1": "500", "name1": "John", "bank1": "BOC", "date1": "2025-03-11"}  
-        - **Output:**  
-            {
-            "sentence": "Transfer @amount1 to @name1 at @bank1.",
-            "date": {"date1": "2025-03-11"}
-            }
+        * Input: "I have to pay $1000 to Mr. Smith on 5th May in the afternoon"
+        * Output: {{"sentence": "I have to pay $1000 to Mr. Smith", "year": "2025", "month": "May", "day": "05", "time": "afternoon"}}
 
-        2. **Input:**  
-        - **Sentence:** "Pay @amount1 to @name1 on @date1 and @date2."  
-        - **Dictionary:** {"amount1": "200", "name1": "Alice", "date1": "2025-04-01", "date2": "2025-05-15"}  
-        - **Output:**  
-            {
-            "sentence": "Pay @amount1 to @name1.",
-            "date": {"date1": "2025-04-01", "date2": "2025-05-15"}
-            }
+        * Input: "Schedule a meeting at 10 AM"
+        * Output: {{"sentence": "Schedule a meeting", "year": "None", "month": "None", "day": "None", "time": "10:00 AM"}}
 
-        3. **Input:**  
-        - **Sentence:** "Withdraw @amount1 from @bank1."  
-        - **Dictionary:** {"amount1": "1000", "bank1": "XYZ Bank"}  
-        - **Output:**  
-            {
-            "sentence": "Withdraw @amount1 from @bank1."
-            }
+        * Input: "I have to pay $1000 to Mr. Smith"
+        * Output: {{"sentence": "I have to pay $1000 to Mr. Smith", "year": "None", "month": "None", "day": "None", "time": "None"}}
 
-        you must avoid adding code block markers (such as triple backticks).
-        you must ensure output is a json object that can be directly parsed using json.loads() in Python.
+        **Rules:**
+        - If the date does not include a year, you must use the current year: "2025".
+        - If no date is mentioned, return "None" for year, month, and day.
+        - If no time is mentioned, return "None" for time.
+        - Extract time expressions such as "12:00 PM", "10 AM", "afternoon", "morning", and remove them from the sentence.
+        - Only return the JSON object with "sentence", "year", "month", "day", and "time".
+        - Do not include explanations, metadata, or additional details.
+        - Maintain sentence structure while removing the date and time.
+        - Do not explicitly mention that a date or time was extracted in the output.
+        - When returning, do not include ``` (backticks) or words like "json".
+
+        Return output strictly in JSON format.
         """
     )
 
-
-
-
+    print("mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm")
     messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": f"Replace placeholders in: {user_input} using {json.dumps(actual_values)}"}
-    ]
+    {"role": "system", "content": system_prompt},
+    {"role": "user", "content": f"Extract date from: {result}"}]
 
+    print("rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr")
     response = chat(model='llama3.2:3b', messages=messages)
-    print("**************************************************")
-    # content = response['message']['content']
-    # print("content : ",content)
     
     try:
         content = response['message']['content']
