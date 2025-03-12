@@ -856,12 +856,23 @@ async def desanizedData(item: str, actual_values: dict):
     print("actual_values : ",actual_values)
 
     # replacing dummy values with actual values
-    data_dict = ast.literal_eval(actual_values)
+    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+    # data_dict = ast.literal_eval(actual_values)
+    data_dict = actual_values
     def replace_placeholder(match):
         return data_dict.get(match.group(0), match.group(0))
-    
+        # key = '@' + match.group(1)
+        # return data_dict.get(key, match.group(0))
+    # result = re.sub(r'\b([a-zA-Z]+[0-9]+)\b', replace_placeholder, user_input)
     result = re.sub(r'@\w+', replace_placeholder, user_input)
-    print("replaced values : ", result)
+    print("Replaced values:", result)
+    print("???????????????????????????????????????????")
+
+    
+    # result = re.sub(r'@\w+', replace_placeholder, user_input)
+    # print("replaced values : ", result)
+
+
 
     current_year = datetime.now().year
 
@@ -871,7 +882,7 @@ async def desanizedData(item: str, actual_values: dict):
 
         - If the sentence contains a date or time-related information remove it from the sentence and return:
         * "sentence": The sentence without the date or time.
-        * "year": The extracted year (or "2025" if the year is missing).
+        * "year": The extracted year (or "2025" if the year is missing but don't use blindly year 2025 unless if input sentence not mention about date).
         * "month": The extracted month.
         * "day": The extracted day (convert day numbers to two-digit format, e.g., "5" → "05").
         * "time": The extracted time in a consistent format (e.g., "12:00 PM", "10:00 AM", "afternoon", "morning").
@@ -910,18 +921,16 @@ async def desanizedData(item: str, actual_values: dict):
         Return output strictly in JSON format.
         """
     )
-
-    print("mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm")
+    
     messages = [
     {"role": "system", "content": system_prompt},
     {"role": "user", "content": f"Extract date from: {result}"}]
 
     print("rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr")
-    response = chat(model='llama3.2:3b', messages=messages)
+    response = chat(model='llama3.2:latest', messages=messages)
     
     try:
         content = response['message']['content']
-        print("?????????????????????????????????????????")
         print("content : ",content)
         content_dict = json.loads(content)
         print("content_dict : ",content_dict)   
@@ -957,6 +966,29 @@ async def insert_todo(collection_Todo_list: AsyncIOMotorCollection, document: di
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+def process_desanitize_values(data, document):
+    year = data.get("year")
+    month = data.get("month")
+    day = data.get("day")
+    time_str = data.get("time")
+
+    # Convert to datetime if year, month, and day exist
+    if year and month and day and year != "None" and month != "None" and day != "None":
+        document["datetime"] = datetime(int(year), int(month), int(day))
+    else:
+        document["datetime"] = None
+
+    # Convert to time if time exists
+    if time_str and time_str != "None":
+        try:
+            document["time"] = datetime.strptime(time_str, "%H:%M").time()
+        except ValueError:
+            document["time"] = None
+    else:
+        document["time"] = None
+
+    return document
+
 #replace dummy values with actual values
 async def add_to_do_item(user_id: int, item: str) -> dict:
     # take dummy values from database
@@ -971,12 +1003,14 @@ async def add_to_do_item(user_id: int, item: str) -> dict:
             "user_id": user_id,
             "description": desanitizeValues["sentence"]
         }
-        if "date" in desanitizeValues and desanitizeValues["date"] is not None:
-            document["date"] = desanitizeValues["date"]
+        # create proper structure to data for inserting database
+        updated_document = process_desanitize_values(desanitizeValues, document)
+        print("KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK")
+        print("result : ",updated_document)
         
         try:
             # store the actual values in the database
-            result = await insert_todo(collection_Todo_list, document)
+            result = await insert_todo(collection_Todo_list, updated_document)
             # delete dummy values from the database
             await collection_dummy_values.delete_one({"user_id": user_id})
             return {"message":"Successfully added to the to-do list"}
