@@ -8,14 +8,11 @@ class AccountRemove(BaseModel):
     passcode: str
 
 class AccountAdd(BaseModel):
-    bank_account : str
-    bank_id : int
+    bank_name : str
     account_number : int
-    account_type : str | None = None
-    credit_limit : int | None = None
-    due_date : datetime | None = None
-    balance : float | None = None
+    account_type : str 
     NIC : str 
+    
 
 class BankAccount(BaseModel):
     bank_id: int
@@ -30,3 +27,28 @@ class BankAccountResponse(BaseModel):
 class RemoveAccountResponse(BaseModel):
     message: str
     description: str | None = None
+
+class BankAccountAddResponse(BaseModel):
+    otp_id: int
+    status: str
+    message: str | None = None
+
+class OtpRequestAccountAdding(BaseModel):
+    user_id: int
+    otp_id: int
+    otp: str
+    bank_name : str
+    account_number : int
+    account_type : str 
+
+class OtpResponseAccountAdding(BaseModel):
+    status: str
+    message: str
+
+class OtpResponseAccountAddingResend(BaseModel):
+    status: str
+    message: str
+
+class OtpRequestAccountAddingResend(BaseModel):
+    user_id: int
+    otp_id: int

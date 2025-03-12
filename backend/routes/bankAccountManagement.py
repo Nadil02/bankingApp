@@ -1,10 +1,10 @@
 from fastapi import APIRouter
-from services.bankAccountManagement import getBankAccountDetails, removeBankAccount, addBankAccount
-from schemas.bankAccountManagement import AccountRemove, AccountAdd,BankAccount,RemoveAccountResponse
+from services.bankAccountManagement import getBankAccountDetails, removeBankAccount, addBankAccount, otp_validation_account_add
+from schemas.bankAccountManagement import AccountRemove, AccountAdd,BankAccount, BankAccountAddResponse, OtpRequestAccountAdding, OtpRequestAccountAddingResend, OtpResponseAccountAdding, OtpResponseAccountAddingResend,RemoveAccountResponse
 
 router = APIRouter(prefix="/bankAccountManagement", tags=["bankAccountManagement"])
 
-@router.get("/", response_model=list[BankAccount])
+@router.get("/accountDetails", response_model=list[BankAccount])
 async def get(user_id: int):
     return await getBankAccountDetails(user_id)
 
@@ -12,6 +12,14 @@ async def get(user_id: int):
 async def removeAccount(user_id: int, request: AccountRemove):  
     return await removeBankAccount(user_id, request)
 
-@router.post("/addBankAccount")
+@router.post("/addBankAccount", response_model=BankAccountAddResponse)
 async def addAccount(user_id: int, request: AccountAdd):
     return await addBankAccount(user_id, request)
+
+@router.post("/otpAccountAdding", response_model=OtpResponseAccountAdding)
+async def otp_validation_account_add(request: OtpRequestAccountAdding):
+    return await otp_validation_account_add(request)
+
+@router.post("/resendOtpAccountAdding", response_model=OtpResponseAccountAddingResend)
+async def resend_otp_account_add(request: OtpRequestAccountAddingResend):
+    return await resend_otp_account_add(request)
