@@ -6,11 +6,13 @@ from database import collection_transaction, collection_predicted_income, collec
 from pymongo.errors import PyMongoError
 from datetime import datetime
 from database import collection_account, collection_transaction, collection_predicted_income, collection_predicted_expense, collection_user, collection_predicted_balance,collection_dummy_values,collection_Todo_list
+from motor.motor_asyncio import AsyncIOMotorCollection
 import spacy
 import json
 import re
 from nltk.corpus import words  
 import nltk
+import ast
 
 try:
     words.words("en")
@@ -794,66 +796,52 @@ async def desanizedData(item: str, actual_values: dict) -> dict:
     user_input = item
     print("user_input : ",user_input)
     print("actual_values : ",actual_values)
-    system_prompt = (
-        "You will receive a prompt containing placeholder values (e.g., '@amount', '@name', '@date', '@bank'). "
-        "You will also receive a dictionary with actual values. Your task is to replace the placeholders "
-        "with their corresponding values from the dictionary.\n"
-        
-        "If there are no placeholders in the input, return the input unchanged.\n"
-        
-        "After replacing placeholders, transform the entire sentence into a usual concise to-do item.\n"
-        
-        "**Rules:**\n"
-        "- Always return a valid **JSON object**.\n"
-        "- **Strictly return only the JSON output with no extra text, markdown formatting, or explanations.**\n"
-        "- If the input contains '@date' **AND** a corresponding 'date' key exists in the dictionary, store its value under 'date'. **Do not include 'date' in the sentence itself.**\n"
-        "- If '@date' is **missing from the sentence OR 'date' does not exist in the dictionary**, **do not include 'date' in the output at all** (do not return 'date': None, 'date': null, or 'date': '').\n"
-        "- If no placeholders exist in the sentence, return it as-is under 'sentence'.\n"
-        
-        "**Examples:**\n"
-        "1. Input:\n"
-        "   - Prompt: 'I need to pay @amount dollars to @name on @date.'\n"
-        "   - Dictionary: {'amount': '500', 'name': 'John', 'date': '2022-01-01'}\n"
-        "   - Output:\n"
-        "     {\n"
-        "       \"sentence\": \"pay 500 to John\",\n"
-        "       \"date\": \"2022-01-01\"\n"
-        "     }\n"
-        
-        "2. Input:\n"
-        "   - Prompt: 'I need to pay @amount to @name.'\n"
-        "   - Dictionary: {'amount': '500', 'name': 'John'}\n"
-        "   - Output:\n"
-        "     {\n"
-        "       \"sentence\": \"pay 500 to John\"\n"
-        "     }\n"
-        
-        "3. Input:\n"
-        "   - Prompt: 'I need to pay @amount to @bank bank.'\n"
-        "   - Dictionary: {'amount': '500', 'bank': 'BOC'}\n"
-        "   - Output:\n"
-        "     {\n"
-        "       \"sentence\": \"pay 500 to BOC bank\"\n"
-        "     }\n"
-        
-        "4. Input:\n"
-        "   - Prompt: 'I need to pay @amount to @bank bank on @date.'\n"
-        "   - Dictionary: {'amount': '500', 'bank': 'BOC', 'date': '2025-03-02'}\n"
-        "   - Output:\n"
-        "     {\n"
-        "       \"sentence\": \"pay 500 to BOC bank\",\n"
-        "       \"date\": \"2025-03-02\"\n"
-        "     }\n"
-        
-        "5. Input:\n"
-        "   - Prompt: 'I need to pay electricity bill.'\n"
-        "   - Dictionary: {}\n"
-        "   - Output:\n"
-        "     {\n"
-        "       \"sentence\": \"I need to pay electricity bill.\"\n"
-        "     }\n"
-    )
+    system_prompt = ( 
+        """
+        You will receive a string containing placeholders such as @amount1, @name1, @date1, @bank1, etc.
 
+        ### Task:
+        - If the string contains any **@date** placeholders (e.g., @date1, @date2), **remove them** from the string.
+        - Replace each removed **@date** placeholder with its corresponding actual value from the provided dictionary.
+        - Other placeholders (**@name, @amount, @bank**, etc.) must remain **unchanged**.
+        - If no **@date** placeholders exist, return the input string as-is.
+
+        ### Output Format (JSON):
+        - **sentence**: The modified string where **@date placeholders are removed**, but all other placeholders remain.
+        - **date**: A dictionary containing the actual values of replaced **@date** placeholders.
+        - If no **@date** placeholders exist, return only **sentence**.
+
+        ### Examples:
+        1. **Input:**  
+        - **Sentence:** "Transfer @amount1 to @name1 at @bank1 on @date1."  
+        - **Dictionary:** {"amount1": "500", "name1": "John", "bank1": "BOC", "date1": "2025-03-11"}  
+        - **Output:**  
+            {
+            "sentence": "Transfer @amount1 to @name1 at @bank1.",
+            "date": {"date1": "2025-03-11"}
+            }
+
+        2. **Input:**  
+        - **Sentence:** "Pay @amount1 to @name1 on @date1 and @date2."  
+        - **Dictionary:** {"amount1": "200", "name1": "Alice", "date1": "2025-04-01", "date2": "2025-05-15"}  
+        - **Output:**  
+            {
+            "sentence": "Pay @amount1 to @name1.",
+            "date": {"date1": "2025-04-01", "date2": "2025-05-15"}
+            }
+
+        3. **Input:**  
+        - **Sentence:** "Withdraw @amount1 from @bank1."  
+        - **Dictionary:** {"amount1": "1000", "bank1": "XYZ Bank"}  
+        - **Output:**  
+            {
+            "sentence": "Withdraw @amount1 from @bank1."
+            }
+
+        you must avoid adding code block markers (such as triple backticks).
+        you must ensure output is a json object that can be directly parsed using json.loads() in Python.
+        """
+    )
 
 
 
@@ -863,13 +851,15 @@ async def desanizedData(item: str, actual_values: dict) -> dict:
         {"role": "user", "content": f"Replace placeholders in: {user_input} using {json.dumps(actual_values)}"}
     ]
 
-    response = chat(model='llama3.2:latest', messages=messages)
-    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+    response = chat(model='llama3.2:3b', messages=messages)
+    print("**************************************************")
     # content = response['message']['content']
     # print("content : ",content)
     
     try:
         content = response['message']['content']
+        print("?????????????????????????????????????????")
+        print("content : ",content)
         content_dict = json.loads(content)
         print("content_dict : ",content_dict)   
         return content_dict # Return the final replaced text

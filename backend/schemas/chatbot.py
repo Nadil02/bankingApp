@@ -6,7 +6,7 @@ class ChatbotRequest(BaseModel):
     query: str
 
 class ChatbotResponse(BaseModel):
-    response: str
+    response: dict
 
 class GetTotalSpendingsArgs(BaseModel):
     user_id: int
