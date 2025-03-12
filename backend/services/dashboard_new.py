@@ -139,6 +139,15 @@ async def update_second_header(account_id:Union[str, List[str]],start_date:Union
     # converting all the account into list
     account_ids = account_list(account_id)
 
+    date_format = "%Y-%m-%d"
+
+    if isinstance(start_date, str):
+        start_date = datetime.strptime(start_date, date_format)
+    
+    # Convert end_date to datetime if it is a string
+    if isinstance(end_date, str):
+        end_date = datetime.strptime(end_date, date_format)
+
     financial_summery = await fetch_financial_summary(account_ids,start_date, end_date)
     total_expenses = financial_summery["total_expenses"]
     print("total_expenses category " ,total_expenses)
@@ -207,6 +216,8 @@ async def load_specific_account(account_id:str,start_date: Optional[str] = None,
         most_spending_category_100_days = await fetch_most_spent_category_100_days(account_ids,end_date) 
         return second_header, past_transaction_100_days, predicted_transaction_7_days,most_spending_category_100_days
     else:
+        print("start_date",start_date)
+        print("end_date",end_date)
         return await update_second_header(account_ids,start_date,end_date)
     
 
