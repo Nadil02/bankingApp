@@ -17,7 +17,7 @@ def account_list(account_id: Union[str, List[str]]):
     return account_ids
 
 # get user all acount ids and account lits for drop down
-async def all_accounts(user_id:str):
+async def all_accounts(user_id:int):
     items = await collection_account.find(
         {"user_id":user_id},
         {"account_number":1, "account_type":1, "balance":1,"bank_account":1, "account_id":1}).to_list(length=100)

@@ -16,7 +16,7 @@ async def displayDashBoardWithDate(user_id:int,startdate:str,enddate:str ):
     return await load_full_details(user_id,startdate,enddate)
 
 @router.get("/select_account")
-async def savings_summary(account_id: int):
+async def savings_summary(account_id: str):
     return await load_specific_account(account_id)
 
 @router.get("/select_account_time_period")
