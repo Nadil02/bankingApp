@@ -123,7 +123,7 @@ class ChatBot(BaseModel):
     chat_summary: str
 
 class UserDummy(BaseModel):
-    user_id: str
+    user_id: int
     amount: Optional[float] = None
     accountNumber: Optional[str] = None
     name: Optional[str] = None
