@@ -111,7 +111,7 @@ async def get_total_incomes_for_given_time_period(user_id: int, start_date: date
             formatted_start = start_date.strftime('%Y-%m-%d')
             formatted_end = end_date.strftime('%Y-%m-%d')
 
-            # Sanitize and store dummy variable for total income amount
+            # Sanitize and store dummy variable for total income 
             dummy_income_amount = getDummyVariableName(user_id, "@total_income_amount")
             StoreResponseDummies(user_id, dummy_income_amount, total_amount)
 
