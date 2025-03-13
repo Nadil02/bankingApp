@@ -19,10 +19,10 @@ class account(BaseModel):
     bank_id: int
     account_id: int
     user_id: int
-    account_number: str
+    account_number: int
     account_type: str
     credit_limit: float
-    due_date: datetime
+    due_date: Optional[datetime]=None
     balance: float
 
 
@@ -34,10 +34,8 @@ class bank(BaseModel):
 
 class OTP(BaseModel):
     otp: str
-    user_id: str
-    otp_id: str =Field(default_factory=lambda: str(uuid4()), alias="_id")
-    expiry_time: datetime
-    verification_count: int
+    otp_id: int
+
 
 
 class TodoList(BaseModel):

@@ -3,6 +3,7 @@ import json
 import random
 import bcrypt
 from bson import json_util
+from utils.encrypt_and_decrypt import decrypt
 from database import collection_account, collection_bank, collection_user, collection_OTP
 from schemas.bankAccountManagement import AccountRemove, AccountAdd,BankAccount,RemoveAccountResponse,BankAccountAddResponse,OtpRequestAccountAdding,OtpResponseAccountAdding,OtpRequestAccountAddingResend,OtpResponseAccountAddingResend
 from models import OTP, account
@@ -59,9 +60,10 @@ async def addBankAccount(user_id: int, request: AccountAdd):
         next_otp_id = last_otp["otp_id"] + 1
     else:
         next_otp_id = 1  #from 1 if no otp exist
-
-    user_phone_number = user_data["phone_number"]
-
+    print("user data",user_data)
+    user_phone_number = decrypt(user_data["phone_number"])
+    print("user_phone_number",user_phone_number)
+    # user_phone_number="94710620915"
     await storeAndSendOtp(next_otp_id, user_phone_number)
 
     return BankAccountAddResponse(otp_id=next_otp_id,status="success", message="otp sent successfully.")
@@ -120,7 +122,7 @@ async def otp_validation_account_add(otp_request: OtpRequestAccountAdding) -> Ot
         account_number=otp_request.account_number,
         account_type=otp_request.account_type,
         credit_limit=0,
-        due_date="",
+        # due_date="",
         balance=0
     )
 
@@ -136,7 +138,8 @@ async def resend_otp_account_add(otp_request: OtpRequestAccountAddingResend) -> 
     else:
         next_otp_id = 1  #from 1 if no otp exist
 
-    user_phone_number = user_data["phone_number"]
+    user_phone_number = decrypt(user_data["phone_number"])
+    print("user_phone_number",user_phone_number)
 
     await storeAndSendOtp(next_otp_id, user_phone_number)
 
