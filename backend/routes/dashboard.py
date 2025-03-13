@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from services.dashboard_new import update_second_header,load_full_details,load_specific_account,get_credit_summary
+from services.dashboard import update_second_header,load_full_details,load_specific_account,get_credit_summary
 
 router = APIRouter(
     prefix="/dashboard",

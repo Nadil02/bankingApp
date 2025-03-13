@@ -16,7 +16,7 @@ def account_list(account_id: Union[str, List[str]]):
         account_ids = account_id
     return account_ids
 
-# get user all acount ids and account lits for drop down
+# get user all acount ids and account lits for dashboard drop down
 async def all_accounts(user_id:int):
     items = await collection_account.find(
         {"user_id":user_id},
@@ -99,7 +99,6 @@ async def fetch_past_transactions(account_ids: list, end_date: datetime,days:int
 
     return past_data
 
-days=7
 # predicted data for the graph
 async def fetch_predicted_data(account_id: list, end_date: datetime, days:int):
     """ Fetch upcoming 7 days predicted income, expenses, and balances. """
@@ -184,8 +183,15 @@ async def fetch_most_spent_category_100_days(account_id: list, end_date: datetim
 # load full details
 async def load_full_details(user_id:int,start_date: Optional[str] = None,end_date: Optional[str] = None):
     account_ids, account_list = await all_accounts(user_id)
+    saving_account_ids = [account["account_id"] for account in account_list if account["account_type"] == "savings"]
+    credit_card_ids = [account["account_id"] for account in account_list if account["account_type"] == "credit"]
+    print("MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM")
+    print("saving_account_ids : ",saving_account_ids)
+    print("credit_card_ids : ",credit_card_ids)
+    print("account_ids : ",account_ids)
+    print("account_list : ",account_list)
 
-    # converting all the data into date type
+    # if date is string convert it into datetime
     if isinstance(start_date, str):
         start_date = datetime.strptime(start_date, "%Y-%m-%d")
     if isinstance(end_date, str):    
@@ -194,16 +200,13 @@ async def load_full_details(user_id:int,start_date: Optional[str] = None,end_dat
     if not start_date:
         end_date = datetime.now(timezone.utc)
         start_date = end_date - timedelta(days=30)
-        # print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-        # print("start_date",start_date)
-        # print("end_date",end_date)
-        second_header = await update_second_header(account_ids,start_date,end_date)
-        past_transaction_100_days = await fetch_past_transactions(account_ids,end_date,100)
-        predicted_transaction_7_days = await fetch_predicted_data(account_ids, end_date,7)
-        most_spending_category_100_days = await fetch_most_spent_category_100_days(account_ids,end_date) 
+        second_header = await update_second_header(saving_account_ids,start_date,end_date)
+        past_transaction_100_days = await fetch_past_transactions(saving_account_ids,end_date,100)
+        predicted_transaction_7_days = await fetch_predicted_data(saving_account_ids, end_date,7)
+        most_spending_category_100_days = await fetch_most_spent_category_100_days(saving_account_ids,end_date) 
         return account_list,second_header, past_transaction_100_days, predicted_transaction_7_days,most_spending_category_100_days
     else:
-        return await update_second_header(account_ids,start_date,end_date)
+        return await update_second_header(saving_account_ids,start_date,end_date)
 
 # load specific account details
 async def load_specific_account(account_id:str,start_date: Optional[str] = None,end_date: Optional[str] = None):
@@ -400,5 +403,3 @@ async def get_credit_summary(account_id: str,timeperiod:int | None=None):
         credit_limit,total_expenses,remaining_balance = await fetch_credit_financial_summary(account_id, timeperiod)
         top_categories=await fetch_most_spent_categories(account_id,total_expenses,timeperiod=None)
         return credit_limit,total_expenses,remaining_balance,top_categories
-
-
