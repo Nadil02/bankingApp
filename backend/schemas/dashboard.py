@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import List
 from typing import Optional
+from typing import List,Dict, Any
 
 class SelectAccountRequest(BaseModel):
     user_id: int
@@ -45,5 +46,6 @@ class SelectedAccountResponse(BaseModel):
     most_spent_category_name: Optional[str] = "Unknown"
     most_spent_amount: Optional[float] = 0.0
     negative_balance_prediction: Optional[List[NegativeBalance]] = None
+    surplus_accounts: List[Dict[str, Any]] 
 
 

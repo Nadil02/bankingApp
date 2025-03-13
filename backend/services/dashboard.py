@@ -208,9 +208,73 @@ async def load_full_details(user_id:int,start_date: Optional[str] = None,end_dat
         return account_list,second_header, past_transaction_100_days, predicted_transaction_7_days,most_spending_category_100_days
     else:
         return await update_second_header(saving_account_ids,start_date,end_date)
+    
+
+async def fetch_minus_predicted_balance(account_id: str) -> List[Dict[str, Any]]:
+    end_date = datetime.utcnow()
+    predicted_balance_data = await collection_predicted_balance.find(
+        {"account_id": account_id}
+    ).to_list(None)
+
+    negative_balance_prediction = []
+    for prediction in predicted_balance_data:
+        date = prediction["date"]
+        predicted_balance = prediction["balance"]
+
+        if predicted_balance < 0:
+            negative_balance_prediction.append({
+                "date": date,
+                "predicted_balance": predicted_balance
+            })
+            break
+
+    if not negative_balance_prediction:
+        negative_balance_prediction.append({
+            "date": end_date,
+            "predicted_balance": 0
+        })
+
+    return negative_balance_prediction
+
+
+# Check surplus accounts for savings account
+async def check_surplus_accounts(user_id: int, account_id: str) -> List[Dict[str, Any]]:
+    user_accounts = await collection_account.find({"user_id": user_id}).to_list(None)
+    account_ids = [account["account_id"] for account in user_accounts if account["account_id"] != account_id]
+
+    negative_balance_prediction = await fetch_minus_predicted_balance(account_id)
+
+    if not negative_balance_prediction or all(nb["predicted_balance"] >= 0 for nb in negative_balance_prediction):
+        return []
+
+    required_balance = abs(negative_balance_prediction[0]["predicted_balance"])
+
+    surplus_accounts = []
+    for acc_id in account_ids:
+        predicted_balances = await collection_predicted_balance.find(
+            {"account_id": acc_id}
+        ).sort("date", 1).to_list(None)
+
+        if predicted_balances:
+            min_balance = min(prediction["balance"] for prediction in predicted_balances)
+            
+
+            if min_balance >= required_balance:
+                surplus_accounts.append({
+                    "account_id": acc_id,
+                    "min_surplus_balance": min_balance
+                })
+
+    return surplus_accounts
+
+
+
+
+
+
 
 # load specific account details
-async def load_specific_account(account_id:str,start_date: Optional[str] = None,end_date: Optional[str] = None):
+async def load_specific_account(user_id:int,account_id:str,start_date: Optional[str] = None,end_date: Optional[str] = None):
     account_ids = [account_id]
     if not start_date:
         end_date = datetime.now(timezone.utc)
@@ -218,8 +282,10 @@ async def load_specific_account(account_id:str,start_date: Optional[str] = None,
         second_header = await update_second_header(account_ids,start_date,end_date)
         past_transaction_100_days = await fetch_past_transactions(account_ids,end_date,100)
         predicted_transaction_7_days = await fetch_predicted_data(account_ids, end_date,7)
-        most_spending_category_100_days = await fetch_most_spent_category_100_days(account_ids,end_date) 
-        return second_header, past_transaction_100_days, predicted_transaction_7_days,most_spending_category_100_days
+        most_spending_category_100_days = await fetch_most_spent_category_100_days(account_ids,end_date)
+        negative_balance_prediction= await fetch_minus_predicted_balance(account_id)
+        surplus_accounts = await check_surplus_accounts( user_id,account_id)
+        return second_header, past_transaction_100_days, predicted_transaction_7_days,most_spending_category_100_days, negative_balance_prediction,surplus_accounts
     else:
         print("start_date",start_date)
         print("end_date",end_date)
