@@ -12,7 +12,7 @@ async def displayDashBoard(user_id:int):
     return await load_full_details(user_id)
 
 @router.get("/all_account_time_period")
-async def displayDashBoardWithDate(user_id:int,startdate:str,enddate:str ):
+async def displayDashBoardWithDate(user_id:str,startdate:str,enddate:str ):
     return await load_full_details(user_id,startdate,enddate)
 
 @router.get("/select_account")
