@@ -74,7 +74,7 @@ async def fetch_financial_summary(account_ids:list, start_date:datetime, end_dat
     aggregated_data = result[0]
     total_income = aggregated_data.get("total_income", 0.0)
     total_expenses = aggregated_data.get("total_expenses", 0.0)
-    total_savings = total_income - total_expenses
+    total_savings = max(total_income - total_expenses, 0.0)
     return {"total_income": total_income, "total_expenses": total_expenses, "total_savings": total_savings}
 
 
