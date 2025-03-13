@@ -104,14 +104,15 @@ async def fetch_predicted_data(account_id: list, end_date: datetime, days:int):
     """ Fetch upcoming 7 days predicted income, expenses, and balances. """
     start_date_future = end_date
     end_date_future = end_date + timedelta(days=days)
+    print("???????????????????????????????")
+    print("start_date_future : ",start_date_future)
+    print("end_date_future : ",end_date_future)
 
     transaction_pipeline = [
         {"$match": {"account_id": {"$in": account_id}, "date": {"$gte": start_date_future, "$lte": end_date_future}}},
         {"$project": {"date": 1, "amount":1,"balance":1}},
         {"$sort": {"date": 1}}
     ]
-    # print("###########################################################")
-    # print("Account_id",account_id)
 
     predicted_income_data = await collection_predicted_income.aggregate(transaction_pipeline).to_list(None)
     predicted_expense_data = await collection_predicted_expense.aggregate(transaction_pipeline).to_list(None)
@@ -196,10 +197,15 @@ async def load_full_details(user_id:int,start_date: Optional[str] = None,end_dat
         start_date = datetime.strptime(start_date, "%Y-%m-%d")
     if isinstance(end_date, str):    
         end_date = datetime.strptime(end_date, "%Y-%m-%d")
+
+    # print(">>>>>>>>>>>>>>>>>>>>>>>>>>>")
+    # print("end_date : ",end_date)
     
     if not start_date:
         end_date = datetime.now(timezone.utc)
         start_date = end_date - timedelta(days=30)
+        print(">>>>>>>>>>>>>>>>>>>>>>>>>>>")
+        print("end_date : ",end_date)
         second_header = await update_second_header(saving_account_ids,start_date,end_date)
         past_transaction_100_days = await fetch_past_transactions(saving_account_ids,end_date,100)
         predicted_transaction_7_days = await fetch_predicted_data(saving_account_ids, end_date,7)
