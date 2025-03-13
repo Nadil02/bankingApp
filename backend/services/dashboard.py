@@ -99,38 +99,39 @@ async def fetch_past_transactions(account_ids: list, end_date: datetime,days:int
 
     return past_data
 
-# predicted data for the graph
-async def fetch_predicted_data(account_id: list, end_date: datetime, days:int):
-    """ Fetch upcoming 7 days predicted income, expenses, and balances. """
+async def fetch_predicted_data(account_id: list, end_date: datetime, days: int):
+    """Fetch upcoming predicted income, expenses, and balances for the given days."""
+    
     start_date_future = end_date
     end_date_future = end_date + timedelta(days=days)
 
     transaction_pipeline = [
         {"$match": {"account_id": {"$in": account_id}, "date": {"$gte": start_date_future, "$lte": end_date_future}}},
-        {"$project": {"date": 1, "amount":1,"balance":1}},
+        {"$project": {"date": 1, "amount": 1, "balance": 1}},
         {"$sort": {"date": 1}}
     ]
-    # print("###########################################################")
-    # print("Account_id",account_id)
 
     predicted_income_data = await collection_predicted_income.aggregate(transaction_pipeline).to_list(None)
     predicted_expense_data = await collection_predicted_expense.aggregate(transaction_pipeline).to_list(None)
     predicted_balance_data = await collection_predicted_balance.aggregate(transaction_pipeline).to_list(None)
 
+    # Convert data to dictionaries for fast lookup (Ensure keys are datetime.date)
+    income_dict = {data["date"].date(): data["amount"] for data in predicted_income_data}
+    expense_dict = {data["date"].date(): data["amount"] for data in predicted_expense_data}
+    balance_dict = {data["date"].date(): data["balance"] for data in predicted_balance_data}
+
     predicted_data = []
-    # print("++++++++++++++++++++++++++++++++++++++++++")
-    # print("len_predicted_income_data",len(predicted_income_data))
-    # print("len_predicted_expense_data",len(predicted_expense_data))
-    # print("len_predicted_balance_data",len(predicted_balance_data))
-    for i in range(7):   #problem can be occur if predicted data is not available for 7 days
+    
+    for i in range(days):  # Ensure all 'days' are included
+        current_date = (start_date_future + timedelta(days=i)).date()
+        
         predicted_data.append({
-            "date": predicted_income_data[i]["date"] if i < len(predicted_income_data) else f"Day {i+1}", # Extracting "date" from predicted_income_data
-            "predicted_income": predicted_income_data[i]["amount"] if i < len(predicted_income_data) else 0,  # Extracting "amount" as "income"
-            "predicted_expenses": predicted_expense_data[i]["amount"] if i < len(predicted_expense_data) else 0,  # Extracting "amount" as "expense"
-            "predicted_balance": predicted_balance_data[i]["balance"]  if i < len(predicted_balance_data) else 0# Extracting "balance" from predicted_balance_data
+            "date": current_date.strftime("%Y-%m-%d"),
+            "predicted_income": income_dict.get(current_date, 0),
+            "predicted_expenses": expense_dict.get(current_date, 0),
+            "predicted_balance": balance_dict.get(current_date, 0)
         })
 
-    # return predicted_data
     return predicted_data
 
 ## update total income, expense, balance and predicted categories single account or whole account
