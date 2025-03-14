@@ -200,9 +200,6 @@ async def load_full_details(user_id:int,start_date: Optional[str] = None,end_dat
         start_date = datetime.strptime(start_date, "%Y-%m-%d")
     if isinstance(end_date, str):    
         end_date = datetime.strptime(end_date, "%Y-%m-%d")
-
-    # print(">>>>>>>>>>>>>>>>>>>>>>>>>>>")
-    # print("end_date : ",end_date)
     
     if not start_date:
         end_date = datetime.now(timezone.utc)
