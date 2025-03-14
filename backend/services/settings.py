@@ -1,5 +1,5 @@
 from typing import Optional
-from schemas.settings import UserNotificationStatus, UserEditProfile, EditProfileResponse
+from schemas.settings import UserNotificationStatus, UserEditProfile, EditProfileResponse, UserEditProfileWithOTP
 from schemas.sign_in import SignInRequest, OtpResponse, SignInResponse
 from services.sign_in import sign_in_validation
 from database import collection_user, collection_OTP
@@ -55,10 +55,10 @@ async def update_new_details(request: UserEditProfile) -> dict:
 
 async def send_sms(p_n: SignInRequest) -> SignInResponse:
     """Send an SMS using Notify.lk API."""
-    res = sign_in_validation(p_n)
+    res = await sign_in_validation(p_n)
     return res
 
-async def validate_otp(otp_request: UserEditProfile):
+async def validate_otp(otp_request: UserEditProfileWithOTP):
     # check otp existing in the database
     otp_data = await collection_OTP.find_one({"otp_id": otp_request.otp_id, "otp": otp_request.otp})
 

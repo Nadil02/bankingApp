@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
-from schemas.settings import UserNotificationStatus, UserEditProfile, EditProfileResponse
+from schemas.settings import UserNotificationStatus, UserEditProfile, EditProfileResponse, UserEditProfileWithOTP
 from services.settings import get_user_notification_status, update_user_notification_status, load_edit_profile, update_new_details, send_sms, validate_otp
 from schemas.sign_in import SignInRequest, OtpRequest, SignInResponse
 from fastapi.responses import JSONResponse
@@ -36,14 +36,15 @@ async def update_edit_profile(request: UserEditProfile):
     return await update_new_details(request)
 
 # send otp route
-@router.get("/send_otp", response_model= SignInResponse)
+@router.post("/send_otp", response_model= SignInResponse)
 async def send_otp(p_n: SignInRequest):
     return await send_sms(p_n)
 
 # validate otp
 @router.post("/validate_otp" , response_model=EditProfileResponse)
-async def check_otp(otp_data: OtpRequest):
+async def check_otp(otp_data: UserEditProfileWithOTP):
     return await validate_otp(otp_data)
 
-# test this code
 # what happend if your enter invalid otp multiple times
+# should otp send existing number or new number
+# no user name field in the database
