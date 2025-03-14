@@ -60,11 +60,12 @@ async def fetch_top_spending_categories(account_ids:list, start_date:datetime, e
 
 
 # get total_income,total_expenses, total_savings for single account or list of account
-async def fetch_financial_summary(account_ids:list, start_date:datetime, end_date:datetime) -> Dict[str, float]:
+async def fetch_financial_summary(account_ids:List[str], start_date:datetime, end_date:datetime) -> Dict[str, float]:
     # make pipeline
     pipeline = [
         {"$match": {"account_id":{"$in": account_ids},"date":{"$gte":start_date, "$lte":end_date}}},
-        {"$group": {"_id": None, "total_income": {"$sum": "$receipt"}, "total_expenses": {"$sum": "$payment"}}}
+        {"$group": {"_id": None, "total_income": {"$sum": {"$ifNull": ["$receipt", 0]}},
+            "total_expenses": {"$sum": {"$ifNull": ["$payment", 0]}}}}
     
     ]
     result = await collection_transaction.aggregate(pipeline).to_list(length=1)
@@ -142,6 +143,7 @@ async def update_second_header(account_id:Union[str, List[str]],start_date:Union
 
     # converting all the account into list
     account_ids = account_list(account_id)
+    
 
     date_format = "%Y-%m-%d"
 
