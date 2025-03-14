@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
-from schemas.settings import UserNotificationStatus, UserEditProfile
-from services.settings import get_user_notification_status, update_user_notification_status, load_edit_profile, update_new_details, send_sms
+from schemas.settings import UserNotificationStatus, UserEditProfile, EditProfileResponse
+from services.settings import get_user_notification_status, update_user_notification_status, load_edit_profile, update_new_details, send_sms, validate_otp
+from schemas.sign_in import SignInRequest, OtpRequest, SignInResponse
 from fastapi.responses import JSONResponse
 
 router = APIRouter(
@@ -24,17 +25,25 @@ async def update_user_info(user_id: int, status: bool):
         raise HTTPException(status_code=404, detail="User not found")
     return updated_status
 
-# route to edit the user's profile
+# route for getting the user's profile details
 @router.get("/edit_profile", response_model=UserEditProfile)
 async def get_edit_profile(user_id: int):
     return await load_edit_profile(user_id)
 
-# route to update the user's profile
-@router.post("/edit_profile", response_model=UserEditProfile)
+# route for updating the user's profile details without changing the phone number
+@router.post("/edit_profile", response_model=EditProfileResponse)
 async def update_edit_profile(request: UserEditProfile):
     return await update_new_details(request)
 
 # send otp route
-@router.get("/send_otp")
-async def send_otp(phone_number: str):
-    return await send_sms(phone_number, "Hello from Notify.lk!")
+@router.get("/send_otp", response_model= SignInResponse)
+async def send_otp(p_n: SignInRequest):
+    return await send_sms(p_n)
+
+# validate otp
+@router.post("/validate_otp" , response_model=EditProfileResponse)
+async def check_otp(otp_data: OtpRequest):
+    return await validate_otp(otp_data)
+
+# test this code
+# what happend if your enter invalid otp multiple times

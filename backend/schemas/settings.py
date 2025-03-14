@@ -5,7 +5,13 @@ class UserNotificationStatus(BaseModel):
     notification_status: bool
 
 class UserEditProfile(BaseModel):
+    otp_id: int
+    otp: str
     user_id: int
-    name: str
+    fname: str
+    lname: str
     phone_number: str
     user_name: str
+
+class EditProfileResponse(BaseModel):
+    message: str
