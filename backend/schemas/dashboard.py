@@ -6,7 +6,7 @@ from typing import List,Dict, Any
 
 class SelectAccountRequest(BaseModel):
     user_id: int
-    account_id: str
+    account_id: int
 
 
 class SpendingCategory(BaseModel):
@@ -29,7 +29,7 @@ class FutureTransaction(BaseModel):
 
 class NegativeBalance(BaseModel):
     date: datetime
-    predicted_balance: float
+    predicted_balance: float = 0.0 
 
 
 
@@ -47,5 +47,6 @@ class SelectedAccountResponse(BaseModel):
     most_spent_amount: Optional[float] = 0.0
     negative_balance_prediction: Optional[List[NegativeBalance]] = None
     surplus_accounts: List[Dict[str, Any]] 
+
 
 

@@ -9,8 +9,8 @@ def serialize_document(document):
     return document
 
 # convert account id into id list
-def account_list(account_id: Union[str, List[str]]):
-    if isinstance(account_id, str):
+def account_list(account_id: Union[int, List[int]]):
+    if isinstance(account_id, int):
         account_ids = [account_id]
     else:
         account_ids = account_id
@@ -138,10 +138,10 @@ async def fetch_predicted_data(account_id: list, end_date: datetime, days: int):
     return predicted_data
 
 ## update total income, expense, balance and predicted categories single account or whole account
-async def update_second_header(account_id:Union[str, List[str]],start_date:Union[datetime,str], end_date:Union[datetime,str]):
+async def update_second_header(account_id:Union[int, List[int]],start_date:Union[datetime,str], end_date:Union[datetime,str]):
 
     # converting all the account into list
-    account_ids = account_list(account_id)
+    account_ids = account_list([account_id] if isinstance(account_id, int) else account_id)
 
     date_format = "%Y-%m-%d"
 
@@ -212,14 +212,14 @@ async def load_full_details(user_id:int,start_date: Optional[str] = None,end_dat
         print("end_date : ",end_date)
         second_header = await update_second_header(saving_account_ids,start_date,end_date)
         past_transaction_100_days = await fetch_past_transactions(saving_account_ids,end_date,100)
-        predicted_transaction_7_days = await fetch_predicted_data(saving_account_ids, end_date,7)
+        predicted_transaction_7_days = await fetch_predicted_data(saving_account_ids, end_date,8)
         most_spending_category_100_days = await fetch_most_spent_category_100_days(saving_account_ids,end_date) 
         return account_list,second_header, past_transaction_100_days, predicted_transaction_7_days,most_spending_category_100_days
     else:
         return await update_second_header(saving_account_ids,start_date,end_date)
     
 
-async def fetch_minus_predicted_balance(account_id: str) -> List[Dict[str, Any]]:
+async def fetch_minus_predicted_balance(account_id: int) -> List[Dict[str, Any]]:
     end_date = datetime.utcnow()
     predicted_balance_data = await collection_predicted_balance.find(
         {"account_id": account_id}
@@ -247,7 +247,7 @@ async def fetch_minus_predicted_balance(account_id: str) -> List[Dict[str, Any]]
 
 
 # Check surplus accounts for savings account
-async def check_surplus_accounts(user_id: int, account_id: str) -> List[Dict[str, Any]]:
+async def check_surplus_accounts(user_id: int, account_id: int) -> List[Dict[str, Any]]:
     user_accounts = await collection_account.find({"user_id": user_id}).to_list(None)
     account_ids = [account["account_id"] for account in user_accounts if account["account_id"] != account_id]
 
@@ -283,14 +283,14 @@ async def check_surplus_accounts(user_id: int, account_id: str) -> List[Dict[str
 
 
 # load specific account details
-async def load_specific_account(user_id:int,account_id:str,start_date: Optional[str] = None,end_date: Optional[str] = None):
+async def load_specific_account(user_id:int,account_id:int,start_date: Optional[str] = None,end_date: Optional[str] = None):
     account_ids = [account_id]
     if not start_date:
         end_date = datetime.now(timezone.utc)
         start_date = end_date - timedelta(days=30)
         second_header = await update_second_header(account_ids,start_date,end_date)
         past_transaction_100_days = await fetch_past_transactions(account_ids,end_date,100)
-        predicted_transaction_7_days = await fetch_predicted_data(account_ids, end_date,7)
+        predicted_transaction_7_days = await fetch_predicted_data(account_ids, end_date,8)
         most_spending_category_100_days = await fetch_most_spent_category_100_days(account_ids,end_date)
         negative_balance_prediction= await fetch_minus_predicted_balance(account_id)
         surplus_accounts = await check_surplus_accounts( user_id,account_id)
@@ -302,7 +302,7 @@ async def load_specific_account(user_id:int,account_id:str,start_date: Optional[
     
 
 # Financial summaries for credit account
-async def fetch_credit_financial_summary(account_id: str, timeperiod:Optional[int] = None ):
+async def fetch_credit_financial_summary(account_id: int, timeperiod:Optional[int] = None ):
     
     if timeperiod:
         # Fetch data from credit_periods collection based on given timeperiod
@@ -323,10 +323,12 @@ async def fetch_credit_financial_summary(account_id: str, timeperiod:Optional[in
         {"credit_limit": 1, "balance": 1, "due_date": 1, "_id": 0}
     )
     
+    if not account_data:  # Check if account_data is None
+        return 0.0, 0.0, 0.0  # Return default values if no account is found
+
     credit_limit = account_data.get("credit_limit", 0.0)
     total_expenses = account_data.get("balance", 0.0)
-    
-    remaining_balance=credit_limit - total_expenses
+    remaining_balance = credit_limit - total_expenses
 
     return credit_limit, total_expenses, remaining_balance
 
@@ -394,7 +396,7 @@ async def calculate_insufficient_credit(account_id: int) -> Optional[float]:
     # Calculate insufficient credit
     insufficient_credit = total_expenses - balance
 
-    return insufficient_credit if insufficient_credit > 0 else None
+    return insufficient_credit if insufficient_credit > 0 else 0.0
 
 # Check surplus accounts for credit account
 async def check_surplus_accounts_for_creditcard( account_id: int,insufficient_credit:float) -> List[Dict[str, Any]]:
@@ -424,7 +426,8 @@ async def check_surplus_accounts_for_creditcard( account_id: int,insufficient_cr
             "account_number": acc["account_number"], 
             "min_balance": balance_map.get(acc["account_id"], 0)
         }
-        for acc in eligible_accounts if balance_map.get(acc["account_id"], 0) >= insufficient_credit
+        for acc in eligible_accounts if balance_map.get(acc["account_id"], 0) is not None and balance_map.get(acc["account_id"], 0) >= insufficient_credit
+
     ]
 
     return sufficient_accounts 
