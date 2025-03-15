@@ -186,21 +186,25 @@ async def fetch_most_spent_category_100_days(account_id: list, end_date: datetim
 
 # load full details
 async def load_full_details(user_id:int,start_date: Optional[str] = None,end_date: Optional[str] = None):
+
+    #take account id and account details based on user id
     account_ids, account_list = await all_accounts(user_id)
     saving_account_ids = [account["account_id"] for account in account_list if account["account_type"] == "savings"]
     credit_card_ids = [account["account_id"] for account in account_list if account["account_type"] == "credit"]
+
     print("MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM")
-    print("saving_account_ids : ",saving_account_ids)
-    print("credit_card_ids : ",credit_card_ids)
+    # print("saving_account_ids : ",saving_account_ids)
+    # print("credit_card_ids : ",credit_card_ids)
     print("account_ids : ",account_ids)
     print("account_list : ",account_list)
 
-    # if date is string convert it into datetime
+    # if date is string convert it into datetime (if user provide date)
     if isinstance(start_date, str):
         start_date = datetime.strptime(start_date, "%Y-%m-%d")
     if isinstance(end_date, str):    
         end_date = datetime.strptime(end_date, "%Y-%m-%d")
     
+    # if date is not provided the user
     if not start_date:
         end_date = datetime.now(timezone.utc)
         start_date = end_date - timedelta(days=30)
@@ -327,7 +331,7 @@ async def fetch_credit_financial_summary(account_id: str, timeperiod:Optional[in
     return credit_limit, total_expenses, remaining_balance
 
 #most spending categories
-async def fetch_most_spent_categories(account_id: str, total_expenses: float,timeperiod: Optional[int] = None):
+async def fetch_most_spent_categories(account_id: int, total_expenses: float,timeperiod: Optional[int] = None):
     
     account_data = await collection_account.find_one({"account_id": account_id})
     due_date = account_data["due_date"]
@@ -349,7 +353,7 @@ async def fetch_most_spent_categories(account_id: str, total_expenses: float,tim
     return spending_category
 
 #current period data
-async def fetch_current_period_data(account_id:str):
+async def fetch_current_period_data(account_id:int):
     account_data = await collection_account.find_one(
         {"account_id": account_id},
         {"credit_limit": 1, "balance": 1, "due_date": 1, "_id": 0}
@@ -364,7 +368,7 @@ async def fetch_current_period_data(account_id:str):
     return current_credit_limit,current_due_date, total_credit_available,total_credit_used
 
 
-async def calculate_insufficient_credit(account_id: str) -> Optional[float]:
+async def calculate_insufficient_credit(account_id: int) -> Optional[float]:
     # Fetch account details
     account_data = await collection_account.find_one({"account_id": account_id})
     
@@ -393,7 +397,7 @@ async def calculate_insufficient_credit(account_id: str) -> Optional[float]:
     return insufficient_credit if insufficient_credit > 0 else None
 
 # Check surplus accounts for credit account
-async def check_surplus_accounts_for_creditcard( account_id: str,insufficient_credit:float) -> List[Dict[str, Any]]:
+async def check_surplus_accounts_for_creditcard( account_id: int,insufficient_credit:float) -> List[Dict[str, Any]]:
     goal_accounts = await collection_goal.distinct("account_id")
     today = datetime.now(timezone.utc)
 
@@ -425,7 +429,7 @@ async def check_surplus_accounts_for_creditcard( account_id: str,insufficient_cr
 
     return sufficient_accounts 
 
-async def graph_data(account_id: str) -> Dict[str, Any]:
+async def graph_data(account_id: int) -> Dict[str, Any]:
     start_date = datetime.utcnow()
     
     # Fetch account data and check if account exists
@@ -460,7 +464,7 @@ async def graph_data(account_id: str) -> Dict[str, Any]:
     return pre_graph_data
 
 # Handling Credit Card
-async def get_credit_summary(account_id: str,timeperiod:int | None=None):
+async def get_credit_summary(account_id: int,timeperiod:int | None=None):
 
     if not timeperiod:
         credit_limit,total_expenses,remaining_balance = await fetch_credit_financial_summary(account_id, timeperiod)
