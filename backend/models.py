@@ -16,7 +16,7 @@ class user(BaseModel):
 
 class account(BaseModel):
     bank_id: str
-    account_id: str =Field(default_factory=lambda: str(uuid4()), alias="_id")
+    account_id: int =Field(default_factory=lambda: int(uuid4()), alias="_id")
     user_id: int
     account_number: str
     account_type: str
@@ -51,7 +51,7 @@ class TodoList(BaseModel):
 class transaction(BaseModel):
     transaction_id: str =Field(default_factory=lambda: str(uuid4()), alias="_id")
     category_id: str
-    account_id: str
+    account_id: int
     date: datetime
     description: str
     balance: float
@@ -60,7 +60,7 @@ class transaction(BaseModel):
 
 
 class PredictedBalance(BaseModel):
-    account_id: str
+    account_id: int
     prediction_id: str =Field(default_factory=lambda: str(uuid4()), alias="_id")
     date: datetime
     description: str
@@ -69,7 +69,7 @@ class PredictedBalance(BaseModel):
 
 
 class PredictedExpense(BaseModel):
-    account_id: str
+    account_id: int
     prediction_id: str =Field(default_factory=lambda: str(uuid4()), alias="_id")
     date: datetime
     description: str
@@ -79,7 +79,7 @@ class PredictedExpense(BaseModel):
 
 
 class PredictedIncome(BaseModel):
-    account_id: str
+    account_id: int
     prediction_id: str =Field(default_factory=lambda: str(uuid4()), alias="_id")
     date: datetime
     description: str
@@ -107,7 +107,7 @@ class TransactionCategory(BaseModel):
 
 
 class Goal(BaseModel):
-    account_id: str
+    account_id: int
     goal_id: str =Field(default_factory=lambda: str(uuid4()), alias="_id")
     goal_name: str
     goal_amount: float

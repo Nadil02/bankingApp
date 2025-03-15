@@ -16,17 +16,17 @@ async def displayDashBoardWithDate(user_id:int,startdate:str,enddate:str ):
     return await load_full_details(user_id,startdate,enddate)
 
 @router.get("/select_account")
-async def savings_summary(user_id:int,account_id: str):
+async def savings_summary(user_id:int,account_id: int):
     return await load_specific_account(user_id,account_id)
 
 @router.get("/select_account_time_period")
-async def func(account_id:str,startdate:str,enddate:str):
+async def func(account_id:int,startdate:str,enddate:str):
     return await load_specific_account(account_id, startdate,enddate)
 
 @router.get("/credit_card")
-async def func(account_id:str):
+async def func(account_id:int):
     return await get_credit_summary(account_id)
 
 @router.get("/credit_card_time_period")
-async def func(account_id:str, time_period:int):
+async def func(account_id:int, time_period:int):
     return await get_credit_summary(account_id,time_period)
