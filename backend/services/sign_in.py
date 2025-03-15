@@ -1,4 +1,4 @@
-from schemas.sign_in import SignInRequest, SignInResponse, OtpRequest, OtpResponse
+from schemas.sign_in import OtpResendRequest, OtpResendResponse, SignInRequest, SignInResponse, OtpRequest, OtpResponse
 from database import collection_user,collection_OTP
 from models import OTP,user
 from utils.OTP import send_sms
@@ -77,3 +77,17 @@ async def otp_validation(otp_request: OtpRequest) -> OtpResponse:
 
     return OtpResponse(status="success", message="OTP verified successfully.", user_id=next_user_id)    
         
+async def resend_otp_sign_in(otp_resend_request: OtpResendRequest):
+    otp_data = await collection_OTP.find_one({"otp_id": otp_resend_request.otp_id})
+    if not otp_data:
+        return OtpResendResponse(status="error", message="Invalid OTP ID.", otp_id="")
+    last_otp =await collection_OTP.find_one(sort=[("otp_id", -1)])  #  last otpid 
+    if last_otp and "otp_id" in last_otp:
+        next_otp_id = last_otp["otp_id"] + 1
+    else:
+        next_otp_id = 1
+    
+    user_phone_number = otp_resend_request.phone_number
+    await storeAndSendOtp(next_otp_id, user_phone_number)
+
+    return OtpResendResponse(status="success", message="OTP resent successfully.", otp_id=next_otp_id)

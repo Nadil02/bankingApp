@@ -21,3 +21,12 @@ class OtpResponse(BaseModel):
     status: str
     message: str
     user_id: int
+
+class OtpResendRequest(BaseModel):
+    otp_id: int
+    phone_number: str
+
+class OtpResendResponse(BaseModel):
+    status: str
+    message: str
+    otp_id: int
