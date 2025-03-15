@@ -264,7 +264,10 @@ You can use multiple tools for complex requests. Follow this pattern:
 2. Identify required tools
 3. extract parameters if needed.
 4. Use tools sequentially
-5. Combine results for final answer"""
+5. Combine results for final answer
+6. if user does not provide enough information for tool parameters, ask for it.
+7. some tools may return amounts as @amount1, @amount2 etc. use these in responses, never mind it is not a numarical value. just use it as if it is a number.
+"""
 
 prompt = ChatPromptTemplate.from_messages([
     ("system", SYSTEM_PROMPT),
@@ -286,6 +289,7 @@ async def get_chat_summary(user_id: int) -> str:
         await collection_chatbot.insert_one(new_user.dict())
         print("new user added")
         return ""
+    print("user_data:",user_data)
     return user_data["chat_summary"]
 
 
@@ -316,15 +320,17 @@ def get_new_summary(query: str, chat_summary: str) -> str:
 
 async def get_chatbot_response(user_id: int, query: str) -> str:
     
-    about_user = await get_chat_summary(user_id)
+    # about_user = await get_chat_summary(user_id)
     
-    enriched_query = f"User profile: {about_user}\n\nQuery: {query}\n\nUser ID: {user_id}"
-    
+    # enriched_query = f"User profile: {about_user}\n\nQuery: {query}\n\nUser ID: {user_id}"
+    enriched_query = f"Query: {query}\n\nUser ID: {user_id}"
+
+    print("enriched_query:",enriched_query)
     response = await agent_executor.ainvoke({
         "input": enriched_query
     })
     
-    new_summary = get_new_summary(query, about_user)
-    await update_chat_summary(user_id, new_summary)
+    # new_summary = get_new_summary(query, about_user)
+    # await update_chat_summary(user_id, new_summary)
     return response["output"]
 

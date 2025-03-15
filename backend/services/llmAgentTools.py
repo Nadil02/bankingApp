@@ -63,8 +63,8 @@ async def get_total_spendings_for_given_time_period(user_id: int, start_date: da
         print("total_amount",total_amount)
 
         # Sanitize and store dummy variable for total spending amount
-        dummy_spending_amount = getDummyVariableName(user_id, "@total_spending_amount")
-        StoreResponseDummies(user_id, dummy_spending_amount, total_amount)
+        dummy_spending_amount = await getDummyVariableName(user_id, "@total_spending_amount")
+        await StoreResponseDummies(user_id, dummy_spending_amount, total_amount)
 
         # return f"user`s total spendings are ${total_amount} for the period {formatted_start} to {formatted_end} use this and return ${total_amount} were spent by the user in the given time period. here {total_amount} is the amount, add that to the response. "
         return f"""{{ 
@@ -114,8 +114,8 @@ async def get_total_incomes_for_given_time_period(user_id: int, start_date: date
             formatted_end = end_date.strftime('%Y-%m-%d')
 
             # Sanitize and store dummy variable for total income 
-            dummy_income_amount = getDummyVariableName(user_id, "@total_income_amount")
-            StoreResponseDummies(user_id, dummy_income_amount, total_amount)
+            dummy_income_amount = await getDummyVariableName(user_id, "@total_income_amount")
+            await StoreResponseDummies(user_id, dummy_income_amount, total_amount)
 
             # return f"Your total incomes are ${total_amount:.2f} for the period {formatted_start} to {formatted_end}"
             print("total_amount",total_amount)
@@ -152,11 +152,11 @@ async def get_last_transaction(user_id: int) -> str:
         transaction_type = "Income" if "receipt" in last_transaction else "Expense"
 
         # Sanitize and store dummy values for the last transaction
-        dummy_transaction_type = getDummyVariableName(user_id, "@last_transaction_type")
-        StoreResponseDummies(user_id, dummy_transaction_type, transaction_type)
+        dummy_transaction_type = await getDummyVariableName(user_id, "@last_transaction_type")
+        await StoreResponseDummies(user_id, dummy_transaction_type, transaction_type)
 
-        dummy_transaction_amount = getDummyVariableName(user_id, "@last_transaction_amount")
-        StoreResponseDummies(user_id, dummy_transaction_amount, amount)
+        dummy_transaction_amount = await getDummyVariableName(user_id, "@last_transaction_amount")
+        await StoreResponseDummies(user_id, dummy_transaction_amount, amount)
 
         #return f"Last transaction: {transaction_type} of ${amount:.2f} on {transaction_date}"
         return f"""{{
@@ -212,16 +212,16 @@ async def get_monthly_summary(user_id: int, year: int, month: int) -> str:
             balance = total_income - total_expense
 
             # Sanitize and store dummy values for income
-            dummy_income = getDummyVariableName(user_id, "@summary_income_amount_1")
-            StoreResponseDummies(user_id, dummy_income, total_income)
+            dummy_income = await getDummyVariableName(user_id, "@summary_income_amount_1")
+            await StoreResponseDummies(user_id, dummy_income, total_income)
 
             # Sanitize and store dummy values for expense
-            dummy_expense = getDummyVariableName(user_id, "@summary_expense_amount_1")
-            StoreResponseDummies(user_id, dummy_expense, total_expense)
+            dummy_expense = await getDummyVariableName(user_id, "@summary_expense_amount_1")
+            await StoreResponseDummies(user_id, dummy_expense, total_expense)
 
             # Sanitize and store dummy values for balance
-            dummy_balance = getDummyVariableName(user_id, "@summary_balance_amount_1")
-            StoreResponseDummies(user_id, dummy_balance, balance)
+            dummy_balance = await getDummyVariableName(user_id, "@summary_balance_amount_1")
+            await StoreResponseDummies(user_id, dummy_balance, balance)
 
             return (
                 f" Monthly Summary for {year}-{month:02d}\n"
@@ -263,14 +263,14 @@ async def get_all_transactions_for_given_date(user_id: int, date: datetime) -> s
         for transaction in transactions:
 
             transaction_type = "Income" if "receipt" in transaction and transaction.get("receipt", 0) > 0 else "Expense"
-            dummy_trasaction_type_name = getDummyVariableName(user_id, "@transaction_type")
-            StoreResponseDummies(user_id, dummy_trasaction_type_name, transaction_type)
+            dummy_trasaction_type_name = await getDummyVariableName(user_id, "@transaction_type")
+            await StoreResponseDummies(user_id, dummy_trasaction_type_name, transaction_type)
             amount = transaction.get("receipt", transaction.get("payment", 0))
-            dummy_amount_name= getDummyVariableName(user_id, "@transaction_amount")
-            StoreResponseDummies(user_id, dummy_amount_name, amount)
+            dummy_amount_name= await getDummyVariableName(user_id, "@transaction_amount")
+            await StoreResponseDummies(user_id, dummy_amount_name, amount)
             description = transaction.get("description", "No description")
-            dummy_description_name = getDummyVariableName(user_id, "@transaction_description")
-            StoreResponseDummies(user_id, dummy_description_name, description)
+            dummy_description_name = await getDummyVariableName(user_id, "@transaction_description")
+            await StoreResponseDummies(user_id, dummy_description_name, description)
 
             transaction_details.append(f"🔹income or expense : {dummy_trasaction_type_name}: amount : ${dummy_amount_name} | description: {dummy_description_name}")
 
@@ -319,8 +319,8 @@ async def get_next_month_total_incomes(user_id: int) -> str:
             total_predicted_income = result_list[0].get("total_predicted_income", 0)
 
             #sanitize income and store it in dummy variables
-            dummy_income_name = getDummyVariableName(user_id, "@predicted_total_income_amount_1")
-            StoreResponseDummies(user_id, dummy_income_name, total_predicted_income)
+            dummy_income_name = await getDummyVariableName(user_id, "@predicted_total_income_amount_1")
+            await StoreResponseDummies(user_id, dummy_income_name, total_predicted_income)
 
             return (
                 f" Predicted Total Income for {next_month_start.strftime('%Y-%m')}\n"
@@ -371,8 +371,8 @@ async def get_next_month_total_spendings(user_id: str) -> str:
             total_predicted_spendings = result_list[0].get("total_predicted_spendings", 0)
 
             #sanitize spendings and store it in dummy variables
-            dummy_spendings_name = getDummyVariableName(user_id, "@predicted_total_spendings_amount_1")
-            StoreResponseDummies(user_id, dummy_spendings_name, total_predicted_spendings)
+            dummy_spendings_name = await getDummyVariableName(user_id, "@predicted_total_spendings_amount_1")
+            await StoreResponseDummies(user_id, dummy_spendings_name, total_predicted_spendings)
 
             return (
                 f" Predicted Total Spendings for {next_month_start.strftime('%Y-%m')}\n"
@@ -417,15 +417,15 @@ async def get_next_income(user_id: int) -> str:
         if result_list:
             result = result_list[0]
             # Sanitize and store dummy variables for date, amount, and description
-            dummy_date_name = getDummyVariableName(user_id, "@predicted_income_date_1")
-            StoreResponseDummies(user_id, dummy_date_name, result["date"].strftime('%Y-%m-%d'))
+            dummy_date_name = await getDummyVariableName(user_id, "@predicted_income_date_1")
+            await StoreResponseDummies(user_id, dummy_date_name, result["date"].strftime('%Y-%m-%d'))
             
-            dummy_amount_name = getDummyVariableName(user_id, "@predicted_income_amount_1")
-            StoreResponseDummies(user_id, dummy_amount_name, result["amount"])
+            dummy_amount_name = await getDummyVariableName(user_id, "@predicted_income_amount_1")
+            await StoreResponseDummies(user_id, dummy_amount_name, result["amount"])
 
-            dummy_description_name = getDummyVariableName(user_id, "@predicted_income_description_1")
+            dummy_description_name = await getDummyVariableName(user_id, "@predicted_income_description_1")
             description = result.get("description", "No description available")
-            StoreResponseDummies(user_id, dummy_description_name, description)
+            await StoreResponseDummies(user_id, dummy_description_name, description)
 
             return (
                 f" Next Predicted Income: {dummy_date_name}\n"
@@ -472,15 +472,15 @@ async def get_next_spending(user_id: int) -> str:
             result = result_list[0]
 
             # Sanitize and store dummy variables for date, amount, and description
-            dummy_date_name = getDummyVariableName(user_id, "@predicted_spending_date_1")
-            StoreResponseDummies(user_id, dummy_date_name, result["date"].strftime('%Y-%m-%d'))
+            dummy_date_name = await getDummyVariableName(user_id, "@predicted_spending_date_1")
+            await StoreResponseDummies(user_id, dummy_date_name, result["date"].strftime('%Y-%m-%d'))
 
-            dummy_amount_name = getDummyVariableName(user_id, "@predicted_spending_amount_1")
-            StoreResponseDummies(user_id, dummy_amount_name, result["amount"])
+            dummy_amount_name = await getDummyVariableName(user_id, "@predicted_spending_amount_1")
+            await StoreResponseDummies(user_id, dummy_amount_name, result["amount"])
 
-            dummy_description_name = getDummyVariableName(user_id, "@predicted_spending_description_1")
+            dummy_description_name = await getDummyVariableName(user_id, "@predicted_spending_description_1")
             description = result.get("description", "No description available")
-            StoreResponseDummies(user_id, dummy_description_name, description)
+            await StoreResponseDummies(user_id, dummy_description_name, description)
 
             return (
                 f" Next Predicted Spending: {dummy_date_name}\n"
@@ -806,6 +806,9 @@ async def sanizedData(query: str) -> str:
         example :
         "query" : "remind me to pay for john and kasun. and also give my transaction summary of february."
         response : {"Non to-do list tasks": ["give my transaction summary of february"], "To-do list tasks": ["remind me to pay for john and kasun"]}
+        example :
+        "query" : "give my total spendings from 2023.8.10 to 2023.8.29"
+        response : {"Non to-do list tasks": ["give my total spendings from 2023.8.10 to 2023.8.29"], "To-do list tasks": []}
 
         """
         
@@ -1021,7 +1024,7 @@ async def add_to_do_item(user_id: int, item: str) -> dict:
         return {"message":"No dummy values found for the user"}
     
 
-async def StoreResponseDummies(user_id: int, dummy_name: str, actual_value: any):
+async def StoreResponseDummies(user_id: int, dummy_name: str, actual_value: float):
 
     filter_query = {"user_id": user_id}
     existing_doc = await collection_dummy_values.find_one(filter_query)
@@ -1046,7 +1049,7 @@ async def getDummyVariableName(user_id: int, prefix_name: str) -> str:
     
     versions = [int(k.split("_")[-1]) for k in existing_doc.keys() if k.startswith(prefix_name) and k.split("_")[-1].isdigit()]
     new_version = max(versions) + 1 if versions else 1
-    
+    print(f"{prefix_name}_{new_version}")
     return f"{prefix_name}_{new_version}"
 
 def orderJson(user_query:str,content_dict:dict) -> str:
@@ -1211,3 +1214,15 @@ def extract_and_order_tasks(data):
 
     except (json.JSONDecodeError, AttributeError, KeyError, ValueError):
         return ""
+    
+# desanitize
+# delete dummy values
+async def replace_dummy_values(response:str,user_id:int):
+    dummy_values_for_user = await collection_dummy_values.find_one({"user_id": user_id})
+    print("dummy_values_for_user : ",dummy_values_for_user)
+    if dummy_values_for_user is None:
+        return response
+    for key, value in dummy_values_for_user.items():
+        if key in response:
+            response = response.replace(key, str(value))
+    return response
