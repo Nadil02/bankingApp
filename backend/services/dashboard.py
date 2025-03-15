@@ -283,7 +283,7 @@ async def check_surplus_accounts(user_id: int, account_id: int) -> List[Dict[str
 
 
 # load specific account details
-async def load_specific_account(user_id:int,account_id:int,start_date: Optional[str] = None,end_date: Optional[str] = None):
+async def load_specific_account(account_id:int,user_id:Optional[int] = None, start_date: Optional[str] = None,end_date: Optional[str] = None):
     account_ids = [account_id]
     if not start_date:
         end_date = datetime.now(timezone.utc)
