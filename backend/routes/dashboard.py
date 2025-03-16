@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from services.dashboard import load_full_details,load_specific_account,get_credit_summary
+from schemas.dashboard import ResponseSchema
 
 router = APIRouter(prefix="/dashboard",tags=["Dashboard"])
 
