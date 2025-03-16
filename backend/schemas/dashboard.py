@@ -91,6 +91,11 @@ class ResponseSchema(BaseModel):
     predictions: List[Prediction]
     most_spending: MostSpending
 
+class CreditCardResponse(BaseModel):
+    credit_limit : float
+    total_expenses : float
+    remaining_balance : float
+
 
 
 

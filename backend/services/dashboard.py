@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta,timezone
 from database import collection_transaction, collection_transaction_category, collection_predicted_balance, collection_predicted_expense, collection_predicted_income,collection_account,collection_credit_periods,collection_goal
 from typing import Tuple
-from schemas.dashboard import SpendingCategory, ResponseSchema
+from schemas.dashboard import SpendingCategory, ResponseSchema, CreditCardResponse, CategorySpending
 from typing import List, Dict,Union,Optional,Any
 
 def serialize_document(document):
@@ -302,12 +302,6 @@ async def check_surplus_accounts(user_id: int, account_id: int) -> List[Dict[str
 
     return surplus_accounts
 
-
-
-
-
-
-
 # load specific account details
 async def load_specific_account(account_id:int,user_id:Optional[int] = None, start_date: Optional[str] = None,end_date: Optional[str] = None):
     account_ids = [account_id]
@@ -328,7 +322,7 @@ async def load_specific_account(account_id:int,user_id:Optional[int] = None, sta
     
 
 # Financial summaries for credit account
-async def fetch_credit_financial_summary(account_id: int, timeperiod:Optional[int] = None ):
+async def fetch_credit_financial_summary(account_id: int, timeperiod: Optional[int] = None):
     
     if timeperiod:
         # Fetch data from credit_periods collection based on given timeperiod
@@ -337,11 +331,11 @@ async def fetch_credit_financial_summary(account_id: int, timeperiod:Optional[in
             {"credit_limit": 1, "total_expenses": 1, "remaining_balance": 1, "_id": 0}
         )
         if credit_summary:
-            return (
-                credit_summary.get("credit_limit", 0.0),
-                credit_summary.get("total_expenses", 0.0),
-                credit_summary.get("remaining_balance", 0.0)
-            )
+            return {
+                "credit_limit": float(credit_summary.get("credit_limit", 0.0)),
+                "total_expenses": float(credit_summary.get("total_expenses", 0.0)),
+                "remaining_balance": float(credit_summary.get("remaining_balance", 0.0))
+            }
     
     # If timeperiod is not given, fetch data from account_collection
     account_data = await collection_account.find_one(
@@ -350,13 +344,15 @@ async def fetch_credit_financial_summary(account_id: int, timeperiod:Optional[in
     )
     
     if not account_data:  # Check if account_data is None
-        return 0.0, 0.0, 0.0  # Return default values if no account is found
+        return {"credit_limit": 0.0, "total_expenses": 0.0, "remaining_balance": 0.0}
 
-    credit_limit = account_data.get("credit_limit", 0.0)
-    total_expenses = account_data.get("balance", 0.0)
+    # Convert to float before performing subtraction
+    credit_limit = float(account_data.get("credit_limit", 0.0))
+    total_expenses = float(account_data.get("balance", 0.0))
     remaining_balance = credit_limit - total_expenses
-
-    return credit_limit, total_expenses, remaining_balance
+    
+    # result = {"credit_limit": credit_limit, "total_expenses": total_expenses, "remaining_balance": remaining_balance}
+    return CreditCardResponse(credit_limit=credit_limit, total_expenses=total_expenses, remaining_balance=remaining_balance)
 
 #most spending categories
 async def fetch_most_spent_categories(account_id: int, total_expenses: float,timeperiod: Optional[int] = None):
@@ -378,7 +374,9 @@ async def fetch_most_spent_categories(account_id: int, total_expenses: float,tim
     # call the fucntion of dashboard_new.py
     account_ids = [account_id]
     spending_category = await fetch_top_spending_categories(account_ids, start_date, end_date, total_expenses)
-    return spending_category
+    print("spent_category : ",spending_category)
+    
+    return CategorySpending(category_name=spending_category[0]["category_name"], total_spent=spending_category[0]["total_spent"]) 
 
 #current period data
 async def fetch_current_period_data(account_id:int):
@@ -392,11 +390,10 @@ async def fetch_current_period_data(account_id:int):
     current_due_date=account_data.get("due_date")
     total_credit_available=account_data.get("balance")
     total_credit_used=current_credit_limit - total_credit_available
+    return {"current_credit_limit": current_credit_limit, "current_due_date": current_due_date, "total_credit_available": total_credit_available, "total_credit_used": total_credit_used}
 
-    return current_credit_limit,current_due_date, total_credit_available,total_credit_used
 
-
-async def calculate_insufficient_credit(account_id: int) -> Optional[float]:
+async def calculate_insufficient_credit(account_id: int):
     # Fetch account details
     account_data = await collection_account.find_one({"account_id": account_id})
     
@@ -421,11 +418,15 @@ async def calculate_insufficient_credit(account_id: int) -> Optional[float]:
 
     # Calculate insufficient credit
     insufficient_credit = total_expenses - balance
+    result = insufficient_credit if insufficient_credit > 0 else 0.0
+    print("result : ",result)
+    result2 = {"insufficient_credit": result}
+    print("result2", result2)
+    return result2
 
-    return insufficient_credit if insufficient_credit > 0 else 0.0
 
 # Check surplus accounts for credit account
-async def check_surplus_accounts_for_creditcard( account_id: int,insufficient_credit:float) -> List[Dict[str, Any]]:
+async def check_surplus_accounts_for_creditcard( account_id: int,insufficient_credit:float):
     goal_accounts = await collection_goal.distinct("account_id")
     today = datetime.now(timezone.utc)
 
@@ -496,15 +497,15 @@ async def graph_data(account_id: int) -> Dict[str, Any]:
 async def get_credit_summary(account_id: int,timeperiod:int | None=None):
 
     if not timeperiod:
-        credit_limit,total_expenses,remaining_balance = await fetch_credit_financial_summary(account_id, timeperiod)
-        top_categories=await fetch_most_spent_categories(account_id,total_expenses,timeperiod=None) 
-        current_credit_limit,current_due_date, total_credit_available,total_credit_used=await fetch_current_period_data(account_id)
+        credit_card_summery = await fetch_credit_financial_summary(account_id, timeperiod)
+        top_categories=await fetch_most_spent_categories(account_id,credit_card_summery.total_expenses,timeperiod=None) 
+        current_period_data=await fetch_current_period_data(account_id)
         insufficient_credit = await calculate_insufficient_credit(account_id)
-        sufficient_accounts=await check_surplus_accounts_for_creditcard(account_id,insufficient_credit)
+        sufficient_accounts=await check_surplus_accounts_for_creditcard(account_id,insufficient_credit["insufficient_credit"])
         pre_graph_data= await graph_data(account_id)
-        return credit_limit,total_expenses,remaining_balance,top_categories,current_credit_limit,current_due_date,total_credit_available,total_credit_used,insufficient_credit,sufficient_accounts,pre_graph_data
+        return credit_card_summery, top_categories, current_period_data, insufficient_credit, sufficient_accounts, pre_graph_data
 
     else:
-        credit_limit,total_expenses,remaining_balance = await fetch_credit_financial_summary(account_id, timeperiod)
-        top_categories=await fetch_most_spent_categories(account_id,total_expenses,timeperiod=None)
-        return credit_limit,total_expenses,remaining_balance,top_categories
+        credit_card_summery = await fetch_credit_financial_summary(account_id, timeperiod)
+        top_categories=await fetch_most_spent_categories(account_id,credit_card_summery["total_expenses"],timeperiod=None)
+        return credit_card_summery,top_categories
