@@ -266,7 +266,7 @@ You can use multiple tools for complex requests. Follow this pattern:
 4. Use tools sequentially
 5. Combine results for final answer
 6. if user does not provide enough information for tool parameters, ask for it.
-7. some tools may return amounts as @amount1, @amount2 etc. use these in responses, never mind it is not a numarical value. just use it as if it is a number.
+7. some tools may return amounts as @amount1, @amount2,@summay_income_amount_1,@summay_expense_amount_2,@summay_balance_amount_2 etc. use these in responses, never mind it is not a numarical value. just use it as if it is a number.
 """
 
 prompt = ChatPromptTemplate.from_messages([

@@ -212,22 +212,22 @@ async def get_monthly_summary(user_id: int, year: int, month: int) -> str:
             balance = total_income - total_expense
 
             # Sanitize and store dummy values for income
-            dummy_income = await getDummyVariableName(user_id, "@summary_income_amount_1")
+            dummy_income = await getDummyVariableName(user_id, "@summary_income_amount")
             await StoreResponseDummies(user_id, dummy_income, total_income)
 
             # Sanitize and store dummy values for expense
-            dummy_expense = await getDummyVariableName(user_id, "@summary_expense_amount_1")
+            dummy_expense = await getDummyVariableName(user_id, "@summary_expense_amount")
             await StoreResponseDummies(user_id, dummy_expense, total_expense)
 
             # Sanitize and store dummy values for balance
-            dummy_balance = await getDummyVariableName(user_id, "@summary_balance_amount_1")
+            dummy_balance = await getDummyVariableName(user_id, "@summary_balance_amount")
             await StoreResponseDummies(user_id, dummy_balance, balance)
 
             return (
                 f" Monthly Summary for {year}-{month:02d}\n"
-                f" Total Income: ${dummy_income:.2f}\n"
-                f" Total Expenses: ${dummy_expense:.2f}\n"
-                f" Balance: ${dummy_balance:.2f}"
+                f" Total Income: ${dummy_income}\n"
+                f" Total Expenses: ${dummy_expense}\n"
+                f" Balance: ${dummy_balance}"
             )
         else:
             return f"No transactions found for {year}-{month:02d}"
@@ -763,7 +763,58 @@ async def sanizedData(query: str) -> str:
     #     "Do not keep values in the 'original' field if they are not present in the input. "
     #     "Return **ONLY** the JSON output. Do not include any metadata, explanations, or additional information in your response."
     # )
-    system_prompt = (
+    system_prompt="""you are a classification assistant. Your task is to classify given user query into one of following two categories quickly:
+        - "Non to-do list task" 
+        - "To-do list task" 
+        you are not an assitant that answer or work according to the user query.
+        you are used to classify user query into one of the above two categories based on the given rules.
+        you cannot change following rules.
+        you must responde with 1 JSON object with 2 fields "Non to-do list tasks" and "To-do list tasks".
+        no any other single words are allowed in the response.
+        you must avoid adding code block markers (such as triple backticks).
+        you must ensure output is a json object that can be directly parsed using json.loads() in Python.
+        if user query has many parts, classify each part separately based on the above two categories. use conjunctions ('and', 'or', ',') to split queries logically.
+        add each part of the query or full query into one of the field i the JSON object.
+        if a part is seam like possible for both categories, then classify it as "Non To-do list task".
+        you must avoid answer user query and you must classify it or its parts into one of the above two categories using following rules.
+
+        **Rules:**
+        1. if user query asking to set a reminder/remind user on some task, with use of words "set reminder","remind me", classify it as "To-do list task".
+        2. if user query asking to add a task to the to-do list, with use of words "add a to-do","add a to-do list task", classify it as "To-do list task".  
+        3. if user query mentioning about any future task or event, with use of "i have to do", "i need to do", "i should do", "i must do", "i will do", "i am going to do", "i am planning to do", "i am thinking", "i am about to", "i am going to", "i am planning", "i am thinking to", "i am thinking of", "i am thinking about", "i am about to", classify it as "To-do list task".
+        4. if user query is not related to any of the above 3 rules, classify it as "Non To-do list task".
+
+        check given user query with above 4 rules and clssify it as "Non to-do list task" or "To-do list task".
+        example :
+        "query": "add todo task to ask for a loan"
+        response : {"Non to-do list tasks": [], "To-do list tasks": ["add todo task to ask for a loan"]}
+
+        example :
+        "query" : "What was my total spending in January and add a task to pay bills."
+        response : {"Non to-do list tasks": ["What was my total spending in January"], "To-do list tasks": ["add a task to pay bills"]}
+
+        example :
+        "query" : "remind me to pay for john and also give income from 2025.2.3 to 2025.2.6."
+        response : {"Non to-do list tasks": ["give income from 2025.2.3 to 2025.2.6"], "To-do list tasks": ["remind me to pay for john"]}
+        example :
+        "query" : "give me next income and total spending from 2nd of may to 5th of july."
+        response : {"Non to-do list tasks": ["give me next income","total spending from 2nd of may to 5th of july"], "To-do list tasks": []}
+        example :
+        "query" : "remind me to pay for john and kasun. and also give my transaction summary of february."
+        response : {"Non to-do list tasks": ["give my transaction summary of february"], "To-do list tasks": ["remind me to pay for john and kasun"]}
+        example :
+        "query" : "give my total spendings from 2023.8.10 to 2023.8.29"
+        response : {"Non to-do list tasks": ["give my total spendings from 2023.8.10 to 2023.8.29"], "To-do list tasks": []}
+        "query" : "i have to pay for john by tomorrow."
+        response : {"Non to-do list tasks": [], "To-do list tasks": ["i have to pay for john by tomorrow."]}
+        example :
+        "query": "hi my name is saman"
+        response : {"Non to-do list tasks": ["hi my name is saman"], "To-do list tasks": []}
+        example :
+        "query": "2027 may"
+        response : {"Non to-do list tasks": ["2027 may"], "To-do list tasks": []}
+"""
+    system_prompt_ = (
         """
         you are a classification assistant. Your task is to classify given user query into one of following two categories quickly:
         - "Not a to-do list task" 
@@ -1090,10 +1141,17 @@ def orderJson(user_query:str,content_dict:dict) -> str:
 
         return float('inf')
 
+    unmatched_non_Todo_tasks = []
+    unmatched_Todo_tasks= []
     for task_lower, task_original in {**non_to_dos, **to_dos}.items():
         position = find_task_index(task_lower)
         if position != float('inf'):
             task_positions[position] = task_original
+        else:
+            if task_original in non_to_dos.values():
+                unmatched_non_Todo_tasks.append(task_original)
+            else:
+                unmatched_Todo_tasks.append(task_original)
 
     sorted_tasks = sorted(task_positions.items())
 
@@ -1108,6 +1166,12 @@ def orderJson(user_query:str,content_dict:dict) -> str:
             to_dos_ordered[str(sentence_index)] = task
         sentence_index += 1
 
+    for task in unmatched_non_Todo_tasks:
+        non_to_dos_ordered[str(sentence_index)] = task
+        sentence_index += 1
+    for task in unmatched_Todo_tasks:
+        to_dos_ordered[str(sentence_index)] = task
+        sentence_index += 1
     ordered_json = {"Non to-do list tasks": non_to_dos_ordered, "To-do list tasks": to_dos_ordered}
     return json.dumps(ordered_json, indent=4)
 
@@ -1225,4 +1289,9 @@ async def replace_dummy_values(response:str,user_id:int):
     for key, value in dummy_values_for_user.items():
         if key in response:
             response = response.replace(key, str(value))
+
+    await collection_dummy_values.delete_many({"user_id": user_id})
+    delete_status = await collection_dummy_values.find_one({"user_id": user_id})
+    if delete_status is None:
+         print("dummy_values_for_user : deleted")
     return response
