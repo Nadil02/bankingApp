@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta,timezone
 from database import collection_transaction, collection_transaction_category, collection_predicted_balance, collection_predicted_expense, collection_predicted_income,collection_account,collection_credit_periods,collection_goal
 from typing import Tuple
-from schemas.dashboard import SpendingCategory, ResponseSchema, CreditCardResponse, CategorySpending
+from schemas.dashboard import SpendingCategory, ResponseSchema, CreditCardResponse, CategorySpending, Summary
 from typing import List, Dict,Union,Optional,Any
 
 def serialize_document(document):
@@ -56,9 +56,7 @@ async def fetch_top_spending_categories(account_ids:list, start_date:datetime, e
     if other_spent > 0 and (other_spent / total_expenses) < 0.3:
         top_categories.append(SpendingCategory(category_name="Other", total_spent=other_spent))
     
-    print("JJJJJJJJJJJJJJJJJJJJJJJJ")
-    print("top_categories : ",top_categories)
-    return top_categories
+    return CategorySpending(category_name=top_categories[0]["category_name"], total_spent=top_categories[0]["total_spent"])
 
 
 # get total_income,total_expenses, total_savings for single account or list of account
@@ -77,7 +75,8 @@ async def fetch_financial_summary(account_ids:list, start_date:datetime, end_dat
     total_income = aggregated_data.get("total_income", 0.0)
     total_expenses = aggregated_data.get("total_expenses", 0.0)
     total_savings = max(total_income - total_expenses, 0.0)
-    return {"total_income": total_income, "total_expenses": total_expenses, "total_savings": total_savings}
+    return Summary(total_income=total_income, total_expenses=total_expenses, total_savings=total_savings)
+    # return {"total_income": total_income, "total_expenses": total_expenses, "total_savings": total_savings}
 
 
 #past transactions for the graph
@@ -155,7 +154,7 @@ async def update_second_header(account_id:Union[int, List[int]],start_date:Union
         end_date = datetime.strptime(end_date, date_format)
 
     financial_summery = await fetch_financial_summary(account_ids,start_date, end_date)
-    total_expenses = financial_summery["total_expenses"]
+    total_expenses = financial_summery.total_expenses
     print("total_expenses category " ,total_expenses)
     spending_category = await fetch_top_spending_categories(account_ids,start_date, end_date, total_expenses)
     #return as a touple
@@ -194,12 +193,6 @@ async def load_full_details(user_id:int,start_date: Optional[str] = None,end_dat
     saving_account_ids = [account["account_id"] for account in account_list if account["account_type"] == "savings"]
     credit_card_ids = [account["account_id"] for account in account_list if account["account_type"] == "credit"]
 
-    print("MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM")
-    # print("saving_account_ids : ",saving_account_ids)
-    # print("credit_card_ids : ",credit_card_ids)
-    print("account_ids : ",account_ids)
-    print("account_list : ",account_list)
-
     # if date is string convert it into datetime (if user provide date)
     if isinstance(start_date, str):
         start_date = datetime.strptime(start_date, "%Y-%m-%d")
@@ -210,36 +203,21 @@ async def load_full_details(user_id:int,start_date: Optional[str] = None,end_dat
     if not start_date:
         end_date = datetime.now(timezone.utc)
         start_date = end_date - timedelta(days=30)
-        print(">>>>>>>>>>>>>>>>>>>>>>>>>>>")
-        print("end_date : ",end_date)
         financial_summery, spending_category = await update_second_header(saving_account_ids,start_date,end_date)
         past_transaction_100_days = await fetch_past_transactions(saving_account_ids,end_date,100)
         predicted_transaction_7_days = await fetch_predicted_data(saving_account_ids, end_date,8)
-        most_spending_category_100_days = await fetch_most_spent_category_100_days(saving_account_ids,end_date) 
-        # return DashboardResponse(
-        #     account_list=account_list,
-        #     financial_summery=financial_summery,
-        #     spending_category=spending_category,
-        #     past_transaction_100_days=past_transaction_100_days,
-        #     predicted_transaction_7_days=predicted_transaction_7_days,
-        #     most_spending_category_100_days=most_spending_category_100_days
-        # )
-        print("KKKKKKKKKKKKKKKKKKKKKKKKKKKKK")
-        print("account_list_type " ,type(account_list))
-        print("financial_summery_type " ,type(financial_summery))
-        print("spending_category_type " ,type(spending_category))
-        print("past_transaction_100_days_type " ,type(past_transaction_100_days))
-        print("predicted_transaction_7_days_type " ,type(predicted_transaction_7_days))
-        print("most_spending_category_100_days_type " ,type(most_spending_category_100_days))
+        most_spending_category_100_days = await fetch_most_spent_category_100_days(saving_account_ids,end_date)
+        date = {"start_date": start_date, "end_date": end_date}
+         
         return ResponseSchema(
             accounts_list=account_list,
             financial_summary=financial_summery,
             category_spending=spending_category,
             transactions=past_transaction_100_days,
             predictions=predicted_transaction_7_days,
-            most_spending=most_spending_category_100_days
+            most_spending=most_spending_category_100_days,
+            date=date
         )
-        # return account_list,financial_summery,spending_category,past_transaction_100_days,predicted_transaction_7_days,most_spending_category_100_days
     
     else:
         return await update_second_header(saving_account_ids,start_date,end_date)
