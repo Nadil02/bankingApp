@@ -101,7 +101,3 @@ class CreditCardResponse(BaseModel):
     total_expenses : float
     remaining_balance : float
 
-
-
-
-
