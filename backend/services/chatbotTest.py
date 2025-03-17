@@ -216,7 +216,7 @@ tools = [
     StructuredTool(
         name="add_to_do_item",
         func=add_to_do_item,
-        description="""Insert a user’s to-do item into the database.
+        description="""use this tool to add to-do tasks. Insert a user’s to-do item into the database.
 
         **Parameters:**
         - `user_id` (int): Unique identifier of the user.
