@@ -114,6 +114,7 @@ class Goal(BaseModel):
     goal_amount: float
     start_date: datetime
     due_date: datetime
+    user_id: int
 
 
 class ChatBot(BaseModel):
