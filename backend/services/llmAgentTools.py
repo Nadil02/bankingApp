@@ -782,7 +782,7 @@ async def sanizedData(query: str) -> str:
         1. if user query asking to set a reminder/remind user on some task, with use of words "set reminder","remind me", classify it as "To-do list task".
         2. if user query asking to add a task to the to-do list, with use of words "add a to-do","add a to-do list task", classify it as "To-do list task".  
         3. if user query mentioning about any future task or event, with use of "i have to do", "i need to do", "i should do", "i must do", "i will do", "i am going to do", "i am planning to do", "i am thinking", "i am about to", "i am going to", "i am planning", "i am thinking to", "i am thinking of", "i am thinking about", "i am about to", classify it as "To-do list task".
-        4. if user query is not related to any of the above 3 rules, classify it as "Non To-do list task".
+        4. if user query is not related to any of the above 3 rules, classify it as "Non To-do list task". dont use your own knowledge other than these 3 rules to classify the user query as "To-do list task".
 
         check given user query with above 4 rules and clssify it as "Non to-do list task" or "To-do list task".
         example :
