@@ -53,7 +53,7 @@ async def edit_goal_form_submission(request: GoalEditRequest):
 async def remove_goal_account(request: GoalRequest):
     return await remove_goal_account_service(request)
 
-#endpoint to get all already setup goals
+#endpoint to get all already setup goals_
 @router.get("/get_all_already_setup_goals", response_model=List[GoalResponseSchema])
 async def get_goals(user_id: int):
     goals = await get_all_already_setup_goals(user_id)
