@@ -1,9 +1,10 @@
 from fastapi import HTTPException                                                                                                                                                                  
 from typing import List, Dict
 from datetime import datetime
-from schemas.goal_setting import Account, Goal, GoalEditRequestResponse, GoalEditResponse, GoalRequest
-from database import collection_goal, collection_account
+from schemas.goal_setting import Account, Goal, GoalEditRequestResponse, GoalEditResponse, GoalRequest,GoalResponseSchema
+from database import collection_goal, collection_account,collection_transaction
 from bson import ObjectId
+from typing import List
 
 
 async def get_savings_accounts_without_goals(user_id: int) -> List[Account]:
@@ -97,15 +98,35 @@ async def remove_goal_account_service(data: GoalRequest) -> Dict[str, str]:
     return {"message": "Goal account removed successfully"}
 
 #load all already setup goals
-async def load_all_already_setup_goals(user_id: int) -> List[Goal]:
+async def get_all_already_setup_goals(user_id: int) -> List[GoalResponseSchema]:
+    """Fetch goals for a given user and find the latest balance from transactions."""
+    
+    # Step 1: Fetch all goals for the user
     goals_cursor = collection_goal.find({"user_id": user_id})
-    result = []
+    goals = []
+    
     async for goal in goals_cursor:
-        result.append(Goal(
-            goal_id=goal['goal_id'],
-            goal_name=goal['goal_name'],
-            goal_amount=goal['goal_amount'],
-            due_date=goal['due_date'],
-            account_id=goal['account_id']
-        ))
-    return result
+        account_id = goal["account_id"]
+
+        # Step 2: Find the latest transaction for the account (sorted by date)
+        latest_transaction = await collection_transaction.find_one(
+            {"account_id": account_id},
+            sort=[("date", -1)]  # Sort by date in descending order (latest first)
+        )
+
+        # Get balance from the latest transaction (or default to 0 if no transactions)
+        balance = latest_transaction["balance"] if latest_transaction else 0.0
+
+        # Step 3: Build response schema
+        goal_data = GoalResponseSchema(
+            goal_id=goal["goal_id"],
+            goal_name=goal["goal_name"],
+            goal_amount=goal["goal_amount"],
+            due_date=goal["due_date"],
+            start_date=goal["start_date"],
+            account_id=goal["account_id"],
+            balance=balance  # Latest balance from transactions
+        )
+        goals.append(goal_data)
+    
+    return goals
