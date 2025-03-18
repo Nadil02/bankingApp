@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from typing import List
-from schemas.goal_setting import Account, Goal,GoalLoadRequest,GoalEditRequestResponse, GoalEditResponse, GoalEditRequest, GoalRequest
-from services.goal_setting import get_savings_accounts_without_goals, set_goal, load_goal_to_edit, edit_goal, remove_goal_account_service
+from schemas.goal_setting import Account, Goal,GoalLoadRequest,GoalEditRequestResponse, GoalEditResponse, GoalEditRequest, GoalRequest,GoalResponseSchema
+from services.goal_setting import get_savings_accounts_without_goals, set_goal, load_goal_to_edit, edit_goal, remove_goal_account_service, get_all_already_setup_goals
 
 router = APIRouter()
 
@@ -52,3 +52,11 @@ async def edit_goal_form_submission(request: GoalEditRequest):
 @router.delete("/remove-goal-account")
 async def remove_goal_account(request: GoalRequest):
     return await remove_goal_account_service(request)
+
+#endpoint to get all already setup goals
+@router.get("/get_all_already_setup_goals", response_model=List[GoalResponseSchema])
+async def get_goals(user_id: int):
+    goals = await get_all_already_setup_goals(user_id)
+    if not goals:
+        raise HTTPException(status_code=404, detail="No goals found for this user")
+    return goals
