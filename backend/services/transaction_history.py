@@ -2,11 +2,6 @@ from database import collection_account, collection_transaction
 from schemas.transaction_history import Dashboard_response, Select_one_account_response
 from datetime import datetime
 
-# use this if document need searialization
-# def serialize_document(document):
-#     document["_id"] = str(document["_id"])
-#     return document
-
 async def load_all_accounts(user_id: int) -> dict:
     result = await collection_account.find(
         {"user_id": user_id},
@@ -58,7 +53,6 @@ async def get_transactions_details(account_id: int, start_date: str, end_date: s
         },
     ]
 
-
     if value is not None:
         pipeline.append({
         "$match": {
@@ -67,11 +61,6 @@ async def get_transactions_details(account_id: int, start_date: str, end_date: s
             ]
         }
         })
-        print("MMMMMMMMMMMMMMMMMMMMM")
-        pipeline.append({"$sort": {"transaction_date": 1}})
-        # result = await collection_transaction.find({"account_id": account_id}).to_list(None)
-        result = await collection_transaction.aggregate(pipeline).to_list(None)
-        print("result", result)
     else:
         pipeline.append({
         "$match": {
@@ -81,7 +70,31 @@ async def get_transactions_details(account_id: int, start_date: str, end_date: s
             ]
         }
         })
-        print("LLLLLLLLLLLLLLLLLLLLLLLLLL")
 
-    return {"transactions": "Hello"}
+    pipeline.append({"$sort": {"transaction_date": 1}})
+    pipeline.append({"$project": {
+                "_id": 0,  # Exclude _id
+                "payment": 1,
+                "receipt": 1,
+                "date": 1,
+                "description": 1,
+                "balance": 1
+            }
+        })
+    
+    result = await collection_transaction.aggregate(pipeline).to_list(None)
+    print("result", result)
+    formatted_transactions = []
+
+    for txn in result:  # Assuming `db_results` contains the raw database output
+        transaction_amount = txn["payment"] if txn["payment"] > 0 else txn["receipt"]
+        status = "debit" if txn["payment"] > 0 else "credit"
+        formatted_transactions.append({
+            "transaction_amount": round(transaction_amount, 2),
+            "date": txn["date"].strftime("%Y-%m-%d"),
+            "status": status,
+            "description": txn["description"],
+            "available_balance": round(txn["balance"], 2)})
+    formatted_dict = {"transactions": formatted_transactions}
+    return formatted_dict
     
