@@ -215,8 +215,6 @@ async def load_full_details(user_id:int,start_date: Optional[str] = None,end_dat
             predictions=predicted_transaction_7_days,
             most_spending=most_spending_category_100_days,
             date=date
-            most_spending=most_spending_category_100_days,
-            date=date
         )
     
     else:
