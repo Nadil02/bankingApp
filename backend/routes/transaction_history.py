@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from schemas.transaction_history import dashboard_request
-from services.transaction_history import load_all_accounts, select_one_account
+from services.transaction_history import load_all_accounts, select_one_account, get_transactions_details
 
 router = APIRouter(prefix="/transaction_history", tags=["Transaction History"])
 
@@ -14,4 +14,7 @@ async def load_transaction_history(account_id: int) -> dict:
 async def select_account(accont_id: int, user_id: int):
     return await select_one_account(user_id, accont_id)
 
-#when user select 
+#when user select date and range
+@router.get("/get_transactions")
+async def get_transactions_history_within_date_and_time(account_id: int, start_date: str, end_date: str, range_start: float=None, range_end: float=None, value: float=None):
+    return await get_transactions_details(account_id, start_date, end_date, range_start, range_end, value)

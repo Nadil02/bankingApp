@@ -1,5 +1,6 @@
 from database import collection_account, collection_transaction
 from schemas.transaction_history import Dashboard_response, Select_one_account_response
+from datetime import datetime
 
 # use this if document need searialization
 # def serialize_document(document):
@@ -35,4 +36,52 @@ async def select_one_account(user_id: int, account_id: int) -> Select_one_accoun
         return Select_one_account_response(max_value=max_value)
     else:
         return Select_one_account_response(max_value=None)
+    
+
+async def get_transactions_details(account_id: int, start_date: str, end_date: str, range_start: float=None, range_end: float=None, value: float=None):
+    # convert date string to datetime object
+    if isinstance(start_date, str):
+        start_date = datetime.strptime(start_date, "%Y-%m-%d")
+    if isinstance(end_date, str):    
+        end_date = datetime.strptime(end_date, "%Y-%m-%d")
+
+    print("start_date", start_date)
+    print("end_date", end_date)
+
+    pipeline = [
+        # Match stage to filter by account_id and date range
+        {
+            "$match": {
+                "account_id": account_id,
+                "date": {"$gte": start_date, "$lte": end_date},
+            }
+        },
+    ]
+
+
+    if value is not None:
+        pipeline.append({
+        "$match": {
+            "$or": [
+                {"payment": {"$lte": value}}
+            ]
+        }
+        })
+        print("MMMMMMMMMMMMMMMMMMMMM")
+        pipeline.append({"$sort": {"transaction_date": 1}})
+        # result = await collection_transaction.find({"account_id": account_id}).to_list(None)
+        result = await collection_transaction.aggregate(pipeline).to_list(None)
+        print("result", result)
+    else:
+        pipeline.append({
+        "$match": {
+            "$or": [
+                {"payment": {"$gte": range_start, "$lte": range_end}},
+                {"receipt": {"$gte": range_start, "$lte": range_end}}
+            ]
+        }
+        })
+        print("LLLLLLLLLLLLLLLLLLLLLLLLLL")
+
+    return {"transactions": "Hello"}
     
