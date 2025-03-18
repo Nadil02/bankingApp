@@ -95,3 +95,17 @@ async def remove_goal_account_service(data: GoalRequest) -> Dict[str, str]:
         raise HTTPException(status_code=404, detail="Goal account not found")
     
     return {"message": "Goal account removed successfully"}
+
+#load all already setup goals
+async def load_all_already_setup_goals(user_id: int) -> List[Goal]:
+    goals_cursor = collection_goal.find({"user_id": user_id})
+    result = []
+    async for goal in goals_cursor:
+        result.append(Goal(
+            goal_id=goal['goal_id'],
+            goal_name=goal['goal_name'],
+            goal_amount=goal['goal_amount'],
+            due_date=goal['due_date'],
+            account_id=goal['account_id']
+        ))
+    return result
