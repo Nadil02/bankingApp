@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta,timezone
 from database import collection_transaction, collection_transaction_category, collection_predicted_balance, collection_predicted_expense, collection_predicted_income,collection_account,collection_credit_periods,collection_goal
 from typing import Tuple
-from schemas.dashboard import SpendingCategory, ResponseSchema, CreditCardResponse, CategorySpending
+from schemas.dashboard import SpendingCategory, ResponseSchema, CreditCardResponse, CategorySpending, Summary
 from typing import List, Dict,Union,Optional,Any
 
 def serialize_document(document):
@@ -75,7 +75,8 @@ async def fetch_financial_summary(account_ids:list, start_date:datetime, end_dat
     total_income = aggregated_data.get("total_income", 0.0)
     total_expenses = aggregated_data.get("total_expenses", 0.0)
     total_savings = max(total_income - total_expenses, 0.0)
-    return {"total_income": total_income, "total_expenses": total_expenses, "total_savings": total_savings}
+    return Summary(total_income=total_income, total_expenses=total_expenses, total_savings=total_savings)
+    # return {"total_income": total_income, "total_expenses": total_expenses, "total_savings": total_savings}
 
 
 #past transactions for the graph
@@ -151,7 +152,7 @@ async def update_second_header(account_id:Union[int, List[int]],start_date:Union
         end_date = datetime.strptime(end_date, date_format)
 
     financial_summery = await fetch_financial_summary(account_ids,start_date, end_date)
-    total_expenses = financial_summery["total_expenses"]
+    total_expenses = financial_summery.total_expenses
     print("total_expenses category " ,total_expenses)
     spending_category = await fetch_top_spending_categories(account_ids,start_date, end_date, total_expenses)
     #return as a touple
@@ -212,6 +213,8 @@ async def load_full_details(user_id:int,start_date: Optional[str] = None,end_dat
             category_spending=spending_category,
             transactions=past_transaction_100_days,
             predictions=predicted_transaction_7_days,
+            most_spending=most_spending_category_100_days,
+            date=date
             most_spending=most_spending_category_100_days,
             date=date
         )
