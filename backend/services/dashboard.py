@@ -56,8 +56,6 @@ async def fetch_top_spending_categories(account_ids:list, start_date:datetime, e
     if other_spent > 0 and (other_spent / total_expenses) < 0.3:
         top_categories.append(SpendingCategory(category_name="Other", total_spent=other_spent))
     
-    print("JJJJJJJJJJJJJJJJJJJJJJJJ")
-    print("top_categories : ",top_categories)
     return top_categories
 
 
@@ -106,9 +104,7 @@ async def fetch_predicted_data(account_id: list, end_date: datetime, days: int):
     
     start_date_future = end_date
     end_date_future = end_date + timedelta(days=days)
-    print("???????????????????????????????")
-    print("start_date_future : ",start_date_future)
-    print("end_date_future : ",end_date_future)
+
 
     transaction_pipeline = [
         {"$match": {"account_id": {"$in": account_id}, "date": {"$gte": start_date_future, "$lte": end_date_future}}},
@@ -194,12 +190,6 @@ async def load_full_details(user_id:int,start_date: Optional[str] = None,end_dat
     saving_account_ids = [account["account_id"] for account in account_list if account["account_type"] == "savings"]
     credit_card_ids = [account["account_id"] for account in account_list if account["account_type"] == "credit"]
 
-    print("MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM")
-    # print("saving_account_ids : ",saving_account_ids)
-    # print("credit_card_ids : ",credit_card_ids)
-    print("account_ids : ",account_ids)
-    print("account_list : ",account_list)
-
     # if date is string convert it into datetime (if user provide date)
     if isinstance(start_date, str):
         start_date = datetime.strptime(start_date, "%Y-%m-%d")
@@ -210,36 +200,21 @@ async def load_full_details(user_id:int,start_date: Optional[str] = None,end_dat
     if not start_date:
         end_date = datetime.now(timezone.utc)
         start_date = end_date - timedelta(days=30)
-        print(">>>>>>>>>>>>>>>>>>>>>>>>>>>")
-        print("end_date : ",end_date)
         financial_summery, spending_category = await update_second_header(saving_account_ids,start_date,end_date)
         past_transaction_100_days = await fetch_past_transactions(saving_account_ids,end_date,100)
         predicted_transaction_7_days = await fetch_predicted_data(saving_account_ids, end_date,8)
         most_spending_category_100_days = await fetch_most_spent_category_100_days(saving_account_ids,end_date) 
-        # return DashboardResponse(
-        #     account_list=account_list,
-        #     financial_summery=financial_summery,
-        #     spending_category=spending_category,
-        #     past_transaction_100_days=past_transaction_100_days,
-        #     predicted_transaction_7_days=predicted_transaction_7_days,
-        #     most_spending_category_100_days=most_spending_category_100_days
-        # )
-        print("KKKKKKKKKKKKKKKKKKKKKKKKKKKKK")
-        print("account_list_type " ,type(account_list))
-        print("financial_summery_type " ,type(financial_summery))
-        print("spending_category_type " ,type(spending_category))
-        print("past_transaction_100_days_type " ,type(past_transaction_100_days))
-        print("predicted_transaction_7_days_type " ,type(predicted_transaction_7_days))
-        print("most_spending_category_100_days_type " ,type(most_spending_category_100_days))
+        date = {"start_date": start_date, "end_date": end_date}
+
         return ResponseSchema(
             accounts_list=account_list,
             financial_summary=financial_summery,
             category_spending=spending_category,
             transactions=past_transaction_100_days,
             predictions=predicted_transaction_7_days,
-            most_spending=most_spending_category_100_days
+            most_spending=most_spending_category_100_days,
+            date=date
         )
-        # return account_list,financial_summery,spending_category,past_transaction_100_days,predicted_transaction_7_days,most_spending_category_100_days
     
     else:
         return await update_second_header(saving_account_ids,start_date,end_date)

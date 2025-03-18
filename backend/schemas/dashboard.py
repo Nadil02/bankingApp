@@ -83,6 +83,10 @@ class MostSpending(BaseModel):
     most_spending_category: str
     most_spending_amount: float
 
+class Date(BaseModel):
+    start_date: datetime
+    end_date: datetime
+
 class ResponseSchema(BaseModel):
     accounts_list: List[Account]
     financial_summary: Summary
@@ -90,6 +94,7 @@ class ResponseSchema(BaseModel):
     transactions: List[Transaction]
     predictions: List[Prediction]
     most_spending: MostSpending
+    date: Date
 
 class CreditCardResponse(BaseModel):
     credit_limit : float
