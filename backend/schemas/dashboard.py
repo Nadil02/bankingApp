@@ -91,8 +91,8 @@ class ResponseSchema(BaseModel):
     accounts_list: List[Account]
     financial_summary: Summary
     category_spending: List[CategorySpending]
-    transactions: List[Transaction]
-    predictions: List[Prediction]
+    past_100_days_transactions: Dict[str, List[Dict[str, Any]]]
+    upcoming_7_days_predictions: Dict[str, List[Dict[str, Any]]]
     most_spending: MostSpending
     date: Date
 
@@ -100,4 +100,3 @@ class CreditCardResponse(BaseModel):
     credit_limit : float
     total_expenses : float
     remaining_balance : float
-

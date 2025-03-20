@@ -84,33 +84,60 @@ async def fetch_financial_summary(account_ids:list, start_date:datetime, end_dat
     return result
 
 
-#past transactions for the graph
-async def fetch_past_transactions(account_ids: list, end_date: datetime,days:int) -> List[Dict[str, Any]]:
+
+async def fetch_past_transactions(account_ids: list, end_date: datetime, days: int) -> Dict[str, List[Dict[str, Any]]]:
     start_date_past = end_date - timedelta(days=days)
 
     transaction_pipeline = [
         {"$match": {"account_id": {"$in": account_ids}, "date": {"$gte": start_date_past, "$lte": end_date - timedelta(days=1)}}},
-        {"$project": {"date": 1, "receipt": 1, "payment": 1, "balance": 1}},
-        {"$sort": {"date": 1}}
+        {"$group": {
+            "_id": "$date",
+            "total_receipt": {"$sum": "$receipt"},
+            "total_payment": {"$sum": "$payment"},
+            "final_balance": {"$last": "$balance"}
+        }},
+        {"$sort": {"_id": 1}}
     ]
 
     transaction_data = await collection_transaction.aggregate(transaction_pipeline).to_list(None)
 
-    past_data = []
-    for item in transaction_data:
-        if item.get("payment", 0) > 0:
-            past_data.append({"date": item["date"], "payment": item["payment"], "balance": item["balance"]})
-        if item.get("receipt", 0) > 0:
-            past_data.append({"date": item["date"], "receipt": item["receipt"], "balance": item["balance"]})
+    # Convert transaction data into a dictionary with date keys
+    transactions_by_date = {item["_id"].date(): item for item in transaction_data}
 
-    return past_data
+    receipts = []
+    payments = []
+    balances = []
 
-async def fetch_predicted_data(account_id: list, end_date: datetime, days: int):
+    last_balance = None  # Store the last known balance
+
+    for i in range(days):
+        current_date = (start_date_past + timedelta(days=i)).date()  # Ensure date format matches
+
+        if current_date in transactions_by_date:
+            item = transactions_by_date[current_date]
+            total_receipt = item["total_receipt"]
+            total_payment = item["total_payment"]
+            last_balance = item["final_balance"]  # Update last balance
+        else:
+            total_receipt = 0
+            total_payment = 0
+
+        # Append transaction details
+        receipts.append({"date": current_date.strftime("%Y-%m-%d"), "total_receipt": total_receipt})
+        payments.append({"date": current_date.strftime("%Y-%m-%d"), "total_payment": total_payment})
+
+        # Carry over last known balance if no transactions exist for that day
+        balances.append({"date": current_date.strftime("%Y-%m-%d"), "final_balance": last_balance if last_balance is not None else 0})
+
+    return {"receipts": receipts, "payments": payments, "balances": balances}
+
+
+
+async def fetch_predicted_data(account_id: list, end_date: datetime, days: int) -> Dict[str, List[Dict[str, Any]]]:
     """Fetch upcoming predicted income, expenses, and balances for the given days."""
     
     start_date_future = end_date
     end_date_future = end_date + timedelta(days=days)
-
 
     transaction_pipeline = [
         {"$match": {"account_id": {"$in": account_id}, "date": {"$gte": start_date_future, "$lte": end_date_future}}},
@@ -122,24 +149,28 @@ async def fetch_predicted_data(account_id: list, end_date: datetime, days: int):
     predicted_expense_data = await collection_predicted_expense.aggregate(transaction_pipeline).to_list(None)
     predicted_balance_data = await collection_predicted_balance.aggregate(transaction_pipeline).to_list(None)
 
-    # Convert data to dictionaries for fast lookup (Ensure keys are datetime.date)
+    # Convert data to dictionaries for fast lookup
     income_dict = {data["date"].date(): data["amount"] for data in predicted_income_data}
     expense_dict = {data["date"].date(): data["amount"] for data in predicted_expense_data}
     balance_dict = {data["date"].date(): data["balance"] for data in predicted_balance_data}
 
-    predicted_data = []
-    
+    income_list = []
+    expense_list = []
+    balance_list = []
+
     for i in range(days):  # Ensure all 'days' are included
         current_date = (start_date_future + timedelta(days=i)).date()
         
-        predicted_data.append({
-            "date": current_date.strftime("%Y-%m-%d"),
-            "predicted_income": income_dict.get(current_date, 0),
-            "predicted_expenses": expense_dict.get(current_date, 0),
-            "predicted_balance": balance_dict.get(current_date, 0)
-        })
+        income_list.append({"date": current_date.strftime("%Y-%m-%d"), "predicted_income": income_dict.get(current_date, 0)})
+        expense_list.append({"date": current_date.strftime("%Y-%m-%d"), "predicted_expenses": expense_dict.get(current_date, 0)})
+        balance_list.append({"date": current_date.strftime("%Y-%m-%d"), "predicted_balance": balance_dict.get(current_date, 0)})
 
-    return predicted_data
+    return {
+        "predicted_income": income_list,
+        "predicted_expenses": expense_list,
+        "predicted_balance": balance_list
+    }
+
 
 ## update total income, expense, balance and predicted categories single account or whole account
 async def update_second_header(account_id:Union[int, List[int]],start_date:Union[datetime,str], end_date:Union[datetime,str]):
@@ -223,8 +254,8 @@ async def load_full_details(user_id:int,start_date: Optional[str] = None,end_dat
             accounts_list=account_list,
             financial_summary=financial_summery,
             category_spending=spending_category,
-            transactions=past_transaction_100_days,
-            predictions=predicted_transaction_7_days,
+            past_100_days_transactions=past_transaction_100_days,
+            upcoming_7_days_predictions=predicted_transaction_7_days,
             most_spending=most_spending_category_100_days,
             date=date
         )
