@@ -56,12 +56,14 @@ async def fetch_top_spending_categories(account_ids:list, start_date:datetime, e
     if other_spent > 0 and (other_spent / total_expenses) < 0.3:
         top_categories.append(SpendingCategory(category_name="Other", total_spent=other_spent))
     
-    return CategorySpending(category_name=top_categories[0]["category_name"], total_spent=top_categories[0]["total_spent"])
+    return top_categories
 
 
 # get total_income,total_expenses, total_savings for single account or list of account
-async def fetch_financial_summary(account_ids:list, start_date:datetime, end_date:datetime) -> Dict[str, float]:
+async def fetch_financial_summary(account_ids:list, start_date:datetime, end_date:datetime):
     # make pipeline
+    print("OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
+    print("account_ids",account_ids)
     pipeline = [
         {"$match": {"account_id":{"$in": account_ids},"date":{"$gte":start_date, "$lte":end_date}}},
         {"$group": {"_id": None, "total_income": {"$sum": "$receipt"}, "total_expenses": {"$sum": "$payment"}}}
@@ -75,8 +77,11 @@ async def fetch_financial_summary(account_ids:list, start_date:datetime, end_dat
     total_income = aggregated_data.get("total_income", 0.0)
     total_expenses = aggregated_data.get("total_expenses", 0.0)
     total_savings = max(total_income - total_expenses, 0.0)
-    return Summary(total_income=total_income, total_expenses=total_expenses, total_savings=total_savings)
-    # return {"total_income": total_income, "total_expenses": total_expenses, "total_savings": total_savings}
+    print("OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
+    result = Summary(total_income=total_income, total_expenses=total_expenses, total_savings=total_savings)
+    print("OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
+    print("result",type(result))
+    return result
 
 
 #past transactions for the graph
@@ -105,9 +110,7 @@ async def fetch_predicted_data(account_id: list, end_date: datetime, days: int):
     
     start_date_future = end_date
     end_date_future = end_date + timedelta(days=days)
-    print("???????????????????????????????")
-    print("start_date_future : ",start_date_future)
-    print("end_date_future : ",end_date_future)
+
 
     transaction_pipeline = [
         {"$match": {"account_id": {"$in": account_id}, "date": {"$gte": start_date_future, "$lte": end_date_future}}},
@@ -154,7 +157,11 @@ async def update_second_header(account_id:Union[int, List[int]],start_date:Union
         end_date = datetime.strptime(end_date, date_format)
 
     financial_summery = await fetch_financial_summary(account_ids,start_date, end_date)
+    print("financial_summery_type",type(financial_summery))
+    print("MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM")
     total_expenses = financial_summery.total_expenses
+
+    print("total_expenses",total_expenses)
     print("total_expenses category " ,total_expenses)
     spending_category = await fetch_top_spending_categories(account_ids,start_date, end_date, total_expenses)
     #return as a touple
@@ -190,6 +197,9 @@ async def load_full_details(user_id:int,start_date: Optional[str] = None,end_dat
 
     #take account id and account details based on user id
     account_ids, account_list = await all_accounts(user_id)
+    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+    print("account_ids", account_ids)
+    print("account_list", account_list)
     saving_account_ids = [account["account_id"] for account in account_list if account["account_type"] == "savings"]
     credit_card_ids = [account["account_id"] for account in account_list if account["account_type"] == "credit"]
 
@@ -206,9 +216,9 @@ async def load_full_details(user_id:int,start_date: Optional[str] = None,end_dat
         financial_summery, spending_category = await update_second_header(saving_account_ids,start_date,end_date)
         past_transaction_100_days = await fetch_past_transactions(saving_account_ids,end_date,100)
         predicted_transaction_7_days = await fetch_predicted_data(saving_account_ids, end_date,8)
-        most_spending_category_100_days = await fetch_most_spent_category_100_days(saving_account_ids,end_date)
+        most_spending_category_100_days = await fetch_most_spent_category_100_days(saving_account_ids,end_date) 
         date = {"start_date": start_date, "end_date": end_date}
-         
+
         return ResponseSchema(
             accounts_list=account_list,
             financial_summary=financial_summery,
