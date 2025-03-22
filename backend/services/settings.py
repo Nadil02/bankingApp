@@ -30,13 +30,15 @@ async def update_user_notification_status(user_id: int, status: bool) -> Optiona
 
 async def load_edit_profile(user_id: int) -> UserEditProfile:
     print("user_id : ",user_id)
-    user_details = await collection_user.find_one({"user_id": user_id},{"_id":0,"user_id":1,"first_name":1,"last_name":1,"phone_number":1})
+    user_details = await collection_user.find_one({"user_id": user_id},{"_id":0,"user_id":1,"first_name":1,"last_name":1,"phone_number":1,"user_image":1})
+    
     user_info = {
         "user_id" : user_details["user_id"],
         "fname" : user_details["first_name"],
         "lname" : user_details["last_name"],
         "phone_number" : user_details["phone_number"],
         "user_name" : user_details["first_name"] + "@" + user_details["last_name"],
+        "user_image": user_details["user_image"]
     }
     return user_info
 

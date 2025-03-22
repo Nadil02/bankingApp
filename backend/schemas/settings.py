@@ -11,6 +11,7 @@ class UserEditProfile(BaseModel):
     lname: str
     phone_number: str
     user_name: str
+    user_image: str
 
 class UserEditProfileWithOTP(BaseModel):
     otp_id: int
