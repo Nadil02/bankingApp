@@ -10,12 +10,12 @@ from models import OTP, account
 from utils.OTP import send_sms
 # get bank account details
 async def getBankAccountDetails(user_id: int) -> list[BankAccount]:
-    bank_account = await collection_account.find({"user_id": user_id}, {"_id":0,"account_number": 1, "account_type": 1, "balance": 1,"bank_id": 1}).to_list(length=None)
-    for bank in bank_account:
+    bank_account = await collection_account.find({"user_id": user_id}, {"_id":0,"account_number": 1, "account_type": 1, "balance": 1,"bank_id": 1}).to_list(length=100)
+    for i, bank in enumerate(bank_account):
         bank_id = bank["bank_id"]
+        print("bank_id",bank_id)
         bank_details = await collection_bank.find_one({"bank_id": bank_id}, {"_id":0,"logo": 1})
-        bank.update(bank_details)
-        
+        bank_account[i].update(bank_details)   
     bank_account = json.loads(json_util.dumps(bank_account))
     return [BankAccount(**bank) for bank in bank_account]
 
