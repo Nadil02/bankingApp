@@ -85,82 +85,108 @@ async def fetch_financial_summary(account_ids:list, start_date:datetime, end_dat
 
 
 
-async def fetch_past_transactions(account_ids: list, end_date: datetime, days: int) -> Dict[str, List[Dict[str, Any]]]:
+async def fetch_past_transactions(
+    account_ids: list, end_date: datetime, days: int
+) -> Dict[str, List[Dict[str, Any]]]:
     start_date_past = end_date - timedelta(days=days)
-
     transaction_pipeline = [
-        {"$match": {"account_id": {"$in": account_ids}, "date": {"$gte": start_date_past, "$lte": end_date - timedelta(days=1)}}},
-        {"$group": {
-            "_id": "$date",
-            "total_receipt": {"$sum": "$receipt"},
-            "total_payment": {"$sum": "$payment"},
-            "final_balance": {"$last": "$balance"}
-        }},
+        {
+            "$match": {
+                "account_id": {"$in": account_ids},
+                "date": {"$gte": start_date_past, "$lte": end_date - timedelta(days=1)}
+            }
+        },
+        {
+            "$sort": {"date": 1, "account_id": 1}  
+        },
+        {
+            "$group": {
+                "_id": {"date": "$date", "account_id": "$account_id"},
+                "total_receipt": {"$sum": "$receipt"},
+                "total_payment": {"$sum": "$payment"},
+                "last_balance": {"$last": "$balance"}  
+            }
+        },
+        {
+            "$group": {
+                "_id": "$_id.date",
+                "total_receipt": {"$sum": "$total_receipt"},
+                "total_payment": {"$sum": "$total_payment"},
+                "final_balance": {"$sum": "$last_balance"}  
+            }
+        },
         {"$sort": {"_id": 1}}
     ]
 
     transaction_data = await collection_transaction.aggregate(transaction_pipeline).to_list(None)
-
-    # Convert transaction data into a dictionary with date keys
     transactions_by_date = {item["_id"].date(): item for item in transaction_data}
-
     receipts = []
     payments = []
     balances = []
-
-    last_balance = None  # Store the last known balance
-
+    last_balance = None  
     for i in range(days):
-        current_date = (start_date_past + timedelta(days=i)).date()  # Ensure date format matches
-
+        current_date = (start_date_past + timedelta(days=i)).date()  
         if current_date in transactions_by_date:
             item = transactions_by_date[current_date]
             total_receipt = item["total_receipt"]
             total_payment = item["total_payment"]
-            last_balance = item["final_balance"]  # Update last balance
+            last_balance = item["final_balance"]  
         else:
             total_receipt = 0
             total_payment = 0
-
-        # Append transaction details
         receipts.append({"date": current_date.strftime("%Y-%m-%d"), "total_receipt": total_receipt})
         payments.append({"date": current_date.strftime("%Y-%m-%d"), "total_payment": total_payment})
-
-        # Carry over last known balance if no transactions exist for that day
         balances.append({"date": current_date.strftime("%Y-%m-%d"), "final_balance": last_balance if last_balance is not None else 0})
-
     return {"receipts": receipts, "payments": payments, "balances": balances}
 
 
 
-async def fetch_predicted_data(account_id: list, end_date: datetime, days: int) -> Dict[str, List[Dict[str, Any]]]:
-    """Fetch upcoming predicted income, expenses, and balances for the given days."""
-    
+
+
+async def fetch_predicted_data(
+    account_ids: list,
+    end_date: datetime,
+    days: int
+) -> Dict[str, List[Dict[str, Any]]]:
     start_date_future = end_date
     end_date_future = end_date + timedelta(days=days)
 
     transaction_pipeline = [
-        {"$match": {"account_id": {"$in": account_id}, "date": {"$gte": start_date_future, "$lte": end_date_future}}},
-        {"$project": {"date": 1, "amount": 1, "balance": 1}},
-        {"$sort": {"date": 1}}
+        {
+            "$match": {
+                "account_id": {"$in": account_ids},
+                "date": {"$gte": start_date_future, "$lte": end_date_future}
+            }
+        },
+        {
+            "$group": {
+                "_id": "$date",
+                "total_amount": {"$sum": "$amount"},  # Sum amounts across accounts
+                "total_balance": {"$sum": "$balance"}  # Sum balances across accounts
+            }
+        },
+        {
+            "$sort": {"_id": 1}
+        }
     ]
 
+    # Fetch predicted data for all accounts
     predicted_income_data = await collection_predicted_income.aggregate(transaction_pipeline).to_list(None)
     predicted_expense_data = await collection_predicted_expense.aggregate(transaction_pipeline).to_list(None)
     predicted_balance_data = await collection_predicted_balance.aggregate(transaction_pipeline).to_list(None)
 
-    # Convert data to dictionaries for fast lookup
-    income_dict = {data["date"].date(): data["amount"] for data in predicted_income_data}
-    expense_dict = {data["date"].date(): data["amount"] for data in predicted_expense_data}
-    balance_dict = {data["date"].date(): data["balance"] for data in predicted_balance_data}
+    # Convert transaction data into dictionaries for quick lookup
+    income_dict = {data["_id"].date(): data["total_amount"] for data in predicted_income_data}
+    expense_dict = {data["_id"].date(): data["total_amount"] for data in predicted_expense_data}
+    balance_dict = {data["_id"].date(): data["total_balance"] for data in predicted_balance_data}
 
     income_list = []
     expense_list = []
     balance_list = []
 
-    for i in range(days):  # Ensure all 'days' are included
+    for i in range(days):
         current_date = (start_date_future + timedelta(days=i)).date()
-        
+
         income_list.append({"date": current_date.strftime("%Y-%m-%d"), "predicted_income": income_dict.get(current_date, 0)})
         expense_list.append({"date": current_date.strftime("%Y-%m-%d"), "predicted_expenses": expense_dict.get(current_date, 0)})
         balance_list.append({"date": current_date.strftime("%Y-%m-%d"), "predicted_balance": balance_dict.get(current_date, 0)})
@@ -171,19 +197,14 @@ async def fetch_predicted_data(account_id: list, end_date: datetime, days: int) 
         "predicted_balance": balance_list
     }
 
-
-## update total income, expense, balance and predicted categories single account or whole account
 async def update_second_header(account_id:Union[int, List[int]],start_date:Union[datetime,str], end_date:Union[datetime,str]):
 
-    # converting all the account into list
     account_ids = account_list([account_id] if isinstance(account_id, int) else account_id)
 
     date_format = "%Y-%m-%d"
 
     if isinstance(start_date, str):
         start_date = datetime.strptime(start_date, date_format)
-    
-    # Convert end_date to datetime if it is a string
     if isinstance(end_date, str):
         end_date = datetime.strptime(end_date, date_format)
 
@@ -478,9 +499,141 @@ async def check_surplus_accounts_for_creditcard( account_id: int,insufficient_cr
 
     return sufficient_accounts 
 
-async def graph_data(account_id: int) -> Dict[str, Any]:
-    start_date = datetime.utcnow()
+
+
+from datetime import datetime, timedelta
+
+async def get_previous_expenses(account_id: int, start_date: datetime, period_begin_date: datetime) -> list:
+    # Previous expenses pipeline
+    past_expenses_pipeline = [
+        {"$match": {"account_id": account_id, "date": {"$gte": period_begin_date, "$lte": start_date - timedelta(days=1)}}},
+        {
+            "$group": {
+                "_id": "$date",  # Group by date
+                "total_previous_expenses": {"$sum": "$payment"}  # Sum payments for the day
+            }
+        },
+        {"$sort": {"_id": 1}}
+    ]
+    previous_expenses_data = await collection_transaction.aggregate(past_expenses_pipeline).to_list(None)
+
+    # Convert to dictionary for easy lookup
+    previous_expenses_dict = {data["_id"].date(): data["total_previous_expenses"] for data in previous_expenses_data}
+
+    # Create a list of dates and their corresponding expense sums
+    previous_expenses = []
+    num_days = (start_date - period_begin_date).days + 1
+    for i in range(num_days):
+        current_date = (period_begin_date + timedelta(days=i)).date()
+        previous_expenses.append({
+            "date": current_date.strftime("%Y-%m-%d"),
+            "total_previous_expenses": previous_expenses_dict.get(current_date, 0)  # Default to 0 if no data
+        })
     
+    return previous_expenses
+
+
+async def get_predicted_expenses(account_id: int, start_date: datetime, end_date: datetime) -> list:
+    # Predicted expenses pipeline
+    expenses_pipeline = [
+        {"$match": {"account_id": account_id, "date": {"$gte": start_date, "$lte": end_date}}},  
+        {
+            "$group": {
+                "_id": "$date",  # Group by date
+                "total_predicted_expenses": {"$sum": "$amount"}  # Sum predicted expenses for the day
+            }
+        },
+        {"$sort": {"_id": 1}}
+    ]
+    predicted_expenses_data = await collection_predicted_expense.aggregate(expenses_pipeline).to_list(None)
+
+    # Convert to dictionary for easy lookup
+    predicted_expenses_dict = {data["_id"].date(): data["total_predicted_expenses"] for data in predicted_expenses_data}
+
+    # Create a list of dates and their corresponding predicted sums
+    predicted_expenses = []
+    num_days = (end_date - start_date).days + 1
+    for i in range(num_days):
+        current_date = (start_date + timedelta(days=i)).date()
+        predicted_expenses.append({
+            "date": current_date.strftime("%Y-%m-%d"),
+            "total_predicted_expenses": predicted_expenses_dict.get(current_date, 0)  # Default to 0 if no data
+        })
+    
+    return predicted_expenses
+
+
+
+
+
+
+async def get_previous_account_balances(account_id: int, start_date: datetime, period_begin_date: datetime) -> list:
+    # Previous balances pipeline
+    past_balances_pipeline = [
+        {"$match": {"account_id": account_id, "date": {"$gte": period_begin_date, "$lte": start_date - timedelta(days=1)}}},
+        {
+            "$group": {
+                "_id": "$date",  # Group by date
+                "last_balance": {"$last": "$balance"}  # Get the last balance for each date
+            }
+        },
+        {"$sort": {"_id": 1}}
+    ]
+    previous_balances_data = await collection_transaction.aggregate(past_balances_pipeline).to_list(None)
+
+    # Convert to dictionary for easy lookup
+    previous_balances_dict = {data["_id"].date(): data["last_balance"] for data in previous_balances_data}
+
+    # Create a list of dates and their corresponding balances
+    previous_balances = []
+    num_days = (start_date - period_begin_date).days + 1
+    previous_balance = None  # To carry forward the balance if there is a gap
+    for i in range(num_days):
+        current_date = (period_begin_date + timedelta(days=i)).date()
+        balance = previous_balances_dict.get(current_date, previous_balance)
+        if balance is not None:
+            previous_balance = balance  # Update the balance for the next day
+        previous_balances.append({
+            "date": current_date.strftime("%Y-%m-%d"),
+            "balance": previous_balance
+        })
+    
+    return previous_balances
+
+
+async def get_predicted_account_balances(account_id: int, start_date: datetime, end_date: datetime) -> list:
+    # Predicted balances pipeline
+    balances_pipeline = [
+        {"$match": {"account_id": account_id, "date": {"$gte": start_date, "$lte": end_date}}},  
+        {
+            "$group": {
+                "_id": "$date",  # Group by date
+                "last_balance": {"$last": "$balance"}  # Get the last predicted balance for each date
+            }
+        },
+        {"$sort": {"_id": 1}}
+    ]
+    predicted_balances_data = await collection_predicted_balance.aggregate(balances_pipeline).to_list(None)
+
+    # Convert to dictionary for easy lookup
+    predicted_balances_dict = {data["_id"].date(): data["last_balance"] for data in predicted_balances_data}
+
+    # Create a list of dates and their corresponding predicted balances
+    predicted_balances = []
+    num_days = (end_date - start_date).days + 1
+    for i in range(num_days):
+        current_date = (start_date + timedelta(days=i)).date()
+        predicted_balances.append({
+            "date": current_date.strftime("%Y-%m-%d"),
+            "balance": predicted_balances_dict.get(current_date, 0)  # Default to 0 if no data
+        })
+    
+    return predicted_balances
+
+
+async def graph_data(account_id: int) -> dict:
+    start_date = datetime.utcnow()
+
     # Fetch account data and check if account exists
     account_data = await collection_account.find_one({"account_id": account_id})
     if not account_data:
@@ -488,29 +641,27 @@ async def graph_data(account_id: int) -> Dict[str, Any]:
 
     due_date = account_data.get("due_date")
     
+    # Get timeframes
     end_date = due_date
     period_begin_date = due_date - timedelta(days=30)
 
-    # Past expenses pipeline
-    past_expenses_pipeline = [
-        {"$match": {"account_id": account_id, "date": {"$gte": period_begin_date, "$lte": start_date - timedelta(days=1)}}},
-        {"$project": {"_id": 0, "date": 1, "previous_expenses": "$payment"}},
-        {"$sort": {"date": 1}}
-    ]
-    previous_expenses_data = await collection_transaction.aggregate(past_expenses_pipeline).to_list(None)
-    print("prvious_expense_data ", previous_expenses_data)
+    # Get previous and predicted expenses separately
+    previous_expenses = await get_previous_expenses(account_id, start_date, period_begin_date)
+    predicted_expenses = await get_predicted_expenses(account_id, start_date, end_date)
 
-    # Predicted expenses pipeline
-    expenses_pipeline = [
-        {"$match": {"account_id": account_id, "date": {"$gte": start_date, "$lte": end_date}}},
-        {"$project": {"_id": 0, "date": 1, "predicted_expenses": "$amount"}},
-        {"$sort": {"date": 1}}
-    ]
-    predicted_expenses_data = await collection_predicted_expense.aggregate(expenses_pipeline).to_list(None)
+    # Get previous and predicted account balances separately
+    previous_balances = await get_previous_account_balances(account_id, start_date, period_begin_date)
+    predicted_balances = await get_predicted_account_balances(account_id, start_date, end_date)
 
-    # Return data wrapped in a dictionary
-    pre_graph_data = [{"previous_expenses": previous_expenses_data},{"predicted_expenses":predicted_expenses_data}]
-    return pre_graph_data
+    return {
+        "previous_expenses": previous_expenses,
+        "predicted_expenses": predicted_expenses,
+        "previous_balances": previous_balances,
+        "predicted_balances": predicted_balances
+    }
+
+
+
 
 # Handling Credit Card
 async def get_credit_summary(account_id: int,timeperiod:int | None=None):
