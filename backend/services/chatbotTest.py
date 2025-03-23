@@ -12,6 +12,11 @@ from langchain_core.tools import StructuredTool
 from pydantic import BaseModel
 from schemas.chatbot import GetTotalSpendingsArgs,GetTotalIncomeArgs,GetLastTransactionArgs,GetMonthlySummaryArgs,GetAllTransactionsForDateArgs,GetNextMonthTotalIncomesArgs,GetNextMonthTotalSpendingsArgs,GetNextIncomeArgs,GetNextSpendingArgs,AddTodoItemArgs
 from services.llmAgentTools import get_total_spendings_for_given_time_period,get_total_incomes_for_given_time_period,get_last_transaction,get_monthly_summary,get_all_transactions_for_given_date,get_next_month_total_incomes,get_next_month_total_spendings,get_next_income,get_next_spending,add_to_do_item
+from datetime import datetime
+
+now=datetime.now()
+current_day=now.strftime("%A")
+current_date=now.strftime("%Y-%m-%d")
 
 # load environment variables
 load_dotenv()
@@ -323,7 +328,7 @@ async def get_chatbot_response(user_id: int, query: str) -> str:
     # about_user = await get_chat_summary(user_id)
     
     # enriched_query = f"User profile: {about_user}\n\nQuery: {query}\n\nUser ID: {user_id}"
-    enriched_query = f"Query: {query}\n\nUser ID: {user_id}"
+    enriched_query = f"Query: {query}\n\nUser ID: {user_id}\n\n\nToday is {current_day} and the date is {current_date}"
 
     print("enriched_query:",enriched_query)
     response = await agent_executor.ainvoke({
