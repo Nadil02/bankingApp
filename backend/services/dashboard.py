@@ -51,10 +51,14 @@ async def fetch_top_spending_categories(account_ids:list, start_date:datetime, e
     {"category_name": category_map.get(item["_id"], "Unknown"), "total_spent": item["total_spent"]}
     for item in category_result
     ]
+    for item in top_categories:
+        item.update({"category_precentage":(item["total_spent"]/top_categories_sum)*100})
 
     # Add "Other" category if applicable
     if other_spent > 0 and (other_spent / total_expenses) < 0.3:
         top_categories.append(SpendingCategory(category_name="Other", total_spent=other_spent))
+    print("KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK")
+    print("top_categories",top_categories)
     
     return top_categories
 
@@ -62,8 +66,6 @@ async def fetch_top_spending_categories(account_ids:list, start_date:datetime, e
 # get total_income,total_expenses, total_savings for single account or list of account
 async def fetch_financial_summary(account_ids:list, start_date:datetime, end_date:datetime):
     # make pipeline
-    print("OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
-    print("account_ids",account_ids)
     pipeline = [
         {"$match": {"account_id":{"$in": account_ids},"date":{"$gte":start_date, "$lte":end_date}}},
         {"$group": {"_id": None, "total_income": {"$sum": "$receipt"}, "total_expenses": {"$sum": "$payment"}}}
@@ -77,10 +79,7 @@ async def fetch_financial_summary(account_ids:list, start_date:datetime, end_dat
     total_income = aggregated_data.get("total_income", 0.0)
     total_expenses = aggregated_data.get("total_expenses", 0.0)
     total_savings = max(total_income - total_expenses, 0.0)
-    print("OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
     result = Summary(total_income=total_income, total_expenses=total_expenses, total_savings=total_savings)
-    print("OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
-    print("result",type(result))
     return result
 
 

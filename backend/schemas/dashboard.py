@@ -67,6 +67,7 @@ class Summary(BaseModel):
 class CategorySpending(BaseModel):
     category_name: str
     total_spent: float
+    category_precentage: float
 
 class Transaction(BaseModel):
     date: datetime
