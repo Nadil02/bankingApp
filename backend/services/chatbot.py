@@ -11,7 +11,7 @@ import json
 
 # import functions from llmAgentTools.py
 # from .llmAgentTools import get_week_summary, get_month_summary
-from .llmAgentTools import get_total_spendings_for_given_time_period,get_total_incomes_for_given_time_period,get_last_transaction,get_monthly_summary_for_given_month,get_all_transactions_for_given_date,get_next_month_total_incomes,get_next_month_total_spendings,get_next_income,get_next_spending,handle_incomplete_time_periods
+from .llmAgentTools import get_bank_rates,get_total_spendings_for_given_time_period,get_total_spendings_for_given_time_period,get_total_incomes_for_given_time_period,get_last_transaction,get_monthly_summary_for_given_month,get_all_transactions_for_given_date,get_next_month_total_incomes,get_next_month_total_spendings,get_next_income,get_next_spending,handle_incomplete_time_periods,get_greeting_response
 from datetime import datetime
 
 
@@ -79,6 +79,16 @@ tools = [
         "name": "handle_incomplete_time_periods", 
         "func": handle_incomplete_time_periods, 
         "description": "Helps manage queries with missing date parameters by prompting for the required information. Required parameters: user_id (string), start_date (datetime, optional), end_date (datetime, optional). Use this when the user's query is missing date information needed for financial analysis."
+    },
+    {
+        "name": "get_greeting_response", 
+        "func": get_greeting_response, 
+        "description": "Provides responses to greeting questions such as: hello, hii, hay, good morning, good evening, good afternoon and good night and so on. Use this everytime user sends a greeting Required parameters: user_id (int). Use this when the user gives greetings."
+    },
+    {
+        "name": "get_bank_rates", 
+        "func": get_bank_rates, 
+        "description": "Helps manage queries asked about bank rates. Required parameters: user_id (int). Use this when the user's query is based on bank rates."
     }
 ]
 
@@ -117,6 +127,7 @@ def get_new_summary(query: str, chat_summary: str) -> str:
     new_summary = llm.invoke(prompt)
     
     return new_summary.content.strip()
+
 
 async def get_chatbot_response(user_id: str, query: str) -> str:
 

@@ -4,14 +4,20 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.memory import ConversationBufferMemory
 from langchain.tools import tool,Tool
 import os
+import io
 from dotenv import load_dotenv
 from database import collection_chatbot,collection_transaction,collection_predicted_income,collection_predicted_expense,collection_user,collection_account,collection_predicted_balance,collection_dummy_values,collection_Todo_list
 from models import ChatBot,transaction
-from datetime import datetime
+from datetime import datetime, UTC
 from langchain_core.tools import StructuredTool
 from pydantic import BaseModel
-from schemas.chatbot import GetTotalSpendingsArgs,GetTotalIncomeArgs,GetLastTransactionArgs,GetMonthlySummaryArgs,GetAllTransactionsForDateArgs,GetNextMonthTotalIncomesArgs,GetNextMonthTotalSpendingsArgs,GetNextIncomeArgs,GetNextSpendingArgs,AddTodoItemArgs
-from services.llmAgentTools import get_total_spendings_for_given_time_period,get_total_incomes_for_given_time_period,get_last_transaction,get_monthly_summary,get_all_transactions_for_given_date,get_next_month_total_incomes,get_next_month_total_spendings,get_next_income,get_next_spending,add_to_do_item
+from schemas.chatbot import BankRatesArgs,GreetingResponseArgs,GetTotalSpendingsArgs,GetTotalIncomeArgs,GetLastTransactionArgs,GetMonthlySummaryArgs,GetAllTransactionsForDateArgs,GetNextMonthTotalIncomesArgs,GetNextMonthTotalSpendingsArgs,GetNextIncomeArgs,GetNextSpendingArgs,AddTodoItemArgs
+from services.llmAgentTools import get_bank_rates,get_greeting_response,get_total_spendings_for_given_time_period,get_total_incomes_for_given_time_period,get_last_transaction,get_monthly_summary,get_all_transactions_for_given_date,get_next_month_total_incomes,get_next_month_total_spendings,get_next_income,get_next_spending,add_to_do_item
+from datetime import datetime
+from contextlib import redirect_stdout
+now=datetime.now()
+current_day=now.strftime("%A")
+current_date=now.strftime("%Y-%m-%d")
 
 # load environment variables
 load_dotenv()
@@ -216,7 +222,7 @@ tools = [
     StructuredTool(
         name="add_to_do_item",
         func=add_to_do_item,
-        description="""Insert a user’s to-do item into the database.
+        description="""use this tool to add to-do tasks. Insert a user’s to-do item into the database.
 
         **Parameters:**
         - `user_id` (int): Unique identifier of the user.
@@ -255,6 +261,42 @@ tools = [
         """,
         args_schema=AddTodoItemArgs,
         coroutine=add_to_do_item 
+    ),
+    StructuredTool(
+        name="get_greeting_response",
+        func=get_greeting_response,
+        description="""Answer queries with greetings like hello, hii, hay, good morning, good night, good evening, good afternoon. If greetings were used , use this tool. 
+        **Parameters:**
+        - `user_id` (int): Unique identifier of the user.
+        
+        **Usage Example:**
+        If a user asks: *"Hello"*
+        The function will be called as:
+        ```python
+        get_greeting_response(user_id=1)
+        ```
+        The function returns a question asking about the actions to be done considering past tool usage
+        """,
+        args_schema=GreetingResponseArgs,
+        coroutine=get_greeting_response
+    ),
+    StructuredTool(
+        name="get_bank_rates",
+        func=get_bank_rates,
+        description="""Retrieve details aboutbank rates. 
+        **Parameters:**
+        - `user_id` (int): Unique identifier of the user.
+        
+        **Usage Example:**
+        If a user asks: *"what are the rates available?"*
+        The function will be called as:
+        ```python
+        get_bank_rates(user_id=1)
+        ```
+        The function returns the rates of each bank and each different accounts
+        """,
+        args_schema=BankRatesArgs,
+        coroutine=get_bank_rates
     )
 ]
 
@@ -264,7 +306,10 @@ You can use multiple tools for complex requests. Follow this pattern:
 2. Identify required tools
 3. extract parameters if needed.
 4. Use tools sequentially
-5. Combine results for final answer"""
+5. Combine results for final answer
+6. if user does not provide enough information for tool parameters, ask for it.
+7. some tools may return amounts as @amount1, @amount2,@summay_income_amount_1,@summay_expense_amount_2,@summay_balance_amount_2 etc. use these in responses, never mind it is not a numarical value. just use it as if it is a number.
+"""
 
 prompt = ChatPromptTemplate.from_messages([
     ("system", SYSTEM_PROMPT),
@@ -286,6 +331,7 @@ async def get_chat_summary(user_id: int) -> str:
         await collection_chatbot.insert_one(new_user.dict())
         print("new user added")
         return ""
+    print("user_data:",user_data)
     return user_data["chat_summary"]
 
 
@@ -317,16 +363,80 @@ def get_new_summary(query: str, chat_summary: str) -> str:
 
 
 
+# Function to log tool usage in MongoDB
+async def log_tool_usage(user_id: int, tool_name: str, query: str, response_output: str) -> None:
+    tool_usage = {
+        "tool_name": tool_name,  # Tool used
+        "timestamp": datetime.now(UTC),  # Current timestamp (timezone-aware)
+        "query": query,  # User's query
+        "response": response_output  # Response output
+    }
+
+    # Update the MongoDB document for the user, appending to the tool history array
+    await collection_chatbot.update_one(
+        {"user_id": int(user_id)},  # Match the user by their ID
+        {"$push": {"tool_history": tool_usage}}  # Push the tool usage to the history array
+    )
+
+
+# Function to extract the tool name from the logs
+def extract_tool_name_from_logs(logs: str) -> str:
+    # Search for the "Invoking: <tool_name>" pattern in the logs
+    for line in logs.splitlines():
+        if line.startswith("Invoking: `"):
+            # Extract the tool name from the line
+            tool_name = line.split("`")[1].split("`")[0]
+            return tool_name
+    return "Unknown Tool"
+
+
+
+
+
+
 async def get_chatbot_response(user_id: int, query: str) -> str:
     
-    about_user = await get_chat_summary(user_id)
+    # about_user = await get_chat_summary(user_id)
     
-    enriched_query = f"User profile: {about_user}\n\nQuery: {query}\n\nUser ID: {user_id}"
-    
+    # enriched_query = f"User profile: {about_user}\n\nQuery: {query}\n\nUser ID: {user_id}"
+    enriched_query = f"Query: {query}\n\nUser ID: {user_id}\n\n\nToday is {current_day} and the date is {current_date}"
+
+    print("enriched_query:",enriched_query)
     response = await agent_executor.ainvoke({
         "input": enriched_query
     })
+
+
+    try:
+        # Redirect stdout to capture the logs
+        output_buffer = io.StringIO()
+        with redirect_stdout(output_buffer):
+            # Invoke the agent executor with the enriched query
+            response = await agent_executor.ainvoke({
+                "input": enriched_query
+            })
+
+        # Get the captured logs
+        logs = output_buffer.getvalue()
+        print("Captured logs:", logs)
+
+        # Extract the tool name from the logs
+        tool_name = extract_tool_name_from_logs(logs)
+        print(f"Tool used from logs: {tool_name}")
+
+        # Log tool usage with MongoDB
+        await log_tool_usage(user_id, tool_name, query, response.get("output", "No output provided"))
+
+
+        # new_summary = get_new_summary(query, about_user)
+        # await update_chat_summary(user_id, new_summary)
+        return response["output"]
     
-    new_summary = get_new_summary(query, about_user)
-    await update_chat_summary(user_id, new_summary)
-    return response["output"]
+
+    except Exception as e:
+        print(f"Error in get_chatbot_response: {e}")
+        return "An error occurred while processing your request. Please try again later."
+
+
+    
+    

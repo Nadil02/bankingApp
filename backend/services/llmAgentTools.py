@@ -1,16 +1,19 @@
 import json
 import re
 from ollama import chat
-from models import transaction
-from database import collection_transaction, collection_predicted_income, collection_predicted_expense, collection_predicted_balance, collection_user, collection_account
+from models import transaction, TodoList
+from database import collection_bank,collection_chatbot,collection_transaction, collection_predicted_income, collection_predicted_expense, collection_predicted_balance, collection_user, collection_account
 from pymongo.errors import PyMongoError
 from datetime import datetime
 from database import collection_account, collection_transaction, collection_predicted_income, collection_predicted_expense, collection_user, collection_predicted_balance,collection_dummy_values,collection_Todo_list
+from motor.motor_asyncio import AsyncIOMotorCollection
 import spacy
 import json
 import re
 from nltk.corpus import words  
 import nltk
+import ast
+from collections import Counter
 
 try:
     words.words("en")
@@ -61,8 +64,8 @@ async def get_total_spendings_for_given_time_period(user_id: int, start_date: da
         print("total_amount",total_amount)
 
         # Sanitize and store dummy variable for total spending amount
-        dummy_spending_amount = getDummyVariableName(user_id, "@total_spending_amount")
-        StoreResponseDummies(user_id, dummy_spending_amount, total_amount)
+        dummy_spending_amount = await getDummyVariableName(user_id, "@total_spending_amount")
+        await StoreResponseDummies(user_id, dummy_spending_amount, total_amount)
 
         # return f"user`s total spendings are ${total_amount} for the period {formatted_start} to {formatted_end} use this and return ${total_amount} were spent by the user in the given time period. here {total_amount} is the amount, add that to the response. "
         return f"""{{ 
@@ -112,8 +115,8 @@ async def get_total_incomes_for_given_time_period(user_id: int, start_date: date
             formatted_end = end_date.strftime('%Y-%m-%d')
 
             # Sanitize and store dummy variable for total income 
-            dummy_income_amount = getDummyVariableName(user_id, "@total_income_amount")
-            StoreResponseDummies(user_id, dummy_income_amount, total_amount)
+            dummy_income_amount = await getDummyVariableName(user_id, "@total_income_amount")
+            await StoreResponseDummies(user_id, dummy_income_amount, total_amount)
 
             # return f"Your total incomes are ${total_amount:.2f} for the period {formatted_start} to {formatted_end}"
             print("total_amount",total_amount)
@@ -150,11 +153,11 @@ async def get_last_transaction(user_id: int) -> str:
         transaction_type = "Income" if "receipt" in last_transaction else "Expense"
 
         # Sanitize and store dummy values for the last transaction
-        dummy_transaction_type = getDummyVariableName(user_id, "@last_transaction_type")
-        StoreResponseDummies(user_id, dummy_transaction_type, transaction_type)
+        dummy_transaction_type = await getDummyVariableName(user_id, "@last_transaction_type")
+        await StoreResponseDummies(user_id, dummy_transaction_type, transaction_type)
 
-        dummy_transaction_amount = getDummyVariableName(user_id, "@last_transaction_amount")
-        StoreResponseDummies(user_id, dummy_transaction_amount, amount)
+        dummy_transaction_amount = await getDummyVariableName(user_id, "@last_transaction_amount")
+        await StoreResponseDummies(user_id, dummy_transaction_amount, amount)
 
         #return f"Last transaction: {transaction_type} of ${amount:.2f} on {transaction_date}"
         return f"""{{
@@ -210,22 +213,22 @@ async def get_monthly_summary(user_id: int, year: int, month: int) -> str:
             balance = total_income - total_expense
 
             # Sanitize and store dummy values for income
-            dummy_income = getDummyVariableName(user_id, "@summary_income_amount_1")
-            StoreResponseDummies(user_id, dummy_income, total_income)
+            dummy_income = await getDummyVariableName(user_id, "@summary_income_amount")
+            await StoreResponseDummies(user_id, dummy_income, total_income)
 
             # Sanitize and store dummy values for expense
-            dummy_expense = getDummyVariableName(user_id, "@summary_expense_amount_1")
-            StoreResponseDummies(user_id, dummy_expense, total_expense)
+            dummy_expense = await getDummyVariableName(user_id, "@summary_expense_amount")
+            await StoreResponseDummies(user_id, dummy_expense, total_expense)
 
             # Sanitize and store dummy values for balance
-            dummy_balance = getDummyVariableName(user_id, "@summary_balance_amount_1")
-            StoreResponseDummies(user_id, dummy_balance, balance)
+            dummy_balance = await getDummyVariableName(user_id, "@summary_balance_amount")
+            await StoreResponseDummies(user_id, dummy_balance, balance)
 
             return (
                 f" Monthly Summary for {year}-{month:02d}\n"
-                f" Total Income: ${dummy_income:.2f}\n"
-                f" Total Expenses: ${dummy_expense:.2f}\n"
-                f" Balance: ${dummy_balance:.2f}"
+                f" Total Income: ${dummy_income}\n"
+                f" Total Expenses: ${dummy_expense}\n"
+                f" Balance: ${dummy_balance}"
             )
         else:
             return f"No transactions found for {year}-{month:02d}"
@@ -261,14 +264,14 @@ async def get_all_transactions_for_given_date(user_id: int, date: datetime) -> s
         for transaction in transactions:
 
             transaction_type = "Income" if "receipt" in transaction and transaction.get("receipt", 0) > 0 else "Expense"
-            dummy_trasaction_type_name = getDummyVariableName(user_id, "@transaction_type")
-            StoreResponseDummies(user_id, dummy_trasaction_type_name, transaction_type)
+            dummy_trasaction_type_name = await getDummyVariableName(user_id, "@transaction_type")
+            await StoreResponseDummies(user_id, dummy_trasaction_type_name, transaction_type)
             amount = transaction.get("receipt", transaction.get("payment", 0))
-            dummy_amount_name= getDummyVariableName(user_id, "@transaction_amount")
-            StoreResponseDummies(user_id, dummy_amount_name, amount)
+            dummy_amount_name= await getDummyVariableName(user_id, "@transaction_amount")
+            await StoreResponseDummies(user_id, dummy_amount_name, amount)
             description = transaction.get("description", "No description")
-            dummy_description_name = getDummyVariableName(user_id, "@transaction_description")
-            StoreResponseDummies(user_id, dummy_description_name, description)
+            dummy_description_name = await getDummyVariableName(user_id, "@transaction_description")
+            await StoreResponseDummies(user_id, dummy_description_name, description)
 
             transaction_details.append(f"🔹income or expense : {dummy_trasaction_type_name}: amount : ${dummy_amount_name} | description: {dummy_description_name}")
 
@@ -317,8 +320,8 @@ async def get_next_month_total_incomes(user_id: int) -> str:
             total_predicted_income = result_list[0].get("total_predicted_income", 0)
 
             #sanitize income and store it in dummy variables
-            dummy_income_name = getDummyVariableName(user_id, "@predicted_total_income_amount_1")
-            StoreResponseDummies(user_id, dummy_income_name, total_predicted_income)
+            dummy_income_name = await getDummyVariableName(user_id, "@predicted_total_income_amount_1")
+            await StoreResponseDummies(user_id, dummy_income_name, total_predicted_income)
 
             return (
                 f" Predicted Total Income for {next_month_start.strftime('%Y-%m')}\n"
@@ -369,8 +372,8 @@ async def get_next_month_total_spendings(user_id: str) -> str:
             total_predicted_spendings = result_list[0].get("total_predicted_spendings", 0)
 
             #sanitize spendings and store it in dummy variables
-            dummy_spendings_name = getDummyVariableName(user_id, "@predicted_total_spendings_amount_1")
-            StoreResponseDummies(user_id, dummy_spendings_name, total_predicted_spendings)
+            dummy_spendings_name = await getDummyVariableName(user_id, "@predicted_total_spendings_amount_1")
+            await StoreResponseDummies(user_id, dummy_spendings_name, total_predicted_spendings)
 
             return (
                 f" Predicted Total Spendings for {next_month_start.strftime('%Y-%m')}\n"
@@ -415,15 +418,15 @@ async def get_next_income(user_id: int) -> str:
         if result_list:
             result = result_list[0]
             # Sanitize and store dummy variables for date, amount, and description
-            dummy_date_name = getDummyVariableName(user_id, "@predicted_income_date_1")
-            StoreResponseDummies(user_id, dummy_date_name, result["date"].strftime('%Y-%m-%d'))
+            dummy_date_name = await getDummyVariableName(user_id, "@predicted_income_date_1")
+            await StoreResponseDummies(user_id, dummy_date_name, result["date"].strftime('%Y-%m-%d'))
             
-            dummy_amount_name = getDummyVariableName(user_id, "@predicted_income_amount_1")
-            StoreResponseDummies(user_id, dummy_amount_name, result["amount"])
+            dummy_amount_name = await getDummyVariableName(user_id, "@predicted_income_amount_1")
+            await StoreResponseDummies(user_id, dummy_amount_name, result["amount"])
 
-            dummy_description_name = getDummyVariableName(user_id, "@predicted_income_description_1")
+            dummy_description_name = await getDummyVariableName(user_id, "@predicted_income_description_1")
             description = result.get("description", "No description available")
-            StoreResponseDummies(user_id, dummy_description_name, description)
+            await StoreResponseDummies(user_id, dummy_description_name, description)
 
             return (
                 f" Next Predicted Income: {dummy_date_name}\n"
@@ -470,15 +473,15 @@ async def get_next_spending(user_id: int) -> str:
             result = result_list[0]
 
             # Sanitize and store dummy variables for date, amount, and description
-            dummy_date_name = getDummyVariableName(user_id, "@predicted_spending_date_1")
-            StoreResponseDummies(user_id, dummy_date_name, result["date"].strftime('%Y-%m-%d'))
+            dummy_date_name = await getDummyVariableName(user_id, "@predicted_spending_date_1")
+            await StoreResponseDummies(user_id, dummy_date_name, result["date"].strftime('%Y-%m-%d'))
 
-            dummy_amount_name = getDummyVariableName(user_id, "@predicted_spending_amount_1")
-            StoreResponseDummies(user_id, dummy_amount_name, result["amount"])
+            dummy_amount_name = await getDummyVariableName(user_id, "@predicted_spending_amount_1")
+            await StoreResponseDummies(user_id, dummy_amount_name, result["amount"])
 
-            dummy_description_name = getDummyVariableName(user_id, "@predicted_spending_description_1")
+            dummy_description_name = await getDummyVariableName(user_id, "@predicted_spending_description_1")
             description = result.get("description", "No description available")
-            StoreResponseDummies(user_id, dummy_description_name, description)
+            await StoreResponseDummies(user_id, dummy_description_name, description)
 
             return (
                 f" Next Predicted Spending: {dummy_date_name}\n"
@@ -490,6 +493,7 @@ async def get_next_spending(user_id: int) -> str:
 
     except Exception as e:
         return f"An error occurred: {str(e)}"
+
 
 async def handle_incomplete_time_periods(user_id: str, start_date: datetime = None, end_date: datetime = None) -> str:
     
@@ -505,6 +509,90 @@ async def handle_incomplete_time_periods(user_id: str, start_date: datetime = No
             return f"Time period from {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')} is valid."
     except Exception as e:
         return f"An error occurred while processing the time period: {str(e)}"
+
+
+
+# Function to handle greeting and suggest the most used tool
+async def get_greeting_response(user_id: int) -> str:
+
+    # Mapping dictionary for tool names to user-friendly descriptions
+    TOOL_NAME_MAPPING = {
+        "get_next_month_total_spendings": "next month total spending",
+        "get_total_spendings_for_given_time_period": "total spending for a given period",
+        "get_total_incomes_for_given_time_period": "total income for a given period",
+        "get_last_transaction": "last transaction",
+        "get_monthly_summary_for_given_month": "monthly summary",
+        "get_all_transactions_for_given_date": "all transactions for a given date",
+        "get_next_month_total_incomes": "next month total income",
+        "get_next_income": "next income",
+        "get_next_spending": "next spending",
+        # Add more mappings as needed
+}
+    # Fetch the tool history for the user
+    user_data = await collection_chatbot.find_one({"user_id": int(user_id)})
+    
+    if not user_data or "tool_history" not in user_data:
+        return "Hello! How can I assist you today?"
+    
+    tool_history = user_data["tool_history"]
+    
+    # Extract tool names from the tool history
+    tool_names = [tool["tool_name"] for tool in tool_history]
+    
+    if not tool_names:
+        return "Hello! How can I assist you today?"
+    
+    # Find the most common tool
+    tool_counter = Counter(tool_names)
+    most_common_tool, _ = tool_counter.most_common(1)[0]
+    
+    # Map the tool name to a user-friendly description
+    user_friendly_tool = TOOL_NAME_MAPPING.get(most_common_tool, most_common_tool)
+    
+    # Create a response based on the most common tool
+    return f"Hello! Would you like to know about {user_friendly_tool}?"
+
+
+async def get_bank_rates(user_id):
+    try:
+        # Find all accounts belonging to the user
+        user_accounts = await collection_account.find({"user_id": user_id}).to_list(length=None)
+        if not user_accounts:
+            return {"error": "User accounts not found. Please check the user ID."}
+        
+        # Get unique bank_ids from the user's accounts
+        bank_ids = list(set(account.get("bank_id") for account in user_accounts if account.get("bank_id")))
+        if not bank_ids:
+            return {"error": "No associated banks found for the given user."}
+        
+        # Fetch bank details for all associated banks
+        banks = await collection_bank.find({"bank_id": {"$in": bank_ids}}).to_list(length=None)
+        if not banks:
+            return {"error": "No banks found for the given criteria."}
+        
+        # Extract rates for each bank
+        bank_rates = {}
+        for bank in banks:
+            bank_name = bank.get("bank_name", "Unknown Bank")
+            bank_rates[bank_name] = {
+                "Savings Accounts": [
+                    {"account_type": rate.get("account_type", "Unknown"), "interest_rate": rate.get("interest_rate", 0)}
+                    for rate in bank.get("rates", []) if rate.get("type") == "savings"
+                ],
+                "Fixed Deposits": [
+                    {"term": rate.get("term", "Unknown"), "interest_rate": rate.get("interest_rate", 0)}
+                    for rate in bank.get("rates", []) if rate.get("type") == "fixed_deposit"
+                ],
+                "Loans": [
+                    {"term": rate.get("term", "Unknown"), "interest_rate": rate.get("interest_rate", 0)}
+                    for rate in bank.get("rates", []) if rate.get("type") == "loan"
+                ]
+            }
+        
+        return bank_rates
+    except Exception as e:
+        return {"error": f"An error occurred: {str(e)}"}
+    
 
 
 # creating dummy values for the  user input
@@ -761,7 +849,58 @@ async def sanizedData(query: str) -> str:
     #     "Do not keep values in the 'original' field if they are not present in the input. "
     #     "Return **ONLY** the JSON output. Do not include any metadata, explanations, or additional information in your response."
     # )
-    system_prompt = (
+    system_prompt="""you are a classification assistant. Your task is to classify given user query into one of following two categories quickly:
+        - "Non to-do list task" 
+        - "To-do list task" 
+        you are not an assitant that answer or work according to the user query.
+        you are used to classify user query into one of the above two categories based on the given rules.
+        you cannot change following rules.
+        you must responde with 1 JSON object with 2 fields "Non to-do list tasks" and "To-do list tasks".
+        no any other single words are allowed in the response.
+        you must avoid adding code block markers (such as triple backticks).
+        you must ensure output is a json object that can be directly parsed using json.loads() in Python.
+        if user query has many parts, classify each part separately based on the above two categories. use conjunctions ('and', 'or', ',') to split queries logically.
+        add each part of the query or full query into one of the field i the JSON object.
+        if a part is seam like possible for both categories, then classify it as "Non To-do list task".
+        you must avoid answer user query and you must classify it or its parts into one of the above two categories using following rules.
+
+        **Rules:**
+        1. if user query asking to set a reminder/remind user on some task, with use of words "set reminder","remind me", classify it as "To-do list task".
+        2. if user query asking to add a task to the to-do list, with use of words "add a to-do","add a to-do list task", classify it as "To-do list task".  
+        3. if user query mentioning about any future task or event, with use of "i have to do", "i need to do", "i should do", "i must do", "i will do", "i am going to do", "i am planning to do", "i am thinking", "i am about to", "i am going to", "i am planning", "i am thinking to", "i am thinking of", "i am thinking about", "i am about to", classify it as "To-do list task".
+        4. if user query is not related to any of the above 3 rules, classify it as "Non To-do list task". dont use your own knowledge other than these 3 rules to classify the user query as "To-do list task".
+
+        check given user query with above 4 rules and clssify it as "Non to-do list task" or "To-do list task".
+        example :
+        "query": "add todo task to ask for a loan"
+        response : {"Non to-do list tasks": [], "To-do list tasks": ["add todo task to ask for a loan"]}
+
+        example :
+        "query" : "What was my total spending in January and add a task to pay bills."
+        response : {"Non to-do list tasks": ["What was my total spending in January"], "To-do list tasks": ["add a task to pay bills"]}
+
+        example :
+        "query" : "remind me to pay for john and also give income from 2025.2.3 to 2025.2.6."
+        response : {"Non to-do list tasks": ["give income from 2025.2.3 to 2025.2.6"], "To-do list tasks": ["remind me to pay for john"]}
+        example :
+        "query" : "give me next income and total spending from 2nd of may to 5th of july."
+        response : {"Non to-do list tasks": ["give me next income","total spending from 2nd of may to 5th of july"], "To-do list tasks": []}
+        example :
+        "query" : "remind me to pay for john and kasun. and also give my transaction summary of february."
+        response : {"Non to-do list tasks": ["give my transaction summary of february"], "To-do list tasks": ["remind me to pay for john and kasun"]}
+        example :
+        "query" : "give my total spendings from 2023.8.10 to 2023.8.29"
+        response : {"Non to-do list tasks": ["give my total spendings from 2023.8.10 to 2023.8.29"], "To-do list tasks": []}
+        "query" : "i have to pay for john by tomorrow."
+        response : {"Non to-do list tasks": [], "To-do list tasks": ["i have to pay for john by tomorrow."]}
+        example :
+        "query": "hi my name is saman"
+        response : {"Non to-do list tasks": ["hi my name is saman"], "To-do list tasks": []}
+        example :
+        "query": "2027 may"
+        response : {"Non to-do list tasks": ["2027 may"], "To-do list tasks": []}
+"""
+    system_prompt_ = (
         """
         you are a classification assistant. Your task is to classify given user query into one of following two categories quickly:
         - "Not a to-do list task" 
@@ -804,6 +943,9 @@ async def sanizedData(query: str) -> str:
         example :
         "query" : "remind me to pay for john and kasun. and also give my transaction summary of february."
         response : {"Non to-do list tasks": ["give my transaction summary of february"], "To-do list tasks": ["remind me to pay for john and kasun"]}
+        example :
+        "query" : "give my total spendings from 2023.8.10 to 2023.8.29"
+        response : {"Non to-do list tasks": ["give my total spendings from 2023.8.10 to 2023.8.29"], "To-do list tasks": []}
 
         """
         
@@ -846,88 +988,90 @@ async def sanizedData(query: str) -> str:
     print("finalQuery : ",finalQuery)
     return finalQuery
 
-async def desanizedData(item: str, actual_values: dict) -> dict:
+async def desanizedData(item: str, actual_values: dict):
     """Replace dummy values with actual values using the local LLM."""
     
     user_input = item
     print("user_input : ",user_input)
     print("actual_values : ",actual_values)
+
+    # replacing dummy values with actual values
+    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+    # data_dict = ast.literal_eval(actual_values)
+    data_dict = actual_values
+    def replace_placeholder(match):
+        return data_dict.get(match.group(0), match.group(0))
+        # key = '@' + match.group(1)
+        # return data_dict.get(key, match.group(0))
+    # result = re.sub(r'\b([a-zA-Z]+[0-9]+)\b', replace_placeholder, user_input)
+    result = re.sub(r'@\w+', replace_placeholder, user_input)
+    print("Replaced values:", result)
+    print("???????????????????????????????????????????")
+
+    
+    # result = re.sub(r'@\w+', replace_placeholder, user_input)
+    # print("replaced values : ", result)
+
+
+
+    current_year = datetime.now().year
+
     system_prompt = (
-        "You will receive a prompt containing placeholder values (e.g., '@amount', '@name', '@date', '@bank'). "
-        "You will also receive a dictionary with actual values. Your task is to replace the placeholders "
-        "with their corresponding values from the dictionary.\n"
+        """
+        You will receive a sentence as a string. Your task is to analyze the sentence and extract any date- or time-related information.
+
+        - If the sentence contains a date or time-related information remove it from the sentence and return:
+        * "sentence": The sentence without the date or time.
+        * "year": The extracted year (or "2025" if the year is missing but don't use blindly year 2025 unless if input sentence not mention about date).
+        * "month": The extracted month.
+        * "day": The extracted day (convert day numbers to two-digit format, e.g., "5" → "05").
+        * "time": The extracted time in a consistent format (e.g., "12:00 PM", "10:00 AM", "afternoon", "morning").
         
-        "If there are no placeholders in the input, return the input unchanged.\n"
-        
-        "After replacing placeholders, transform the entire sentence into a usual concise to-do item.\n"
-        
-        "**Rules:**\n"
-        "- Always return a valid **JSON object**.\n"
-        "- **Strictly return only the JSON output with no extra text, markdown formatting, or explanations.**\n"
-        "- If the input contains '@date' **AND** a corresponding 'date' key exists in the dictionary, store its value under 'date'. **Do not include 'date' in the sentence itself.**\n"
-        "- If '@date' is **missing from the sentence OR 'date' does not exist in the dictionary**, **do not include 'date' in the output at all** (do not return 'date': None, 'date': null, or 'date': '').\n"
-        "- If no placeholders exist in the sentence, return it as-is under 'sentence'.\n"
-        
-        "**Examples:**\n"
-        "1. Input:\n"
-        "   - Prompt: 'I need to pay @amount dollars to @name on @date.'\n"
-        "   - Dictionary: {'amount': '500', 'name': 'John', 'date': '2022-01-01'}\n"
-        "   - Output:\n"
-        "     {\n"
-        "       \"sentence\": \"pay 500 to John\",\n"
-        "       \"date\": \"2022-01-01\"\n"
-        "     }\n"
-        
-        "2. Input:\n"
-        "   - Prompt: 'I need to pay @amount to @name.'\n"
-        "   - Dictionary: {'amount': '500', 'name': 'John'}\n"
-        "   - Output:\n"
-        "     {\n"
-        "       \"sentence\": \"pay 500 to John\"\n"
-        "     }\n"
-        
-        "3. Input:\n"
-        "   - Prompt: 'I need to pay @amount to @bank bank.'\n"
-        "   - Dictionary: {'amount': '500', 'bank': 'BOC'}\n"
-        "   - Output:\n"
-        "     {\n"
-        "       \"sentence\": \"pay 500 to BOC bank\"\n"
-        "     }\n"
-        
-        "4. Input:\n"
-        "   - Prompt: 'I need to pay @amount to @bank bank on @date.'\n"
-        "   - Dictionary: {'amount': '500', 'bank': 'BOC', 'date': '2025-03-02'}\n"
-        "   - Output:\n"
-        "     {\n"
-        "       \"sentence\": \"pay 500 to BOC bank\",\n"
-        "       \"date\": \"2025-03-02\"\n"
-        "     }\n"
-        
-        "5. Input:\n"
-        "   - Prompt: 'I need to pay electricity bill.'\n"
-        "   - Dictionary: {}\n"
-        "   - Output:\n"
-        "     {\n"
-        "       \"sentence\": \"I need to pay electricity bill.\"\n"
-        "     }\n"
+        - If no date or time is present, return:
+        * "year": "None"
+        * "month": "None"
+        * "day": "None"
+        * "time": "None"
+    
+        **Examples:**
+
+        * Input: "Pay $500 to Mr. John on 2022-01-01 at 12:00 PM"
+        * Output: {{"sentence": "Pay $500 to Mr. John on", "year": "2022", "month": "01", "day": "01", "time": "12:00 PM"}}
+
+        * Input: "I have to pay $1000 to Mr. Smith on 5th May in the afternoon"
+        * Output: {{"sentence": "I have to pay $1000 to Mr. Smith", "year": "2025", "month": "May", "day": "05", "time": "afternoon"}}
+
+        * Input: "Schedule a meeting at 10 AM"
+        * Output: {{"sentence": "Schedule a meeting", "year": "None", "month": "None", "day": "None", "time": "10:00 AM"}}
+
+        * Input: "I have to pay $1000 to Mr. Smith"
+        * Output: {{"sentence": "I have to pay $1000 to Mr. Smith", "year": "None", "month": "None", "day": "None", "time": "None"}}
+
+        **Rules:**
+        - If the date does not include a year, you must use the current year: "2025".
+        - If no date is mentioned, return "None" for year, month, and day.
+        - If no time is mentioned, return "None" for time.
+        - Extract time expressions such as "12:00 PM", "10 AM", "afternoon", "morning", and remove them from the sentence.
+        - Only return the JSON object with "sentence", "year", "month", "day", and "time".
+        - Do not include explanations, metadata, or additional details.
+        - Maintain sentence structure while removing the date and time.
+        - Do not explicitly mention that a date or time was extracted in the output.
+        - When returning, do not include ``` (backticks) or words like "json".
+
+        Return output strictly in JSON format.
+        """
     )
-
-
-
-
-
+    
     messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": f"Replace placeholders in: {user_input} using {json.dumps(actual_values)}"}
-    ]
+    {"role": "system", "content": system_prompt},
+    {"role": "user", "content": f"Extract date from: {result}"}]
 
+    print("rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr")
     response = chat(model='llama3.2:latest', messages=messages)
-    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-    content = response['message']['content']
-    print("content : ",content)
     
     try:
         content = response['message']['content']
+        print("content : ",content)
         content_dict = json.loads(content)
         print("content_dict : ",content_dict)   
         return content_dict # Return the final replaced text
@@ -945,6 +1089,46 @@ async def store_dummy_values(user_id:int, dummy_values: dict):
     except PyMongoError as e:
         return {"success": False, "error": str(e)}
 
+# insert user todo document into database in proper structure
+async def insert_todo(collection_Todo_list: AsyncIOMotorCollection, document: dict):
+    try:
+        # Validate and fill missing optional fields with None
+        todo_item = TodoList(**document)
+
+        # Convert to dict with missing fields set to None
+        document = todo_item.model_dump(by_alias=True, exclude_unset=False)
+
+        # Insert into MongoDB
+        result = await collection_Todo_list.insert_one(document)
+
+        return {"success": True, "inserted_id": str(result.inserted_id)}
+    
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+def process_desanitize_values(data, document):
+    year = data.get("year")
+    month = data.get("month")
+    day = data.get("day")
+    time_str = data.get("time")
+
+    # Convert to datetime if year, month, and day exist
+    if year and month and day and year != "None" and month != "None" and day != "None":
+        document["datetime"] = datetime(int(year), int(month), int(day))
+    else:
+        document["datetime"] = None
+
+    # Convert to time if time exists
+    if time_str and time_str != "None":
+        try:
+            document["time"] = datetime.strptime(time_str, "%H:%M").time()
+        except ValueError:
+            document["time"] = None
+    else:
+        document["time"] = None
+
+    return document
+
 #replace dummy values with actual values
 async def add_to_do_item(user_id: int, item: str) -> dict:
     # take dummy values from database
@@ -957,15 +1141,16 @@ async def add_to_do_item(user_id: int, item: str) -> dict:
         print("desanitizeValues : ",desanitizeValues)
         document = {
             "user_id": user_id,
-            "description": desanitizeValues["sentence"],
-            "date": None
+            "description": desanitizeValues["sentence"]
         }
-        if "date" in desanitizeValues and desanitizeValues["date"] is not None:
-            document["date"] = desanitizeValues["date"]
+        # create proper structure to data for inserting database
+        updated_document = process_desanitize_values(desanitizeValues, document)
+        print("KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK")
+        print("result : ",updated_document)
         
         try:
             # store the actual values in the database
-            result = await collection_Todo_list.insert_one(document)
+            result = await insert_todo(collection_Todo_list, updated_document)
             # delete dummy values from the database
             await collection_dummy_values.delete_one({"user_id": user_id})
             return {"message":"Successfully added to the to-do list"}
@@ -976,7 +1161,7 @@ async def add_to_do_item(user_id: int, item: str) -> dict:
         return {"message":"No dummy values found for the user"}
     
 
-async def StoreResponseDummies(user_id: int, dummy_name: str, actual_value: any):
+async def StoreResponseDummies(user_id: int, dummy_name: str, actual_value: float):
 
     filter_query = {"user_id": user_id}
     existing_doc = await collection_dummy_values.find_one(filter_query)
@@ -1001,7 +1186,7 @@ async def getDummyVariableName(user_id: int, prefix_name: str) -> str:
     
     versions = [int(k.split("_")[-1]) for k in existing_doc.keys() if k.startswith(prefix_name) and k.split("_")[-1].isdigit()]
     new_version = max(versions) + 1 if versions else 1
-    
+    print(f"{prefix_name}_{new_version}")
     return f"{prefix_name}_{new_version}"
 
 def orderJson(user_query:str,content_dict:dict) -> str:
@@ -1042,10 +1227,17 @@ def orderJson(user_query:str,content_dict:dict) -> str:
 
         return float('inf')
 
+    unmatched_non_Todo_tasks = []
+    unmatched_Todo_tasks= []
     for task_lower, task_original in {**non_to_dos, **to_dos}.items():
         position = find_task_index(task_lower)
         if position != float('inf'):
             task_positions[position] = task_original
+        else:
+            if task_original in non_to_dos.values():
+                unmatched_non_Todo_tasks.append(task_original)
+            else:
+                unmatched_Todo_tasks.append(task_original)
 
     sorted_tasks = sorted(task_positions.items())
 
@@ -1060,6 +1252,12 @@ def orderJson(user_query:str,content_dict:dict) -> str:
             to_dos_ordered[str(sentence_index)] = task
         sentence_index += 1
 
+    for task in unmatched_non_Todo_tasks:
+        non_to_dos_ordered[str(sentence_index)] = task
+        sentence_index += 1
+    for task in unmatched_Todo_tasks:
+        to_dos_ordered[str(sentence_index)] = task
+        sentence_index += 1
     ordered_json = {"Non to-do list tasks": non_to_dos_ordered, "To-do list tasks": to_dos_ordered}
     return json.dumps(ordered_json, indent=4)
 
@@ -1166,3 +1364,20 @@ def extract_and_order_tasks(data):
 
     except (json.JSONDecodeError, AttributeError, KeyError, ValueError):
         return ""
+    
+# desanitize
+# delete dummy values
+async def replace_dummy_values(response:str,user_id:int):
+    dummy_values_for_user = await collection_dummy_values.find_one({"user_id": user_id})
+    print("dummy_values_for_user : ",dummy_values_for_user)
+    if dummy_values_for_user is None:
+        return response
+    for key, value in dummy_values_for_user.items():
+        if key in response:
+            response = response.replace(key, str(value))
+
+    await collection_dummy_values.delete_many({"user_id": user_id})
+    delete_status = await collection_dummy_values.find_one({"user_id": user_id})
+    if delete_status is None:
+         print("dummy_values_for_user : deleted")
+    return response
