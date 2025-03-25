@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta,timezone
-from database import collection_transaction, collection_transaction_category, collection_predicted_balance, collection_predicted_expense, collection_predicted_income,collection_account,collection_credit_periods,collection_goal
+from database import collection_transaction, collection_transaction_category, collection_predicted_balance, collection_predicted_expense, collection_predicted_income,collection_account,collection_credit_periods,collection_goal, collection_bank
 from typing import Tuple
 from schemas.dashboard import SpendingCategory, ResponseSchema, CreditCardResponse, CategorySpending, Summary
 from typing import List, Dict,Union,Optional,Any
@@ -20,8 +20,14 @@ def account_list(account_id: Union[int, List[int]]):
 async def all_accounts(user_id:int):
     items = await collection_account.find(
         {"user_id":user_id},
-        {"account_number":1, "account_type":1, "balance":1,"bank_account":1, "account_id":1}).to_list(length=100)
+        {"account_number":1, "account_type":1, "balance":1,"bank_account":1, "account_id":1, "bank_id":1}).to_list(length=100)
     account_list = [serialize_document(item) for item in items]
+    bank_ids = []
+    for item in account_list:
+        bank_ids.append(item["bank_id"])
+    bank_name = await collection_bank.find({"bank_id":{"$in":bank_ids}},{"_id":0, "bank_name":1}).to_list(length=100)
+    for i,item in enumerate(account_list):
+        item.update({"bank_account":bank_name[i]["bank_name"]})
     account_ids = [item.get("account_id") for item in account_list]
     return account_ids, account_list
 
