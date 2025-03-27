@@ -265,7 +265,7 @@ tools = [
     StructuredTool(
         name="get_greeting_response",
         func=get_greeting_response,
-        description="""Answer queries with greetings like hello, hii, hay, good morning, good night, good evening, good afternoon. If greetings were used , use this tool. 
+        description=""" Retreive a question to ask at the start of a conversation based on most frequently asked questions. 
         **Parameters:**
         - `user_id` (int): Unique identifier of the user.
         
@@ -309,6 +309,7 @@ You can use multiple tools for complex requests. Follow this pattern:
 5. Combine results for final answer
 6. if user does not provide enough information for tool parameters, ask for it.
 7. some tools may return amounts as @amount1, @amount2,@summay_income_amount_1,@summay_expense_amount_2,@summay_balance_amount_2 etc. use these in responses, never mind it is not a numarical value. just use it as if it is a number.
+8. use get_greeting_response tool to get a question to ask at the start of a conversation. you can use that tool when user start a conversation with a greeting message, when you ask user whether further assit want or not. this tool returns a question to ask based on most frequently asked questions.
 """
 
 prompt = ChatPromptTemplate.from_messages([
