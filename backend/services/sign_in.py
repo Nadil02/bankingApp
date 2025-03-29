@@ -2,7 +2,7 @@ from schemas.sign_in import OtpResendRequest, OtpResendResponse, SignInRequest, 
 from database import collection_user,collection_OTP
 from models import OTP,user
 from utils.OTP import send_sms
-from utils.encrypt_and_decrypt import encrypt, decrypt_user_data
+from utils.encrypt_and_decrypt import decrypt, encrypt, decrypt_user_data
 import random
 from argon2 import PasswordHasher
 import hashlib
@@ -12,11 +12,7 @@ import bcrypt
 ph = PasswordHasher()
 
 async def sign_in_validation(sign_in_request: SignInRequest) -> SignInResponse:
-
-    phone_number_if_exists = await collection_user.find_one({"phone_number": sign_in_request.phone_number})
-    if phone_number_if_exists:
-        return SignInResponse(otp_id=-1, status="error", message="phone number already exist.")
-    
+        
     nic_bytes = sign_in_request.nic.encode('utf-8')
     sha256_hash = hashlib.sha256()
     sha256_hash.update(nic_bytes)
