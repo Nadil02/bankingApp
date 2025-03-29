@@ -13,6 +13,17 @@ ph = PasswordHasher()
 
 async def sign_in_validation(sign_in_request: SignInRequest) -> SignInResponse:
 
+    phone_number_if_exists = await collection_user.find_one({"phone_number": sign_in_request.phone_number})
+    if phone_number_if_exists:
+        return SignInResponse(otp_id=-1, status="error", message="phone number already exist.")
+    
+    nic_bytes = SignInRequest.nic.encode('utf-8')
+    sha256_hash = hashlib.sha256()
+    sha256_hash.update(nic_bytes)
+    hashed_nic = sha256_hash.hexdigest()
+    nic_if_exists = await collection_user.find_one({"login_nic": hashed_nic})
+    if nic_if_exists:
+        return SignInResponse(otp_id=-1, status="error", message="NIC already exist.")
     last_otp =await collection_OTP.find_one(sort=[("otp_id", -1)])  #  last otpid 
     if last_otp and "otp_id" in last_otp:
         next_otp_id = last_otp["otp_id"] + 1

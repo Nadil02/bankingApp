@@ -2,6 +2,7 @@ from pydantic import BaseModel
 
 class SignInRequest(BaseModel):
     phone_number: str
+    nic: str
 
 class SignInResponse(BaseModel):
     otp_id: int
