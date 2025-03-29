@@ -259,7 +259,8 @@ async def load_full_details(user_id:int,start_date: Optional[str] = None,end_dat
     print("account_list", account_list)
     saving_account_ids = [account["account_id"] for account in account_list if account["account_type"] == "savings"]
     credit_card_ids = [account["account_id"] for account in account_list if account["account_type"] == "credit"]
-
+    #get total balance of saving accounts
+    total_balance = sum(account["balance"] for account in account_list if account["account_type"] == "savings")
     # if date is string convert it into datetime (if user provide date)
     if isinstance(start_date, str):
         start_date = datetime.strptime(start_date, "%Y-%m-%d")
@@ -278,6 +279,7 @@ async def load_full_details(user_id:int,start_date: Optional[str] = None,end_dat
 
         return ResponseSchema(
             accounts_list=account_list,
+            total_savings_accounts_balance=total_balance,
             financial_summary=financial_summery,
             category_spending=spending_category,
             past_100_days_transactions=past_transaction_100_days,

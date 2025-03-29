@@ -90,6 +90,7 @@ class Date(BaseModel):
 
 class ResponseSchema(BaseModel):
     accounts_list: List[Account]
+    total_savings_accounts_balance: float
     financial_summary: Summary
     category_spending: List[CategorySpending]
     past_100_days_transactions: Dict[str, List[Dict[str, Any]]]
