@@ -57,12 +57,15 @@ async def fetch_top_spending_categories(account_ids:list, start_date:datetime, e
     {"category_name": category_map.get(item["_id"], "Unknown"), "total_spent": item["total_spent"]}
     for item in category_result
     ]
-    for item in top_categories:
-        item.update({"category_precentage":(item["total_spent"]/top_categories_sum)*100})
+    
 
     # Add "Other" category if applicable
     if other_spent > 0 and (other_spent / total_expenses) < 0.3:
-        top_categories.append(SpendingCategory(category_name="Other", total_spent=other_spent))
+        # top_categories.append(SpendingCategory(category_name="Other", total_spent=other_spent).dict())
+        top_categories.append({"category_name":"Other", "total_spent":other_spent})
+
+    for item in top_categories:
+        item.update({"category_precentage":(item["total_spent"]/top_categories_sum)*100})
     print("KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK")
     print("top_categories",top_categories)
     
@@ -77,6 +80,9 @@ async def fetch_financial_summary(account_ids:list, start_date:datetime, end_dat
         {"$group": {"_id": None, "total_income": {"$sum": "$receipt"}, "total_expenses": {"$sum": "$payment"}}}
     
     ]
+    print("start date",start_date)
+    print("end date",end_date)
+    print("Pipeline:", pipeline)
     result = await collection_transaction.aggregate(pipeline).to_list(length=1)
     if not result:
         return {"total_income": 0.0, "total_expenses": 0.0, "total_savings": 0.0} # Default values
