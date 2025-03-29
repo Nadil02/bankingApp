@@ -2,9 +2,9 @@ import hashlib
 import random
 
 import bcrypt
-from bankingApp.backend.models import OTP
-from bankingApp.backend.utils.OTP import send_sms
-from bankingApp.backend.utils.encrypt_and_decrypt import decrypt
+from models import OTP
+from utils.OTP import send_sms
+from utils.encrypt_and_decrypt import decrypt
 from database import collection_user, collection_OTP
 from schemas.forgot_password import ForgotPasswordOtpRequestResponseSchema, ForgotPasswordOtpRequestSchema, ForgotPasswordOtpResendRequestSchema, ForgotPasswordOtpResendResponseSchema, ForgotPasswordRequestSchema, ForgotPasswordResponseSchema
 
