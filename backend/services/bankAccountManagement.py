@@ -93,17 +93,7 @@ async def otp_validation_account_add(otp_request: OtpRequestAccountAdding) -> Ot
     #update bank collection if not exist
     bank= await collection_bank.find_one({"bank_name":otp_request.bank_name})
     if not bank:
-        last_bankId =await collection_bank.find_one(sort=[("bank_id", -1)])
-        if last_bankId and "bank_id" in last_bankId:
-            bankId=last_bankId["bank_id"]+1
-        else:
-            bankId=1
-        bank_data = bank(
-            bank_name=otp_request.bank_name,
-            logo="",
-            bank_id=bankId
-        )
-        await collection_bank.insert_one(bank_data.dict(by_alias=True))  #convert bank model to dictionary
+        return OtpResponseAccountAdding(status="error", message="bank not found.") 
     else:
         bankId=bank["bank_id"]
 
@@ -112,7 +102,7 @@ async def otp_validation_account_add(otp_request: OtpRequestAccountAdding) -> Ot
     if last_account and "account_id" in last_account:
         next_account_id = last_account["account_id"] + 1
     else:
-        next_account_id = 1  #from 1 if no otp exist
+        next_account_id = 1  #from 1 if no account exist
 
     
     accountData = account(
