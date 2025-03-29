@@ -17,7 +17,7 @@ async def sign_in_validation(sign_in_request: SignInRequest) -> SignInResponse:
     if phone_number_if_exists:
         return SignInResponse(otp_id=-1, status="error", message="phone number already exist.")
     
-    nic_bytes = SignInRequest.nic.encode('utf-8')
+    nic_bytes = sign_in_request.nic.encode('utf-8')
     sha256_hash = hashlib.sha256()
     sha256_hash.update(nic_bytes)
     hashed_nic = sha256_hash.hexdigest()
