@@ -42,7 +42,7 @@ async def otp_validation(otp_request: OtpRequest) -> OtpResponse:
     
     otp_data = await collection_OTP.find_one({"otp_id": otp_request.otp_id, "otp": otp_request.otp})
     if not otp_data:
-        return OtpResponse(status="error", message="Invalid OTP.", user_id="")
+        return OtpResponse(status="error", message="Invalid OTP.", user_id=-1)
     
     last_user =await collection_user.find_one(sort=[("user_id", -1)])  #  last userid 
     if last_user and "user_id" in last_user:
@@ -79,7 +79,7 @@ async def otp_validation(otp_request: OtpRequest) -> OtpResponse:
 async def resend_otp_sign_in(otp_resend_request: OtpResendRequest):
     otp_data = await collection_OTP.find_one({"otp_id": otp_resend_request.otp_id})
     if not otp_data:
-        return OtpResendResponse(status="error", message="Invalid OTP ID.", otp_id="")
+        return OtpResendResponse(status="error", message="Invalid OTP ID.", otp_id=-1)
     last_otp =await collection_OTP.find_one(sort=[("otp_id", -1)])  #  last otpid 
     if last_otp and "otp_id" in last_otp:
         next_otp_id = last_otp["otp_id"] + 1
