@@ -86,6 +86,7 @@ async def fetch_financial_summary(account_ids:list, start_date:datetime, end_dat
     total_expenses = aggregated_data.get("total_expenses", 0.0)
     total_savings = max(total_income - total_expenses, 0.0)
     result = Summary(total_income=total_income, total_expenses=total_expenses, total_savings=total_savings)
+    result=result.dict()
     return result
 
 
@@ -216,7 +217,7 @@ async def update_second_header(account_id:Union[int, List[int]],start_date:Union
     financial_summery = await fetch_financial_summary(account_ids,start_date, end_date)
     print("financial_summery_type",type(financial_summery))
     print("MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM")
-    total_expenses = financial_summery.total_expenses
+    total_expenses = financial_summery["total_expenses"]
 
     print("total_expenses",total_expenses)
     print("total_expenses category " ,total_expenses)
@@ -239,7 +240,7 @@ async def fetch_most_spent_category_100_days(account_id: list, end_date: datetim
 
     category_result = await collection_transaction.aggregate(category_pipeline).to_list(length=1)
     if not category_result:
-        return ["No Data", 0.0]  # Return default if no transactions exist
+        return {"most_spending_category": "No Data", "most_spending_amount": 0.0}  # Return default if no transactions exist
 
     most_spent_category_id = category_result[0]["_id"]
     most_spent_amount = category_result[0]["total_spent"]
