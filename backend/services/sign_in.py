@@ -26,7 +26,7 @@ async def sign_in_validation(sign_in_request: SignInRequest) -> SignInResponse:
     else:
         next_otp_id = 1  #from 1 if no otp exist
 
-    # await storeAndSendOtp(next_otp_id, sign_in_request.phone_number)
+    await storeAndSendOtp(next_otp_id, sign_in_request.phone_number)
 
     return SignInResponse(otp_id=next_otp_id, status="success", message="otp sent successfully.")
 
