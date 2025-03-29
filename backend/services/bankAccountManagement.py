@@ -21,7 +21,14 @@ async def getBankAccountDetails(user_id: int) -> list[BankAccount]:
 
 # check if user exist in the database
 async def checkUserExist(user_id: int, nic: str) -> int:
-    result = await collection_user.find_one({"nic": nic})
+
+    nic_bytes = nic.encode('utf-8')
+    sha256_hash = hashlib.sha256()
+    sha256_hash.update(nic_bytes)
+    hashed_nic = sha256_hash.hexdigest() 
+
+    print("hashed_nic at checkUserExist-Bank account remove",hashed_nic)
+    result = await collection_user.find_one({"login_nic": hashed_nic})
     if result is not None:
         return 1
     else:
@@ -32,7 +39,8 @@ async def removeBankAccount(user_id: int, request: AccountRemove):
     # check if the user exist in the database
     if (await checkUserExist(user_id, request.NIC)) == 1:
         user_passcode = await collection_user.find_one({"user_id": user_id}, {"_id":0, "passcode": 1})
-        if user_passcode.get("passcode") == request.passcode:
+        #if user_passcode.get("passcode") == request.passcode:
+        if bcrypt.checkpw(request.passcode.encode('utf-8'), user_passcode.get("passcode").encode('utf-8')):
             # find user's bank account and delete it
             result = await collection_account.delete_one({"user_id": user_id, "account_number": request.account_number})
             if result.deleted_count == 0:
