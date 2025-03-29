@@ -2,6 +2,8 @@ from pydantic import BaseModel,Field
 from typing import Optional
 from datetime import datetime
 from uuid import uuid4
+from typing import List, Dict, Any
+
 
  
 class user(BaseModel):
@@ -29,6 +31,8 @@ class bank(BaseModel):
     bank_name: str
     logo: str
     bank_id: str =Field(default_factory=lambda: str(uuid4()), alias="_id")
+    #rates as array of dictionaries
+    rates: List[dict] = []  # Assuming you want to store multiple rates
 
 
 class OTP(BaseModel):
