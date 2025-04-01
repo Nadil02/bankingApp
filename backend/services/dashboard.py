@@ -430,7 +430,12 @@ async def fetch_most_spent_categories(account_id: int, total_expenses: float,tim
     spending_category = await fetch_top_spending_categories(account_ids, start_date, end_date, total_expenses)
     print("spent_category : ",spending_category)
     
-    return CategorySpending(category_name=spending_category[0]["category_name"], total_spent=spending_category[0]["total_spent"]) 
+    if not spending_category:
+        return CategorySpending(category_name="No Data", total_spent=0.0, category_precentage=0.0)
+
+    category_precentage = (spending_category[0]["total_spent"] / total_expenses) * 100 if total_expenses > 0 else 0.0
+
+    return CategorySpending(category_name=spending_category[0]["category_name"], total_spent=spending_category[0]["total_spent"],category_precentage=category_precentage) 
 
 #current period data
 async def fetch_current_period_data(account_id:int):
