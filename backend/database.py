@@ -28,4 +28,8 @@ collection_predicted_expense = db["predicted_expense"]
 collection_predicted_income = db["predicted_income"]
 collection_transaction = db["transaction"]
 collection_transaction_category = db["transaction_category"]
+<<<<<<< HEAD
 collection_credit_period = db["credit_periods"]
+=======
+collection_credit_periods = db["credit_periods"]
+>>>>>>> 02790653afd11c911a9a1e76215fff1632f21eea

@@ -119,3 +119,13 @@ class Goal(BaseModel):
 class ChatBot(BaseModel):
     user_id: int
     chat_summary: str
+
+
+class credit_periods(BaseModel):
+    acocunt_id: int
+    period_id: int
+    credit_limit: float
+    total_expenses: float
+    remaining_balance: float
+    start_date: datetime
+    end_date: datetime

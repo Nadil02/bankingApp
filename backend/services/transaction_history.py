@@ -1,5 +1,5 @@
-from database import collection_account, collection_transaction, collection_credit_period
-from schemas.transaction_history import Dashboard_response, Select_one_account_response
+from database import collection_account, collection_transaction, collection_credit_periods
+from schemas.transaction_history import Dashboard_response, Select_one_account_response, TimeFrameResponse
 from datetime import datetime
 
 async def load_all_accounts(user_id: int) -> dict:
@@ -108,7 +108,34 @@ async def format_document(result):
             "available_balance": round(txn["balance"], 2)})
     formatted_dict = {"transactions": formatted_transactions}
     return formatted_dict
-
-
-
     
+
+async def get_credit_card_timeframes(user_id: int, account_id: int) -> TimeFrameResponse:
+    pipeline = [
+        {"$match": {"account_id": account_id}},  # Filter by account_id
+        {
+            "$project": {  
+                "period_id": 1,
+                "start_date": 1,
+                "end_date": 1
+            }
+        }
+    ]
+    result = await collection_credit_periods.aggregate(pipeline).to_list(length=None)
+    current_period_id = result[-1]["period_id"]
+    available_past_time_frames = []
+    for item in result:
+        if item["period_id"] == current_period_id:
+            continue
+        available_past_time_frames.append({
+            "period_id": item["period_id"],
+            "start_date": item["start_date"].strftime("%Y-%m-%d"),
+            "end_date": item["end_date"].strftime("%Y-%m-%d")
+        })
+    current_time_frame = {
+        "period_id": current_period_id,
+        "start_date": result[-1]["start_date"].strftime("%Y-%m-%d"),
+        "end_date": result[-1]["end_date"].strftime("%Y-%m-%d")
+    }
+    return TimeFrameResponse(available_past_time_frames=available_past_time_frames, current_time_frame=current_time_frame)
+
