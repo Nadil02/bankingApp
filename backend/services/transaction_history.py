@@ -1,4 +1,4 @@
-from database import collection_account, collection_transaction
+from database import collection_account, collection_transaction, collection_credit_period
 from schemas.transaction_history import Dashboard_response, Select_one_account_response
 from datetime import datetime
 
@@ -84,6 +84,17 @@ async def get_transactions_details(account_id: int, start_date: str, end_date: s
     
     result = await collection_transaction.aggregate(pipeline).to_list(None)
     print("result", result)
+    return await format_document(result)
+
+#when user select date and range for credit card
+async def get_transactions_credit_card_details(user_id:int, account_id: int, time_period:int):
+    result_1 = await collection_credit_period.find_one({"account_id": account_id,"period_id":time_period},{"_id":0, "start_date":1,"end_date":1})
+    start_date = result_1["start_date"]
+    end_date = result_1["end_date"]
+    result_2 = await collection_transaction.find({"account_id": account_id, "date": {"$gte": start_date, "$lte": end_date}}).to_list(length=None)
+    return await format_document(result_2)
+
+async def format_document(result):
     formatted_transactions = []
 
     for txn in result:  # Assuming `db_results` contains the raw database output
@@ -97,4 +108,7 @@ async def get_transactions_details(account_id: int, start_date: str, end_date: s
             "available_balance": round(txn["balance"], 2)})
     formatted_dict = {"transactions": formatted_transactions}
     return formatted_dict
+
+
+
     
