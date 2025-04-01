@@ -13,6 +13,7 @@ class user(BaseModel):
     passcode: str
     user_id: int 
     notification_status: bool
+    user_image: str
 
 
 class account(BaseModel):

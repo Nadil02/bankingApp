@@ -38,7 +38,7 @@ async def load_edit_profile(user_id: int) -> UserEditProfile:
         "lname" : user_details["last_name"],
         "phone_number" : user_details["phone_number"],
         "user_name" : user_details["first_name"] + "@" + user_details["last_name"],
-        "user_image": user_details["user_image"]
+        #"user_image": user_details["user_image"]
     }
     return user_info
 
