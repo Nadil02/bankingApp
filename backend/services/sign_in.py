@@ -64,6 +64,7 @@ async def otp_validation(otp_request: OtpRequest) -> OtpResponse:
     user_data = user(
         first_name=encrypt(otp_request.first_name),
         last_name=encrypt(otp_request.last_name),
+        username=encrypt(otp_request.first_name),
         NIC=encrypt(otp_request.nic),
         login_nic=hashed_nic,
         phone_number=encrypt(otp_request.phone_number),
