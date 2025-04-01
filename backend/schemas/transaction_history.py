@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import List, Optional
 from datetime import date
 
 class dashboard_request(BaseModel):
@@ -13,3 +13,11 @@ class Dashboard_response(BaseModel):
 
 class Select_one_account_response(BaseModel):
     max_value : Optional[float] = None
+
+class TimeFrame(BaseModel):
+    period_id: int
+    start_date: date
+    end_date: date  
+class TimeFrameResponse(BaseModel):
+    available_past_time_frames: List[TimeFrame]
+    current_time_frame: TimeFrame
