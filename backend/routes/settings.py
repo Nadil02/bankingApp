@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
-from schemas.settings import OtpRequestEditTphone, OtpResendRequestEditTphone, OtpResponseEditTphone, UserNotificationStatus, UserEditProfile, EditProfileResponse, UserEditProfileWithOTP
-from services.settings import get_user_notification_status, otp_validation_Tphone_edit, update_user_notification_status, load_edit_profile, update_new_details, send_sms, validate_otp
+from schemas.settings import OtpRequestEditTphone, OtpResendRequestEditTphone, OtpResponseEditTphone, UserNotificationStatus, UserEditProfile, EditProfileResponse
+from services.settings import get_user_notification_status, otp_validation_Tphone_edit, update_user_notification_status, load_edit_profile, update_new_details
 from schemas.sign_in import SignInRequest, OtpRequest, SignInResponse
 from fastapi.responses import JSONResponse
 

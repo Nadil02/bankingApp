@@ -1,8 +1,8 @@
 import random
 from typing import Optional
-from bankingApp.backend.models import OTP
-from bankingApp.backend.utils.encrypt_and_decrypt import decrypt, encrypt
-from schemas.settings import OtpRequestEditTphone, OtpResendRequestEditTphone, OtpResponseEditTphone, UserNotificationStatus, UserEditProfile, EditProfileResponse, UserEditProfileWithOTP
+from models import OTP
+from utils.encrypt_and_decrypt import decrypt, encrypt
+from schemas.settings import OtpRequestEditTphone, OtpResendRequestEditTphone, OtpResponseEditTphone, UserNotificationStatus, UserEditProfile, EditProfileResponse
 from schemas.sign_in import SignInRequest, OtpResponse, SignInResponse
 from database import collection_user, collection_OTP
 from utils.OTP import send_sms
