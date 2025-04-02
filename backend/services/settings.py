@@ -1,6 +1,8 @@
+import random
 from typing import Optional
+from bankingApp.backend.models import OTP
 from bankingApp.backend.utils.encrypt_and_decrypt import decrypt, encrypt
-from schemas.settings import UserNotificationStatus, UserEditProfile, EditProfileResponse, UserEditProfileWithOTP
+from schemas.settings import OtpRequestEditTphone, OtpResendRequestEditTphone, OtpResponseEditTphone, UserNotificationStatus, UserEditProfile, EditProfileResponse, UserEditProfileWithOTP
 from schemas.sign_in import SignInRequest, OtpResponse, SignInResponse
 from database import collection_user, collection_OTP
 from utils.OTP import send_sms
@@ -56,8 +58,58 @@ async def update_new_details(request: UserEditProfile) -> dict:
     user_tp_number=decrypt(user_saved_tp["phone_number"])
     if user_tp != user_tp_number:
         # send otp to the new number
-        pass
+        last_otp =await collection_OTP.find_one(sort=[("otp_id", -1)])  #  last otpid 
+        if last_otp and "otp_id" in last_otp:
+            next_otp_id = last_otp["otp_id"] + 1
+        else:
+            next_otp_id = 1  #from 1 if no otp exist
+
+        await storeAndSendOtp(next_otp_id, request.phone_number)
+        return EditProfileResponse(message="OTP sent to the new phone number")
     else:
         return EditProfileResponse(message="Profile updated successfully")
 
 
+def generate_otp():
+    return random.randint(10000, 99999)
+
+async def storeAndSendOtp(next_otp_id: int, phone_number: str):
+    otp=str(generate_otp())
+    otp_data = OTP(
+        otp=otp,
+        otp_id=next_otp_id,
+        # expiry_time="2025-03-02",
+        # verification_count=0 
+    )
+
+    await collection_OTP.insert_one(otp_data.dict(by_alias=True))  # Convert OTP model to dictionary
+    message="hi this is banking app. Your OTP for phone number change in is: "+otp
+    send_sms(phone_number, message=message)
+
+async def otp_validation_Tphone_edit(otp_request: OtpRequestEditTphone) -> OtpResponseEditTphone:
+        
+    otp_data = await collection_OTP.find_one({"otp_id": otp_request.otp_id, "otp": otp_request.otp})
+    if not otp_data:
+        return OtpResponseEditTphone(status="error", message="Invalid OTP.")
+    
+    new_phone_number = encrypt(otp_request.phone_number)
+    await collection_user.update_one(
+            {"user_id": otp_request.user_id},
+            {"$set": {"phone_number": new_phone_number}}
+        )
+    return OtpResponseEditTphone(status="success", message="Phone number updated successfully.")
+
+async def resend_otp_eidt_Tphone(otp_resend_request: OtpResendRequestEditTphone) -> OtpResponseEditTphone:
+    otp_data = await collection_OTP.find_one({"otp_id": otp_resend_request.otp_id})
+    if not otp_data:
+        return OtpResponseEditTphone(status="error", message="Invalid OTP ID.")
+    last_otp =await collection_OTP.find_one(sort=[("otp_id", -1)])  #  last otpid 
+    if last_otp and "otp_id" in last_otp:
+        next_otp_id = last_otp["otp_id"] + 1
+    else:
+        next_otp_id = 1
+    
+    user_phone_number = otp_resend_request.phone_number
+    await storeAndSendOtp(next_otp_id, user_phone_number)
+
+    return OtpResponseEditTphone(status="success", message="otp number resent successfully.")

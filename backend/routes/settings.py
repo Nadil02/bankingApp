@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
-from schemas.settings import UserNotificationStatus, UserEditProfile, EditProfileResponse, UserEditProfileWithOTP
-from services.settings import get_user_notification_status, update_user_notification_status, load_edit_profile, update_new_details, send_sms, validate_otp
+from schemas.settings import OtpRequestEditTphone, OtpResendRequestEditTphone, OtpResponseEditTphone, UserNotificationStatus, UserEditProfile, EditProfileResponse, UserEditProfileWithOTP
+from services.settings import get_user_notification_status, otp_validation_Tphone_edit, update_user_notification_status, load_edit_profile, update_new_details, send_sms, validate_otp
 from schemas.sign_in import SignInRequest, OtpRequest, SignInResponse
 from fastapi.responses import JSONResponse
 
@@ -35,6 +35,13 @@ async def get_edit_profile(user_id: int):
 async def update_edit_profile(request: UserEditProfile):
     return await update_new_details(request)
 
+@router.post("/edit_phone_number_otp", response_model=OtpResponseEditTphone)
+async def otp(otp_request: OtpRequestEditTphone):
+    return await otp_validation_Tphone_edit(otp_request)
+
+@router.post("/edit_phone_otp_resend", response_model=OtpResponseEditTphone)
+async def otp_resend(otp_resend_request: OtpResendRequestEditTphone):
+    return await resend_otp_eidt_Tphone(otp_resend_request)
 
 # what happend if your enter invalid otp multiple times
 # should otp send existing number or new number
