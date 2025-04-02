@@ -7,6 +7,8 @@ async def load_all_accounts(user_id: int) -> dict:
         {"user_id": user_id},
         {"_id": 0, "account_id": 1, "account_number": 1, "account_type": 1,"balance": 1}
     ).to_list(length=None)
+    if len(result) == 0:
+        return {"message": "No accounts found"}
     return {"accounts " : [Dashboard_response(**item) for item in result]}
 
 async def select_one_account(user_id: int, account_id: int) -> Select_one_account_response:
