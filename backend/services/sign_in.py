@@ -66,11 +66,11 @@ async def otp_validation(otp_request: OtpRequest) -> OtpResponse:
 
     salt=bcrypt.gensalt()
     hashed_passcode=bcrypt.hashpw(otp_request.passcode.encode('utf-8'),salt)
-    
+    first_name=encrypt(otp_request.first_name)
     user_data = user(
-        first_name=encrypt(otp_request.first_name),
+        first_name=first_name,
         last_name=encrypt(otp_request.last_name),
-        username=encrypt(otp_request.first_name),
+        username=first_name,
         NIC=encrypt(otp_request.nic),
         login_nic=hashed_nic,
         phone_number=encrypt(otp_request.phone_number),
@@ -78,6 +78,7 @@ async def otp_validation(otp_request: OtpRequest) -> OtpResponse:
         passcode=hashed_passcode.decode('utf-8'),
         user_id=next_user_id,
         notification_status=True,
+        user_image="default.png"
     )
 
     await collection_user.insert_one(user_data.dict(by_alias=True))  #convert user model to dictionary
