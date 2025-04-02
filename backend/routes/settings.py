@@ -35,15 +35,6 @@ async def get_edit_profile(user_id: int):
 async def update_edit_profile(request: UserEditProfile):
     return await update_new_details(request)
 
-# send otp route
-@router.post("/send_otp", response_model= SignInResponse)
-async def send_otp(p_n: SignInRequest):
-    return await send_sms(p_n)
-
-# validate otp
-@router.post("/validate_otp" , response_model=EditProfileResponse)
-async def check_otp(otp_data: UserEditProfileWithOTP):
-    return await validate_otp(otp_data)
 
 # what happend if your enter invalid otp multiple times
 # should otp send existing number or new number

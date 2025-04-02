@@ -7,21 +7,8 @@ class UserNotificationStatus(BaseModel):
 
 class UserEditProfile(BaseModel):
     user_id: int
-    fname: str
-    lname: str
     phone_number: str
     user_name: str
     user_image: str
-
-class UserEditProfileWithOTP(BaseModel):
-    otp_id: int
-    otp: str
-    user_id: int
-    fname: str
-    lname: str
-    phone_number: str
-    user_name: str
-
-
 class EditProfileResponse(BaseModel):
     message: str

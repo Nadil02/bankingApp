@@ -1,7 +1,7 @@
 from typing import Optional
+from bankingApp.backend.utils.encrypt_and_decrypt import decrypt, encrypt
 from schemas.settings import UserNotificationStatus, UserEditProfile, EditProfileResponse, UserEditProfileWithOTP
 from schemas.sign_in import SignInRequest, OtpResponse, SignInResponse
-from services.sign_in import sign_in_validation
 from database import collection_user, collection_OTP
 from utils.OTP import send_sms
 
@@ -43,36 +43,19 @@ async def load_edit_profile(user_id: int) -> UserEditProfile:
     return user_info
 
 async def update_new_details(request: UserEditProfile) -> dict:
+    userName=encrypt(request.user_name)
+    userImage=encrypt(request.user_image)
+    await collection_user.update_one(
+            {"user_id": request.user_id},
+            {"$set": {"username": userName, "user_image": userImage}}
+        )
     user_tp = request.phone_number
     user_saved_tp = await collection_user.find_one({"user_id": request.user_id},{"_id":0,"phone_number":1})
-    if user_tp != user_saved_tp["phone_number"]:
-        return EditProfileResponse(message="NeedOTP")
+    user_tp_number=decrypt(user_saved_tp["phone_number"])
+    if user_tp != user_tp_number:
+        # send otp to the new number
+        pass
     else:
-        #update user details
-        await collection_user.update_one(
-            {"user_id": request.user_id},
-            {"$set": {"first_name": request.fname, "last_name": request.lname}}
-        )
         return EditProfileResponse(message="Profile updated successfully")
 
-async def send_sms(p_n: SignInRequest) -> SignInResponse:
-    """Send an SMS using Notify.lk API."""
-    res = await sign_in_validation(p_n)
-    return res
-
-async def validate_otp(otp_request: UserEditProfileWithOTP):
-    # check otp existing in the database
-    otp_data = await collection_OTP.find_one({"otp_id": otp_request.otp_id, "otp": otp_request.otp})
-
-    #if not existing return error
-    if not otp_data:
-        return EditProfileResponse(message="Invalid OTP.")
-    
-    #if existing update the user details
-    await collection_user.update_one(
-        {"user_id": otp_request.user_id},
-        {"$set": {"first_name": otp_request.fname, "last_name": otp_request.lname, "phone_number": otp_request.phone_number}}
-    )
-
-    return EditProfileResponse(message="Profile updated successfully.")
 
