@@ -6,8 +6,8 @@ router = APIRouter(prefix="/transaction_history", tags=["Transaction History"])
 
 #load account list in transaction history page
 @router.get("/")
-async def load_transaction_history(account_id: int) -> dict:
-    return await load_all_accounts(account_id)
+async def load_transaction_history(user_id: int) -> dict:
+    return await load_all_accounts(user_id)
 
 #when user select account load it's details
 @router.get("/select_account")
