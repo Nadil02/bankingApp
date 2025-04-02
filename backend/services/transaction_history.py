@@ -14,7 +14,7 @@ async def select_one_account(user_id: int, account_id: int) -> Select_one_accoun
     pipeline = [
         {"$match": {"account_id": account_id}},  # Filter by account_id
         {
-            "$project": {  
+            "$project": { 
                 "max_transaction": { "$max": ["$payment", "$receipt"] }  # Find max between payment and receipt
             }
         },
@@ -88,7 +88,7 @@ async def get_transactions_details(account_id: int, start_date: str, end_date: s
 
 #when user select date and range for credit card
 async def get_transactions_credit_card_details(user_id:int, account_id: int, time_period:int):
-    result_1 = await collection_credit_period.find_one({"account_id": account_id,"period_id":time_period},{"_id":0, "start_date":1,"end_date":1})
+    result_1 = await collection_credit_periods.find_one({"account_id": account_id,"period_id":time_period},{"_id":0, "start_date":1,"end_date":1})
     start_date = result_1["start_date"]
     end_date = result_1["end_date"]
     result_2 = await collection_transaction.find({"account_id": account_id, "date": {"$gte": start_date, "$lte": end_date}}).to_list(length=None)
