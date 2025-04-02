@@ -7,12 +7,14 @@ from uuid import uuid4
 class user(BaseModel):
     first_name: str
     last_name: str
+    username: str
     NIC: str
     login_nic:str
     phone_number: str
     passcode: str
     user_id: int 
     notification_status: bool
+    user_image: str
 
 
 class account(BaseModel):
