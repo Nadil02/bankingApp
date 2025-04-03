@@ -1,11 +1,9 @@
 from fastapi import APIRouter, HTTPException
-from schemas.todo import TodoOngoing
-from services.todo import get_ongoing_todos_for_user
+from services.todo import get_todos_by_status, add_todo
 from typing import List
-from models import TodoList
-from services.todo import add_new_todo
-from fastapi import status
-from schemas.todo import MarkCompletedRequest, RemoveTaskRequest, ConfirmTaskDeletion, TaskSchema, ResponseMessage
+"""from models import TodoList
+from fastapi import status"""
+from schemas.todo import MarkCompletedRequest, RemoveTaskRequest, ConfirmTaskDeletion, TaskSchema, ResponseMessage, TodoCreate, TodoResponse, TodoListsResponse
 from services.todo import mark_task_completed, remove_task, check_task_existence, get_task_details, edit_task_details
 
 
@@ -15,20 +13,25 @@ router = APIRouter(
 )
 
 # GET endpoint to retrieve all ongoing todos for a particular user.
-@router.get("/ongoing/{user_id}", response_model=List[TodoOngoing])
-async def get_ongoing_todos(user_id: int):
-    todos = await get_ongoing_todos_for_user(user_id)
+@router.get("/TodoView", response_model=TodoListsResponse)
+async def view_todos(user_id: int):
+    todos = await get_todos_by_status(user_id)
     if todos:
         return todos
     raise HTTPException(status_code=404, detail="No ongoing todos found for this user")
 
 #add_new_todo
-@router.post("/add_todo/", response_model=TodoList, status_code=status.HTTP_201_CREATED)
+"""@router.post("/add_todo/", response_model=List[TodoAdd], status_code=status.HTTP_201_CREATED)
 async def add_todo_item(todo: TodoList):
     created = await add_new_todo(todo)
     if created:
         return created
-    raise HTTPException(status_code=400, detail="Failed to create todo item")
+    raise HTTPException(status_code=400, detail="Failed to create todo item")"""
+
+
+@router.post("/add_todos", response_model=TodoResponse)
+async def create_todo(todo: TodoCreate):
+    return await add_todo(todo)
 
 
 

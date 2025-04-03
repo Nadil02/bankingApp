@@ -1,14 +1,40 @@
 from pydantic import BaseModel, Field,validator 
-from datetime import datetime
+from datetime import datetime, date, time
 from typing import List, Optional
 
 # Response_model_for_returning_only_description_and_dates
-class TodoOngoing(BaseModel):
-    description: str 
-    amount: int
+class TodoView(BaseModel):
+    description: str
+    date: date
+    time: time
+    repeat_frequency: Optional[str]
+    amount: Optional[float]
+
+class TodoListsResponse(BaseModel):
+    ongoing: List[TodoView]
+    completed: List[TodoView]
+
+
+"""class TodoAdd(BaseModel):
+    description:str
+    user_id:str
+    date:str
+    time:str
     repeat_frequency: Optional[str] = None
-    date: datetime
-    time: datetime
+    amount: int"""
+
+
+class TodoCreate(BaseModel):
+    description: str
+    user_id: int
+    date: date  # Stores only the date part
+    time: time
+    repeat_frequency: Optional[str] = None
+    amount: Optional[float] = None
+    
+class TodoResponse(BaseModel):
+    message: str
+    todo_id: int
 
 
 class MarkCompletedRequest(BaseModel):
@@ -30,9 +56,10 @@ class ConfirmTaskDeletion(BaseModel):
 
 class TaskSchema(BaseModel):
     description: str
-    date: Optional[datetime] 
-    time: Optional[datetime] 
+    date: Optional[date] 
+    time: Optional[time] 
     repeat_frequency: Optional[str] = None
+    amount:int
 
 
     #class Config:
