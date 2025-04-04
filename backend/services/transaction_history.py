@@ -59,15 +59,18 @@ async def get_transactions_details(account_id: int, start_date: str, end_date: s
             }
         },
     ]
-
+    print("MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM")
+    print("value", value)   
     if value is not None:
         pipeline.append({
         "$match": {
             "$or": [
-                {"payment": {"$lte": value}}
+                {"payment": {"$eq": value}},
+                {"receipt": {"$eq": value}}
             ]
         }
         })
+
     else:
         pipeline.append({
         "$match": {
@@ -91,6 +94,8 @@ async def get_transactions_details(account_id: int, start_date: str, end_date: s
     
     result = await collection_transaction.aggregate(pipeline).to_list(None)
     print("result", result)
+    if not result:
+        return {"transactions": "No transaction available"}
     return await format_document(result)
 
 #when user select date and range for credit card
