@@ -413,25 +413,17 @@ async def fetch_most_spent_categories(account_id: int, total_expenses: float,tim
     
     account_data = await collection_account.find_one({"account_id": account_id})
     due_date = account_data["due_date"]
-    print(timeperiod)
+
     if timeperiod:
         period = await collection_credit_periods.find_one({"account_id": account_id, "period_id": timeperiod})
-        print(period)
-        print("hi")
+        
         period_id = period["period_id"]
         current_period_start_date = due_date - timedelta(days=30)
         start_date = current_period_start_date - timedelta(days=period_id * 30)
         end_date = start_date + timedelta(days=30)
-        start_date=period["start_date"]
-        end_date=period["end_date"]
     else:
-        last_period_id =await collection_credit_periods.find_one({"account_id": account_id}, sort=[("period_id", -1)])
-        period = await collection_credit_periods.find_one({"account_id": account_id, "period_id": last_period_id})
-        print(period)
         end_date = due_date
         start_date = end_date - timedelta(days=30)
-        start_date=period["start_date"]
-        end_date=period["end_date"]
 
     # call the fucntion of dashboard_new.py
     account_ids = [account_id]
@@ -692,7 +684,7 @@ async def graph_data(account_id: int) -> dict:
 
 # Handling Credit Card
 async def get_credit_summary(account_id: int,timeperiod:int | None=None):
-    print(timeperiod)
+
     if not timeperiod:
         credit_card_summery = await fetch_credit_financial_summary(account_id, timeperiod)
         top_categories=await fetch_most_spent_categories(account_id,credit_card_summery.total_expenses,timeperiod=None) 
@@ -704,5 +696,5 @@ async def get_credit_summary(account_id: int,timeperiod:int | None=None):
 
     else:
         credit_card_summery = await fetch_credit_financial_summary(account_id, timeperiod)
-        top_categories=await fetch_most_spent_categories(account_id,credit_card_summery["total_expenses"],timeperiod)
+        top_categories=await fetch_most_spent_categories(account_id,credit_card_summery["total_expenses"],timeperiod=None)
         return credit_card_summery,top_categories
