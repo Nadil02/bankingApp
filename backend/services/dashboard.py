@@ -696,7 +696,7 @@ async def get_credit_summary(account_id: int,timeperiod:int | None=None):
         top_categories=await fetch_most_spent_categories(account_id,credit_card_summery.total_expenses,timeperiod=None) 
         current_period_data=await fetch_current_period_data(account_id)
         insufficient_credit = await calculate_insufficient_credit(account_id)
-        sufficient_accounts=await check_surplus_accounts_for_creditcard(account_id,insufficient_credit["insufficient_credit"])
+        sufficient_accounts=await check_surplus_accounts_for_creditcard(account_id,insufficient_credit["insufficient_credit"])# for account suggestion
         pre_graph_data= await graph_data(account_id)
         return credit_card_summery, top_categories, current_period_data, insufficient_credit, sufficient_accounts, pre_graph_data
 
