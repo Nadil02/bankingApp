@@ -13,6 +13,7 @@ class Dashboard_response(BaseModel):
 
 class Select_one_account_response(BaseModel):
     max_value : Optional[float] = None
+    first_transaction_date: Optional[str] = None
 
 class TimeFrame(BaseModel):
     period_id: int

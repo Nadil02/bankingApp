@@ -17,22 +17,27 @@ async def select_one_account(user_id: int, account_id: int) -> Select_one_accoun
         {"$match": {"account_id": account_id}},  # Filter by account_id
         {
             "$project": { 
-                "max_transaction": { "$max": ["$payment", "$receipt"] }  # Find max between payment and receipt
+                "max_transaction": { "$max": ["$payment", "$receipt"] },  # Find max between payment and receipt
+                "transaction_date": "$date"
             }
         },
         {
             "$group": {
                 "_id": None,
-                "max_transaction_value": { "$max": "$max_transaction" }  # Find the max transaction
+                "max_transaction_value": { "$max": "$max_transaction" },  # Find the max transaction
+                "first_transaction_date": { "$min": "$transaction_date" }
             }
         }
     ]
     result = await collection_transaction.aggregate(pipeline).to_list(1)  # Get only one result
     max_value = result[0]["max_transaction_value"]
+    first_date = result[0]["first_transaction_date"].strftime("%Y-%m-%d")
     if result:
-        return Select_one_account_response(max_value=max_value)
+        return Select_one_account_response(max_value=max_value,
+            first_transaction_date=first_date)
     else:
-        return Select_one_account_response(max_value=None)
+        return Select_one_account_response(max_value=None,
+            first_transaction_date=None)
     
 
 async def get_transactions_details(account_id: int, start_date: str, end_date: str, range_start: float=None, range_end: float=None, value: float=None):
