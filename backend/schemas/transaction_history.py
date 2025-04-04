@@ -10,6 +10,7 @@ class Dashboard_response(BaseModel):
     account_number: int
     account_type: str
     balance: int
+    image_url: Optional[str] = None
 
 class Select_one_account_response(BaseModel):
     max_value : Optional[float] = None

@@ -1,15 +1,29 @@
-from database import collection_account, collection_transaction, collection_credit_periods
+from database import collection_account, collection_transaction, collection_credit_periods, collection_bank
 from schemas.transaction_history import Dashboard_response, Select_one_account_response, TimeFrameResponse
 from datetime import datetime
 
 async def load_all_accounts(user_id: int) -> dict:
-    result = await collection_account.find(
+    accounts = await collection_account.find(
         {"user_id": user_id},
-        {"_id": 0, "account_id": 1, "account_number": 1, "account_type": 1,"balance": 1}
+        {"_id": 0, "account_id": 1, "account_number": 1, "account_type": 1, "balance": 1, "bank_id": 1}
     ).to_list(length=None)
-    if len(result) == 0:
+
+    if len(accounts) == 0:
         return {"message": "No accounts found"}
-    return {"accounts " : [Dashboard_response(**item) for item in result]}
+
+    # Fetch bank details for each account
+    for account in accounts:
+        bank_id = account.get("bank_id")
+        if bank_id:
+            bank = await collection_bank.find_one(
+                {"bank_id": bank_id},
+                {"_id": 0, "logo": 1}
+            )
+            account["image_url"] = bank["logo"] if bank else None
+        else:
+            account["image_url"] = None
+
+    return {"accounts": [Dashboard_response(**account) for account in accounts]}
 
 async def select_one_account(user_id: int, account_id: int) -> Select_one_account_response:
 
