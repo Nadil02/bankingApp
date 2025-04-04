@@ -61,13 +61,15 @@ async def update_new_details(request: UserEditProfile) -> dict:
         last_otp =await collection_OTP.find_one(sort=[("otp_id", -1)])  #  last otpid 
         if last_otp and "otp_id" in last_otp:
             next_otp_id = last_otp["otp_id"] + 1
+            #make next_otp_it_int
+            next_otp_id = int(next_otp_id)
         else:
-            next_otp_id = 1  #from 1 if no otp exist
+            next_otp_id = int(1) #from 1 if no otp exist
 
         await storeAndSendOtp(next_otp_id, request.phone_number)
-        return EditProfileResponse(message="OTP sent to the new phone number")
+        return EditProfileResponse(message="OTP sent to the new phone number",otp_id=next_otp_id)
     else:
-        return EditProfileResponse(message="Profile updated successfully")
+        return EditProfileResponse(message="Profile updated successfully",otp_id=-1)
 
 
 def generate_otp():

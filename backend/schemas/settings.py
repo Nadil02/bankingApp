@@ -12,6 +12,7 @@ class UserEditProfile(BaseModel):
     user_image: str
 class EditProfileResponse(BaseModel):
     message: str
+    otp_id: int
 
 class OtpResponseEditTphone(BaseModel):
     status: str
