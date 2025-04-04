@@ -422,6 +422,12 @@ async def fetch_most_spent_categories(account_id: int, total_expenses: float,tim
         start_date = current_period_start_date - timedelta(days=period_id * 30)
         end_date = start_date + timedelta(days=30)
     else:
+        last_period_id =await collection_credit_periods.find_one({"account_id": account_id}, sort=[("period_id", -1)])
+        print("last_period_id",last_period_id)
+        period = await collection_credit_periods.find_one({"account_id": account_id, "period_id": last_period_id['period_id']})
+        if not period:
+            raise ValueError(f"No period data found for account_id: {account_id} and period_id: {last_period_id['period_id']}")
+        print(period)
         end_date = due_date
         start_date = end_date - timedelta(days=30)
 
