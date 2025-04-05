@@ -58,6 +58,7 @@ class Account(BaseModel):
     account_number: int
     account_type: str
     balance: float
+    bank_logo: str
 
 class Summary(BaseModel):
     total_income: float

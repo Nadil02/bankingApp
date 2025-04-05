@@ -22,12 +22,31 @@ async def all_accounts(user_id:int):
         {"user_id":user_id},
         {"account_number":1, "account_type":1, "balance":1,"bank_account":1, "account_id":1, "bank_id":1}).to_list(length=100)
     account_list = [serialize_document(item) for item in items]
-    bank_ids = []
+    print("account_list",account_list)
+    # bank_ids = []
+    # for item in account_list:
+    #     bank_ids.append(item["bank_id"])
+    # print("bank_ids",bank_ids)
+    # bank_name = await collection_bank.find({"bank_id":{"$in":bank_ids}},{"_id":0, "bank_name":1}).to_list(length=100)
+    # print("bank_name",bank_name)
+    # for i,item in enumerate(account_list):
+    #     item.update({"bank_account":bank_name[i]["bank_name"]})
+    bank_ids = [item["bank_id"] for item in account_list if "bank_id" in item]
+
+    # Fetch bank names
+    bank_name_data = await collection_bank.find(
+        {"bank_id": {"$in": bank_ids}},
+        {"_id": 0, "bank_id": 1, "bank_name": 1, "logo": 1}
+    ).to_list(length=100)
+
+    # Create a mapping of bank_id to bank_name
+    bank_name_map = {bank["bank_id"]: bank["bank_name"] for bank in bank_name_data}
+    bank_logo_map = {bank["bank_id"]: bank["logo"] for bank in bank_name_data}
+    # Update account_list with bank names
     for item in account_list:
-        bank_ids.append(item["bank_id"])
-    bank_name = await collection_bank.find({"bank_id":{"$in":bank_ids}},{"_id":0, "bank_name":1}).to_list(length=100)
-    for i,item in enumerate(account_list):
-        item.update({"bank_account":bank_name[i]["bank_name"]})
+        bank_id = item.get("bank_id")
+        item["bank_account"] = bank_name_map.get(bank_id, "Unknown")
+        item["bank_logo"] = bank_logo_map.get(bank_id, "Unknown")
     account_ids = [item.get("account_id") for item in account_list]
     return account_ids, account_list
 
@@ -283,7 +302,7 @@ async def load_full_details(user_id:int,start_date: Optional[str] = None,end_dat
         predicted_transaction_7_days = await fetch_predicted_data(saving_account_ids, end_date,8)
         most_spending_category_100_days = await fetch_most_spent_category_100_days(saving_account_ids,end_date) 
         date = {"start_date": start_date, "end_date": end_date}
-
+        print("account_list at not start date",account_list)
         return ResponseSchema(
             accounts_list=account_list,
             total_savings_accounts_balance=total_balance,
