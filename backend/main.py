@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from routes import user_login  # import the combined router from routes.py
-from routes import sign_in, forgot_password
+from routes import sign_in, forgot_password,transaction_categorization
 
 # initialize FastAPI app
 app = FastAPI()
@@ -9,3 +9,4 @@ app = FastAPI()
 app.include_router(user_login.router)
 app.include_router(sign_in.router)
 app.include_router(forgot_password.router)
+app.include_router(transaction_categorization.router)
