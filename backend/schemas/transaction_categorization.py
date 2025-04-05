@@ -1,5 +1,6 @@
-from typing import Optional
 from pydantic import BaseModel
+from typing import List, Dict, Optional
+from datetime import date
 
 class all_ac_details_response(BaseModel):
     account_id: int
@@ -7,3 +8,20 @@ class all_ac_details_response(BaseModel):
     account_type: str
     balance: int
     image_url: Optional[str] = None
+
+class Transaction(BaseModel):
+    transaction_id: int
+    amount: float
+    date: date
+    description: Optional[str]
+
+
+class CategoryDetails(BaseModel):
+    category_name: str
+    category_id: int
+    transaction_count: int
+    transactions: List[Transaction]
+
+class category_details_response(BaseModel):
+    income: Dict[int, CategoryDetails]  # Key is category_id
+    expense: Dict[int, CategoryDetails]  # Key is category_id
