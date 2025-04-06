@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta,timezone
-from database import collection_transaction, collection_transaction_category, collection_predicted_balance, collection_predicted_expense, collection_predicted_income,collection_account,collection_credit_periods,collection_goal, collection_bank
+from utils.encrypt_and_decrypt import decrypt
+from database import collection_transaction, collection_transaction_category, collection_predicted_balance, collection_predicted_expense, collection_predicted_income,collection_account,collection_credit_periods,collection_goal, collection_bank,collection_user
 from typing import Tuple
 from schemas.dashboard import SpendingCategory, ResponseSchema, CreditCardResponse, CategorySpending, Summary
 from typing import List, Dict,Union,Optional,Any
@@ -723,3 +724,11 @@ async def get_credit_summary(account_id: int,timeperiod:int | None=None):
         credit_card_summery = await fetch_credit_financial_summary(account_id, timeperiod)
         top_categories=await fetch_most_spent_categories(account_id,credit_card_summery["total_expenses"],timeperiod=None)
         return credit_card_summery,top_categories
+    
+async def get_user_name(user_id : int):
+    user = await collection_user.find_one({"user_id": user_id}, {"_id": 0, "username": 1})
+    if user:
+        user_name=decrypt(user["username"])
+        return user_name
+    else:
+        return "user"  
