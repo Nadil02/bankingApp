@@ -29,3 +29,5 @@ collection_predicted_income = db["predicted_income"]
 collection_transaction = db["transaction"]
 collection_transaction_category = db["transaction_category"]
 collection_dummy_values = db["user_dummy"]
+collection_credit_periods = db["credit_periods"]
+
