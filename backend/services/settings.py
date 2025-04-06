@@ -56,6 +56,8 @@ async def update_new_details(request: UserEditProfile) -> dict:
     user_tp = request.phone_number
     user_saved_tp = await collection_user.find_one({"user_id": request.user_id},{"_id":0,"phone_number":1})
     user_tp_number=decrypt(user_saved_tp["phone_number"])
+    print("user_tp_number : ",user_tp_number)
+    print("user_tp : ",user_tp)
     if user_tp != user_tp_number:
         # send otp to the new number
         last_otp =await collection_OTP.find_one(sort=[("otp_id", -1)])  #  last otpid 
@@ -92,19 +94,19 @@ async def otp_validation_Tphone_edit(otp_request: OtpRequestEditTphone) -> OtpRe
         
     otp_data = await collection_OTP.find_one({"otp_id": otp_request.otp_id, "otp": otp_request.otp})
     if not otp_data:
-        return OtpResponseEditTphone(status="error", message="Invalid OTP.")
+        return OtpResponseEditTphone(status="error", message="Invalid OTP.", otp_id=-1)
     
     new_phone_number = encrypt(otp_request.phone_number)
     await collection_user.update_one(
             {"user_id": otp_request.user_id},
             {"$set": {"phone_number": new_phone_number}}
         )
-    return OtpResponseEditTphone(status="success", message="Phone number updated successfully.")
+    return OtpResponseEditTphone(status="success", message="Phone number updated successfully.", otp_id=-1)
 
 async def resend_otp_eidt_Tphone(otp_resend_request: OtpResendRequestEditTphone) -> OtpResponseEditTphone:
     otp_data = await collection_OTP.find_one({"otp_id": otp_resend_request.otp_id})
     if not otp_data:
-        return OtpResponseEditTphone(status="error", message="Invalid OTP ID.")
+        return OtpResponseEditTphone(status="error", message="Invalid OTP ID.", otp_id=-1)
     last_otp =await collection_OTP.find_one(sort=[("otp_id", -1)])  #  last otpid 
     if last_otp and "otp_id" in last_otp:
         next_otp_id = last_otp["otp_id"] + 1
@@ -114,4 +116,4 @@ async def resend_otp_eidt_Tphone(otp_resend_request: OtpResendRequestEditTphone)
     user_phone_number = otp_resend_request.phone_number
     await storeAndSendOtp(next_otp_id, user_phone_number)
 
-    return OtpResponseEditTphone(status="success", message="otp number resent successfully.")
+    return OtpResponseEditTphone(status="success", message="otp number resent successfully.", otp_id=next_otp_id)

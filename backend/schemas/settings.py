@@ -17,6 +17,7 @@ class EditProfileResponse(BaseModel):
 class OtpResponseEditTphone(BaseModel):
     status: str
     message: str
+    otp_id: int
 
 
 class OtpRequestEditTphone(BaseModel):
