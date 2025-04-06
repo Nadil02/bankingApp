@@ -1,5 +1,5 @@
 from pydantic import BaseModel,Field
-from typing import Optional
+from typing import Optional, List, Dict
 from datetime import datetime
 from uuid import uuid4
 
@@ -21,10 +21,10 @@ class account(BaseModel):
     bank_id: int
     account_id: int
     user_id: int
-    account_number: str
+    account_number: int
     account_type: str
     credit_limit: float
-    due_date: datetime
+    due_date: Optional[datetime]=None
     balance: float
 
 
@@ -123,3 +123,4 @@ class Goal(BaseModel):
 class ChatBot(BaseModel):
     user_id: int
     chat_summary: str
+

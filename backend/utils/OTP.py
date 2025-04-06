@@ -32,3 +32,4 @@ def account_status():
     }
     response = httpx.get(url, params=params)
     return response.json()
+
