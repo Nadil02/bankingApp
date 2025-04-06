@@ -42,11 +42,13 @@ class OTP(BaseModel):
 
 class TodoList(BaseModel):
     description: str
-    todo_id: int
+    todo_id: Optional[int] = None 
     user_id: int
     date: datetime
     time: datetime
     repeat_frequency: Optional[str] = None
+    amount: Optional[float] = None
+    status: str = Field(default="ongoing")
 
 
 class transaction(BaseModel):
