@@ -1,4 +1,5 @@
 .env
+chroma_db
 venv
 __pycache__
 __pycache__/
