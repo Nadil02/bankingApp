@@ -1,6 +1,6 @@
 from fastapi import APIRouter
-from services.dashboard import get_user_name, load_full_details,load_specific_account,get_credit_summary
-from schemas.dashboard import ResponseSchema
+from services.dashboard import get_user_name_profile_pic, load_full_details,load_specific_account,get_credit_summary
+from schemas.dashboard import ResponseSchema, ResponseSchemaUsernameProfilePic
 
 router = APIRouter(prefix="/dashboard",tags=["Dashboard"])
 
@@ -29,6 +29,6 @@ async def credit_card(account_id:int):
 async def credit_card_with_date(account_id:int, time_period:int):
     return await get_credit_summary(account_id,time_period)
 
-@router.get("/user_name")
-async def user_name(user_id:int):
-    return await get_user_name(user_id=user_id) #will return a string with the user name
+@router.get("/user_name_profile_pic", response_model=ResponseSchemaUsernameProfilePic)
+async def user_name_profile_pic(user_id:int):
+    return await get_user_name_profile_pic(user_id=user_id) #will return a json with a string of the user name and profile pic url string

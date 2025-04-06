@@ -103,3 +103,7 @@ class CreditCardResponse(BaseModel):
     credit_limit : float
     total_expenses : float
     remaining_balance : float
+
+class ResponseSchemaUsernameProfilePic(BaseModel):
+    username: str
+    user_image: str
