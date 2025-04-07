@@ -2,7 +2,7 @@ from schemas.sign_in import OtpResendRequest, OtpResendResponse, SignInRequest, 
 from database import collection_user,collection_OTP
 from models import OTP,user
 from utils.OTP import send_sms
-from utils.encrypt_and_decrypt import encrypt, decrypt_user_data
+from utils.encrypt_and_decrypt import decrypt, encrypt, decrypt_user_data
 import random
 from argon2 import PasswordHasher
 import hashlib
@@ -12,7 +12,14 @@ import bcrypt
 ph = PasswordHasher()
 
 async def sign_in_validation(sign_in_request: SignInRequest) -> SignInResponse:
-
+        
+    nic_bytes = sign_in_request.nic.encode('utf-8')
+    sha256_hash = hashlib.sha256()
+    sha256_hash.update(nic_bytes)
+    hashed_nic = sha256_hash.hexdigest()
+    nic_if_exists = await collection_user.find_one({"login_nic": hashed_nic})
+    if nic_if_exists:
+        return SignInResponse(otp_id=-1, status="error", message="NIC already exist.")
     last_otp =await collection_OTP.find_one(sort=[("otp_id", -1)])  #  last otpid 
     if last_otp and "otp_id" in last_otp:
         next_otp_id = last_otp["otp_id"] + 1
@@ -42,7 +49,7 @@ async def otp_validation(otp_request: OtpRequest) -> OtpResponse:
     
     otp_data = await collection_OTP.find_one({"otp_id": otp_request.otp_id, "otp": otp_request.otp})
     if not otp_data:
-        return OtpResponse(status="error", message="Invalid OTP.", user_id="")
+        return OtpResponse(status="error", message="Invalid OTP.", user_id=-1)
     
     last_user =await collection_user.find_one(sort=[("user_id", -1)])  #  last userid 
     if last_user and "user_id" in last_user:
@@ -59,10 +66,11 @@ async def otp_validation(otp_request: OtpRequest) -> OtpResponse:
 
     salt=bcrypt.gensalt()
     hashed_passcode=bcrypt.hashpw(otp_request.passcode.encode('utf-8'),salt)
-    
+    first_name=encrypt(otp_request.first_name)
     user_data = user(
-        first_name=encrypt(otp_request.first_name),
+        first_name=first_name,
         last_name=encrypt(otp_request.last_name),
+        username=first_name,
         NIC=encrypt(otp_request.nic),
         login_nic=hashed_nic,
         phone_number=encrypt(otp_request.phone_number),
@@ -70,6 +78,7 @@ async def otp_validation(otp_request: OtpRequest) -> OtpResponse:
         passcode=hashed_passcode.decode('utf-8'),
         user_id=next_user_id,
         notification_status=True,
+        user_image="default.png"
     )
 
     await collection_user.insert_one(user_data.dict(by_alias=True))  #convert user model to dictionary
@@ -79,7 +88,7 @@ async def otp_validation(otp_request: OtpRequest) -> OtpResponse:
 async def resend_otp_sign_in(otp_resend_request: OtpResendRequest):
     otp_data = await collection_OTP.find_one({"otp_id": otp_resend_request.otp_id})
     if not otp_data:
-        return OtpResendResponse(status="error", message="Invalid OTP ID.", otp_id="")
+        return OtpResendResponse(status="error", message="Invalid OTP ID.", otp_id=-1)
     last_otp =await collection_OTP.find_one(sort=[("otp_id", -1)])  #  last otpid 
     if last_otp and "otp_id" in last_otp:
         next_otp_id = last_otp["otp_id"] + 1

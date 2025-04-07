@@ -1,7 +1,9 @@
 from pydantic import BaseModel
+from typing import Optional
 
 class SignInRequest(BaseModel):
     phone_number: str
+    nic: str
 
 class SignInResponse(BaseModel):
     otp_id: int
@@ -9,12 +11,12 @@ class SignInResponse(BaseModel):
     message: str
 
 class OtpRequest(BaseModel):
-    otp_id: int
-    otp: str
+    otp_id: int 
+    otp: str 
     nic: str
-    first_name: str
-    last_name: str
-    phone_number: str
+    first_name: str 
+    last_name: str 
+    phone_number: str 
     passcode: str
 
 class OtpResponse(BaseModel):
