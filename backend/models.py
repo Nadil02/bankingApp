@@ -125,10 +125,20 @@ class ChatBot(BaseModel):
     chat_summary: str
     tool_history: List[str] 
 
+
+class credit_periods(BaseModel):
+    acocunt_id: int
+    period_id: int
+    credit_limit: float
+    total_expenses: float
+    remaining_balance: float
+    start_date: datetime
+    end_date: datetime
+
+
 class UserDummy(BaseModel):
     user_id: int
     amount: Optional[float] = None
     accountNumber: Optional[str] = None
     name: Optional[str] = None
-
 
