@@ -1,5 +1,5 @@
 from datetime import datetime
-from schemas.transaction_categorization import CategoryDetails, Transaction, all_ac_details_response, category_details_response
+from schemas.transaction_categorization import CategoryDetails, Transaction, all_ac_details_response, category_details_response, categorize_transaction_confirmation_response, CategorizeTransactionConfirmationRequest
 from database import collection_account, collection_bank, collection_transaction, collection_transaction_category
 
 async def get_account_details(user_id: int) -> dict:
@@ -137,4 +137,26 @@ async def get_category_details(user_id: int, account_id: int) -> category_detail
     return category_details_response(
         income=income_response,
         expense=expense_response
+    )
+
+async def categorize_transaction_confirmation(transaction_id: int, previous_category_id: int, new_category_id: int) -> categorize_transaction_confirmation_response:
+    # Update the transaction with the new category ID
+    result = await collection_transaction.update_one(
+        {"transaction_id": transaction_id},
+        {"$set": {"category_id": new_category_id}}
+    )
+
+    if result.modified_count == 0:
+        return categorize_transaction_confirmation_response(
+            message="Transaction not found or no changes made",
+            transaction_id=transaction_id,
+            previous_category_id=previous_category_id,
+            new_category_id=new_category_id
+        )
+
+    return categorize_transaction_confirmation_response(
+        message="Transaction categorized successfully",
+        transaction_id=transaction_id,
+        previous_category_id=previous_category_id,
+        new_category_id=new_category_id
     )

@@ -25,3 +25,14 @@ class CategoryDetails(BaseModel):
 class category_details_response(BaseModel):
     income: Dict[int, CategoryDetails]  # Key is category_id
     expense: Dict[int, CategoryDetails]  # Key is category_id
+
+class CategorizeTransactionConfirmationRequest(BaseModel):
+    transaction_id: int
+    previous_category_id: int
+    new_category_id: int
+
+class categorize_transaction_confirmation_response(BaseModel):
+    message: str
+    transaction_id: int
+    previous_category_id: int
+    new_category_id: int
