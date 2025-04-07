@@ -72,8 +72,8 @@ async def add_todo(todo_data: TodoCreate) -> TodoResponse:
         "todo_id": todo_id,
         "description": todo_data.description,
         "user_id": todo_data.user_id,
-        "date": todo_data.date.isoformat(),  # Ensures proper date formatting
-        "time": todo_data.time.isoformat(), 
+        "date": todo_data.date,  # Ensures proper date formatting
+        "time": todo_data.time, 
         "repeat_frequency": todo_data.repeat_frequency,
         "amount": todo_data.amount,
         "status": "ongoing"
@@ -147,7 +147,7 @@ async def get_task_details(user_id: int, todo_id: int):
 
 
 
-async def edit_task_details(user_id: int, todo_id: int, description: Optional[str] = None, date: Optional[datetime] = None, time: Optional[datetime] = None, repeat_frequency: Optional[str] = None,amount: Optional[int] = None):
+async def edit_task_details(user_id: int, todo_id: int, description: Optional[str] = None, date: Optional[str] = None, time: Optional[str] = None, repeat_frequency: Optional[str] = None,amount: Optional[int] = None):
     existing_task = await collection_Todo_list.find_one({"user_id": user_id, "todo_id": todo_id})
     if not existing_task:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -155,9 +155,9 @@ async def edit_task_details(user_id: int, todo_id: int, description: Optional[st
     if description is not None:
         update_data["description"] = description
     if date is not None:
-        update_data["date"] = date.isoformat()  
+        update_data["date"] = date  
     if time is not None: 
-        update_data["time"] = time.isoformat()  
+        update_data["time"] = time
     if repeat_frequency is not None:
         update_data["repeat_frequency"] = repeat_frequency
     if amount is not None:
