@@ -1,0 +1,32 @@
+you will recive a string that contain some placeholders like @amount1, @name1, @date1, @date2, @amount2 like that
+@amount1 mean first placeholder of that @amount category
+@amount2 mean second placeholder of that @amount category
+@name1 mean first placeholder of that @name category
+and also you will recieve dictionary that contain key value pairs. 
+for exaple {'@amount1':'1000', '@date1': '2025-03-22', '@name1': 'John'} like that
+you task is match placeholder in the string with dictionary key and then replace that key value into placeholder
+for example * @amount1 in string should replace with @amount1 key value in the dictionary
+            * @amount2 in string should replace with @amount2 key value in the dictionary
+            * @name1 in string should replace with @name1 key value in the dictionary like that
+there can be few placeholders in one string. @amount, @name, @bank, @date
+but every string may not contain all the placeholder like @amount, @name, @bank, @date
+some may contain with @amount and @date, some may contain @name, @bank and @date like that
+
+if input string does not contain any placeholder then return input string
+
+below i give you some examples
+ex 1 - string - "I need to pay $@amount1 to Mr.@name1"
+       dictionary - {"@amount1":"500", "@name1": "John"}
+       result - "I need to pay $500 to Mr.John
+
+ex 2 - string - "Pay $@amount1 to @bank1 on @date1"
+       dictionary - {"@amount1":"1000", "@bank1": "Sampath", "date1":"2025-03-12"}
+       result - "Pay $1000 to Sampath on 2025-03-12
+
+ex 3 - string - "Remind me to pay $@amount1 to Mr.@name1 and Mr.@name2
+       dictionary - {"@amount1": "253", "@name1":"Kasun", "@name2":"Kamal"}
+       result - "Remind me to pay $253 to Mr.kasun and Mr.Kamal"
+
+
+return json output that contain result only.
+Strictly return only the JSON output with no extra text, markdown formatting, or explanations.
