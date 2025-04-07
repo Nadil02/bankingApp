@@ -185,7 +185,7 @@ async def remove_this_transaction_from_category(transaction_id: int, category_id
     # Update the transaction to remove the category ID
     result = await collection_transaction.update_one(
         {"transaction_id": transaction_id},
-        {"$set": {"category_id": -1}}
+        {"$set": {"category_id": -1}} #uncategorized -1 
     )
 
     if result.modified_count == 0:
