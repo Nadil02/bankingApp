@@ -1,5 +1,5 @@
 from datetime import datetime
-from schemas.transaction_categorization import CategoryDetails, Transaction, all_ac_details_response, category_details_response, categorize_transaction_confirmation_response, CategorizeTransactionConfirmationRequest, edit_category_name_request, edit_category_name_response
+from schemas.transaction_categorization import CategoryDetails, Transaction, all_ac_details_response, category_details_response, categorize_transaction_confirmation_response, CategorizeTransactionConfirmationRequest, edit_category_name_request, edit_category_name_response, remove_this_transaction_from_category_response
 from database import collection_account, collection_bank, collection_transaction, collection_transaction_category
 
 async def get_account_details(user_id: int) -> dict:
@@ -179,4 +179,24 @@ async def edit_category_name(category_id: int, new_category_name: str) -> edit_c
         message="Category name updated successfully",
         category_id=category_id,
         new_category_name=new_category_name
+    )
+
+async def remove_this_transaction_from_category(transaction_id: int, category_id: int) -> remove_this_transaction_from_category_response:
+    # Update the transaction to remove the category ID
+    result = await collection_transaction.update_one(
+        {"transaction_id": transaction_id},
+        {"$set": {"category_id": -1}}
+    )
+
+    if result.modified_count == 0:
+        return remove_this_transaction_from_category_response(
+            message="Transaction not found or no changes made",
+            transaction_id=transaction_id,
+            category_id=category_id
+        )
+
+    return remove_this_transaction_from_category_response(
+        message="Transaction removed from category successfully",
+        transaction_id=transaction_id,
+        category_id=category_id
     )

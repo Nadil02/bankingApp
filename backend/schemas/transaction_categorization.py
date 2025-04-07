@@ -47,3 +47,11 @@ class edit_category_name_response(BaseModel):
     category_id: int
     new_category_name: str
 
+class remove_this_transaction_from_category_request(BaseModel):
+    transaction_id: int
+    category_id: int
+
+class remove_this_transaction_from_category_response(BaseModel):
+    message: str
+    transaction_id: int
+    category_id: int
