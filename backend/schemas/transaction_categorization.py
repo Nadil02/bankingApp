@@ -36,3 +36,14 @@ class categorize_transaction_confirmation_response(BaseModel):
     transaction_id: int
     previous_category_id: int
     new_category_id: int
+
+
+class edit_category_name_request(BaseModel):
+    category_id: int
+    new_category_name: str
+
+class edit_category_name_response(BaseModel):
+    message: str
+    category_id: int
+    new_category_name: str
+

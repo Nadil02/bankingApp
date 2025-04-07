@@ -1,5 +1,5 @@
 from datetime import datetime
-from schemas.transaction_categorization import CategoryDetails, Transaction, all_ac_details_response, category_details_response, categorize_transaction_confirmation_response, CategorizeTransactionConfirmationRequest
+from schemas.transaction_categorization import CategoryDetails, Transaction, all_ac_details_response, category_details_response, categorize_transaction_confirmation_response, CategorizeTransactionConfirmationRequest, edit_category_name_request, edit_category_name_response
 from database import collection_account, collection_bank, collection_transaction, collection_transaction_category
 
 async def get_account_details(user_id: int) -> dict:
@@ -159,4 +159,24 @@ async def categorize_transaction_confirmation(transaction_id: int, previous_cate
         transaction_id=transaction_id,
         previous_category_id=previous_category_id,
         new_category_id=new_category_id
+    )
+
+async def edit_category_name(category_id: int, new_category_name: str) -> edit_category_name_response:
+    # Update the category name in the database
+    result = await collection_transaction_category.update_one(
+        {"category_id": category_id},
+        {"$set": {"category_name": new_category_name}}
+    )
+
+    if result.modified_count == 0:
+        return edit_category_name_response(
+            message="Category not found or no changes made",
+            category_id=category_id,
+            new_category_name=new_category_name
+        )
+
+    return edit_category_name_response(
+        message="Category name updated successfully",
+        category_id=category_id,
+        new_category_name=new_category_name
     )

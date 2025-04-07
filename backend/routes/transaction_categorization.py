@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
-from services.transaction_categorization import get_account_details, get_category_details, categorize_transaction_confirmation
-from schemas.transaction_categorization import category_details_response,CategorizeTransactionConfirmationRequest,categorize_transaction_confirmation_response
+from services.transaction_categorization import get_account_details, get_category_details, categorize_transaction_confirmation, edit_category_name
+from schemas.transaction_categorization import category_details_response,CategorizeTransactionConfirmationRequest,categorize_transaction_confirmation_response,all_ac_details_response,edit_category_name_response,edit_category_name_request
 
 router = APIRouter(prefix="/transaction_categorization", tags=["Transaction Categorization"])
 
@@ -16,5 +16,7 @@ async def get_all_category_details(user_id: int,account_id:int) -> category_deta
 async def categorize_transaction_confirmation_endpoint(request: CategorizeTransactionConfirmationRequest) -> categorize_transaction_confirmation_response:
     return await categorize_transaction_confirmation(request.transaction_id, request.previous_category_id, request.new_category_id)   
 
-
+@router.post("/edit_category_name")
+async def edit_category_name_endpoint(request: edit_category_name_request) -> edit_category_name_response:
+    return await edit_category_name(request.category_id, request.new_category_name)
 
