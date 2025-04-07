@@ -2,6 +2,8 @@ from pydantic import BaseModel,Field
 from typing import Optional, List, Dict
 from datetime import datetime
 from uuid import uuid4
+from typing import List, Dict, Any
+
 
  
 class user(BaseModel):
@@ -12,14 +14,14 @@ class user(BaseModel):
     login_nic:str
     phone_number: str
     passcode: str
-    user_id: int 
+    user_id: int =Field(default_factory=lambda: int(uuid4()), alias="_id")
     notification_status: bool
     user_image: str
 
 
 class account(BaseModel):
-    bank_id: int
-    account_id: int
+    bank_id: str
+    account_id: int =Field(default_factory=lambda: int(uuid4()), alias="_id")
     user_id: int
     account_number: int
     account_type: str
@@ -32,14 +34,16 @@ class bank(BaseModel):
     bank_name: str
     logo: str
     bank_id: int
+    #rates as array of dictionaries
+    rates: List[dict] = []  # Assuming you want to store multiple rates
 
 
 class OTP(BaseModel):
     otp: str
-    # user_id: str
-    otp_id: int #=Field(default_factory=lambda: str(uuid4()), alias="_id")
-    # expiry_time: datetime
-    # verification_count: int
+    user_id: int
+    otp_id: int
+    expiry_time: datetime
+    verification_count: int
 
 
 class TodoList(BaseModel):
@@ -95,7 +99,7 @@ class PredictedIncome(BaseModel):
 
 
 class Notification(BaseModel):
-    user_id: int
+    user_id: str
     notification_id: int
     description: str
     date: datetime
