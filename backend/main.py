@@ -7,6 +7,7 @@ from routes import user_login  # import the combined router from routes.py
 from routes import sign_in, forgot_password,transaction_categorization
 from routes import sign_in, forgot_password, transaction_history
 from routes import sign_in, forgot_password,change_password, settings
+from fastapi.middleware.cors import CORSMiddleware
 
 # initialize FastAPI app
 app = FastAPI()
@@ -23,3 +24,10 @@ app.include_router(transaction_history.router)
 app.include_router(change_password.router)
 app.include_router(settings.router)
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)

@@ -5,8 +5,8 @@ from typing import List, Optional
 # Response_model_for_returning_only_description_and_dates
 class TodoView(BaseModel):
     description: str
-    date: date
-    time: time
+    date: Optional[str]
+    time: Optional[str]
     repeat_frequency: Optional[str]
     amount: Optional[float]
 
@@ -27,8 +27,8 @@ class TodoListsResponse(BaseModel):
 class TodoCreate(BaseModel):
     description: str
     user_id: int
-    date: date  # Stores only the date part
-    time: time
+    date: Optional[str]  # Stores only the date part
+    time: Optional[str]
     repeat_frequency: Optional[str] = None
     amount: Optional[float] = None
     
@@ -56,8 +56,8 @@ class ConfirmTaskDeletion(BaseModel):
 
 class TaskSchema(BaseModel):
     description: str
-    date: Optional[date] 
-    time: Optional[time] 
+    date: Optional[str] 
+    time: Optional[str] 
     repeat_frequency: Optional[str] = None
     amount:int
 
