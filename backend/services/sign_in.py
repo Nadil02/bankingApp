@@ -12,6 +12,8 @@ import bcrypt
 ph = PasswordHasher()
 
 async def sign_in_validation(sign_in_request: SignInRequest) -> SignInResponse:
+    print("MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM")
+    print("sign_in_request",sign_in_request)
         
     nic_bytes = sign_in_request.nic.encode('utf-8')
     sha256_hash = hashlib.sha256()
@@ -25,8 +27,12 @@ async def sign_in_validation(sign_in_request: SignInRequest) -> SignInResponse:
         next_otp_id = last_otp["otp_id"] + 1
     else:
         next_otp_id = 1  #from 1 if no otp exist
+    print("last_otp",last_otp)
+    print("MMMMMMMMMMMMMMMMMMMMMMMMMMMM")
+    print("next_otp_id",next_otp_id)    
 
     await storeAndSendOtp(next_otp_id, sign_in_request.phone_number)
+    print("KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK")
 
     return SignInResponse(otp_id=next_otp_id, status="success", message="otp sent successfully.")
 
@@ -34,6 +40,7 @@ def generate_otp():
     return random.randint(10000, 99999)
 
 async def storeAndSendOtp(next_otp_id: int, phone_number: str):
+    print("OOOOOOOOOOOOOOOOOOOO")
     otp=str(generate_otp())
     otp_data = OTP(
         otp=otp,
@@ -41,6 +48,8 @@ async def storeAndSendOtp(next_otp_id: int, phone_number: str):
         # expiry_time="2025-03-02",
         # verification_count=0 
     )
+    print("JJJJJJJJJJJJJJJJJJJJJJJJJJJJ")
+    print("otp_data",otp_data)
 
     await collection_OTP.insert_one(otp_data.dict(by_alias=True))  # Convert OTP model to dictionary
     message="hi this is banking app. Your OTP for sign in is: "+otp
