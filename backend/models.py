@@ -40,10 +40,10 @@ class bank(BaseModel):
 
 class OTP(BaseModel):
     otp: str
-    user_id: int
+    # user_id: int
     otp_id: int
-    expiry_time: datetime
-    verification_count: int
+    # expiry_time: datetime
+    # verification_count: int
 
 
 class TodoList(BaseModel):
