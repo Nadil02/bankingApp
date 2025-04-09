@@ -32,3 +32,20 @@ class OtpResendResponse(BaseModel):
     status: str
     message: str
     otp_id: int
+
+class usernameRequest(BaseModel):
+    user_id: int
+
+class usernameResponse(BaseModel):
+    status: str
+    first_name: str
+    last_name: str
+
+class pictureUploadRequest(BaseModel):
+    user_id: int
+    image: str  # Base64 encoded image data
+
+class pictureUploadResponse(BaseModel):
+    status: str
+    message: str
+
