@@ -2,8 +2,8 @@ import httpx
 import os
 
 # Load your credentials from environment variables or directly assign them
-USER_ID = os.getenv("NOTIFY_LK_USER_ID", "29329")
-API_KEY = os.getenv("NOTIFY_LK_API_KEY", "cUrzJvpCHjQZGehNToNc")
+USER_ID = os.getenv("NOTIFY_LK_USER_ID", "29359")
+API_KEY = os.getenv("NOTIFY_LK_API_KEY", "hcy1qIkneaxNbcF43AiY")
 SENDER_ID = os.getenv("NOTIFY_LK_SENDER_ID", "NotifyDEMO")  # Use your approved sender ID
 BASE_URL = "https://app.notify.lk/api/v1"
 
