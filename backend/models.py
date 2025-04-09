@@ -14,7 +14,7 @@ class user(BaseModel):
     login_nic:str
     phone_number: str
     passcode: str
-    user_id: int =Field(default_factory=lambda: int(uuid4()), alias="_id")
+    user_id: int 
     notification_status: bool
     user_image: str
 
