@@ -1,4 +1,5 @@
-from schemas.sign_in import OtpResendRequest, OtpResendResponse, SignInRequest, SignInResponse, OtpRequest, OtpResponse
+import base64
+from schemas.sign_in import OtpResendRequest, OtpResendResponse, SignInRequest, SignInResponse, OtpRequest, OtpResponse, pictureUploadRequest, pictureUploadResponse, usernameRequest, usernameResponse
 from database import collection_user,collection_OTP
 from models import OTP,user
 from utils.OTP import send_sms
@@ -99,3 +100,32 @@ async def resend_otp_sign_in(otp_resend_request: OtpResendRequest):
     await storeAndSendOtp(next_otp_id, user_phone_number)
 
     return OtpResendResponse(status="success", message="OTP resent successfully.", otp_id=next_otp_id)
+
+async def username_load_profilePic_upload_service(username_request: usernameRequest)-> usernameResponse:
+    user_data = await collection_user.find_one({"user_id": username_request.user_id})
+    if not user_data:
+        return usernameResponse(status="error", first_name="", last_name="")
+    
+    decrypted_first_name = decrypt(user_data["first_name"])
+    decrypted_last_name = decrypt(user_data["last_name"])
+
+    return usernameResponse(status="success", first_name=decrypted_first_name, last_name=decrypted_last_name)
+
+async def profilePic_upload_service(profilePic_request: pictureUploadRequest)-> pictureUploadResponse:
+    user_data = await collection_user.find_one({"user_id": profilePic_request.user_id})
+    if not user_data:
+        return pictureUploadResponse(status="error", message="User not found.")
+    
+    try:
+        base64.b64decode(profilePic_request.image)
+    except Exception:
+        return pictureUploadResponse(status="error", message="Invalid image data.")
+    
+    await collection_user.update_one(
+        {"user_id": profilePic_request.user_id},
+        {"$set": {"user_image": encrypt(profilePic_request.image)}}
+    )
+
+    # print("image:",decrypt(user_data["user_image"]))
+    
+    return pictureUploadResponse(status="success", message="Profile picture uploaded successfully.")
