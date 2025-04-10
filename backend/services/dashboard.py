@@ -304,7 +304,10 @@ async def load_full_details(user_id:int,start_date: Optional[str] = None,end_dat
         most_spending_category_100_days = await fetch_most_spent_category_100_days(saving_account_ids,end_date) 
         date = {"start_date": start_date, "end_date": end_date}
         print("account_list at not start date",account_list)
+        user_details = await collection_user.find_one({"user_id": user_id},{"_id":0,"username":1})
+        userName=decrypt(user_details["username"])
         return ResponseSchema(
+            user_name=userName,
             accounts_list=account_list,
             total_savings_accounts_balance=total_balance,
             financial_summary=financial_summery,
