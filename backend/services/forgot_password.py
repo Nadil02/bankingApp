@@ -33,6 +33,7 @@ async def forgot_password_service(request: ForgotPasswordRequestSchema) -> Forgo
     return ForgotPasswordResponseSchema(status="success", message="Password updated successfully.")
 
 async def forgot_password_otp_request_service(request: ForgotPasswordOtpRequestSchema) -> ForgotPasswordOtpRequestResponseSchema:
+    print("request",request)
     # Hash the NIC using SHA-256
     nic_bytes = request.nic.encode('utf-8')
     sha256_hash = hashlib.sha256()
@@ -42,6 +43,7 @@ async def forgot_password_otp_request_service(request: ForgotPasswordOtpRequestS
 
     # Check if the user exists in the database
     user_data = await collection_user.find_one({"login_nic": hashed_nic})
+    print("user_data",user_data)
     if not user_data:
         return ForgotPasswordOtpRequestResponseSchema(otp_id=-1,status="error", message="User not found.")
 
@@ -52,7 +54,10 @@ async def forgot_password_otp_request_service(request: ForgotPasswordOtpRequestS
         next_otp_id = 1  #from 1 if no otp exist
 
     user_phone_number = decrypt(user_data["phone_number"])
+    print("user_phone_number",user_phone_number)
+    print("next_otp_id",next_otp_id)
     await storeAndSendOtp(next_otp_id, user_phone_number)
+    print("JJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJ")
 
     return ForgotPasswordOtpRequestResponseSchema(otp_id=next_otp_id, status="success", message="OTP sent successfully.")
 

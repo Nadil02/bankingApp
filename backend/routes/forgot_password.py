@@ -5,13 +5,14 @@ from services.forgot_password import forgot_password_otp_request_service, forgot
 router = APIRouter()
 
 @router.post("/forgot_password", response_model=ForgotPasswordResponseSchema)
-async def forgot_password(request: ForgotPasswordRequestSchema = Depends()): #depends use to validate format
+async def forgot_password(request: ForgotPasswordRequestSchema): #depends use to validate format
     return await forgot_password_service(request)
 
 @router.post("/forgot_password_otp_request", response_model=ForgotPasswordOtpRequestResponseSchema)
-async def forgot_password_otp_request(request: ForgotPasswordOtpRequestSchema = Depends()):
+async def forgot_password_otp_request(request: ForgotPasswordOtpRequestSchema):
+    print("KKKKKKKKKKKKKKKKKKKKK")
     return await forgot_password_otp_request_service(request)
 
 @router.post("/forgot_password_otp_resend_request", response_model=ForgotPasswordOtpResendResponseSchema)
-async def forgot_password_otp_resend_request(request: ForgotPasswordOtpResendRequestSchema = Depends()):
+async def forgot_password_otp_resend_request(request: ForgotPasswordOtpResendRequestSchema):
     return await forgot_password_otp_resend_request_service(request)
