@@ -90,6 +90,7 @@ class Date(BaseModel):
     end_date: datetime
 
 class ResponseSchema(BaseModel):
+    user_name: str
     accounts_list: List[Account]
     total_savings_accounts_balance: float
     financial_summary: Summary
