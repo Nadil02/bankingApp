@@ -6,6 +6,7 @@ from langchain.tools import tool,Tool
 import os
 import io
 from dotenv import load_dotenv
+from utils.encrypt_and_decrypt import decrypt
 from database import collection_chatbot,collection_transaction,collection_predicted_income,collection_predicted_expense,collection_user,collection_account,collection_predicted_balance,collection_dummy_values,collection_Todo_list
 from models import ChatBot,transaction
 from datetime import datetime, UTC
@@ -438,6 +439,12 @@ async def get_chatbot_response(user_id: int, query: str) -> str:
         print(f"Error in get_chatbot_response: {e}")
         return "An error occurred while processing your request. Please try again later."
 
-
+async def get_user_image_service(user_id: int) -> str:
+    user_data = await collection_user.find_one({"user_id": user_id})
+    if not user_data:
+        return "User not found"
+    
+    user_image= decrypt(user_data["user_image"])
+    return user_image
     
     
