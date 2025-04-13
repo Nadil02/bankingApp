@@ -62,5 +62,9 @@ async def refresh_access_token(request):
     if "error" in payload:
         raise HTTPException(status_code=401, detail=payload["error"])
     
-    new_access_token = create_jwt({"sub": payload["sub"]})
-    return {"access_token": new_access_token, "token_type": "bearer"}
+    user_id = payload["sub"]
+    access_token = create_jwt({"sub": user_id})
+    refresh_token = create_refresh_token({"sub": user_id})
+    
+    # new_access_token = create_jwt({"sub": payload["sub"]})
+    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
