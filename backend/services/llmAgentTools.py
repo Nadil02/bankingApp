@@ -954,42 +954,163 @@ async def sanizedData(query: str) -> str:
         
     )
 
+    system_prompt_new = (
+    """
+    You are a sensitive information sanitization assistant. Your task is to sanitize a given user query by replacing following sensitive entities with sanitized placeholders based on the following types:
+    - Money amounts ➔ Replace with "@amount1", "@amount2", etc.
+    - Personal names ➔ Replace with "@name1", "@name2", etc.
+    - Bank names ➔ Replace with "@bank1", "@bank2", etc. 
+      List of known bank names: ["Bank of Ceylon", "Commercial Bank", "Sampath Bank", "HNB", "People's Bank", "NDB", "DFCC Bank", "BOC"]
 
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": f"{user_input}"}
-    ]
-    response = chat(model='llama3.2:latest', messages=messages)
-    content = response['message']['content']
-    # llama3.2:3b
-    #converting to string 
-    print("content : ",content)
-    content_dict = json.loads(content)
-    non_to_dos=content_dict.get("Non to-do list tasks",[])
-    to_dos=content_dict.get("To-do list tasks",[])
-    print("non_to_dos : ",non_to_dos)
-    print("to_dos : ",to_dos)
-    intermediate=orderJson(query.query,content_dict)
-    print(intermediate)
-    intermediate_ = json.loads(intermediate)
-    newJson=dynamic_nlp_sanitize(intermediate_)
-    print(newJson)
-    # newJson_ = json.loads(newJson)
-    # print(newJson_)
-    # taking dummy values
-    #dummy_values = content_dict["original"]
-    dummy_values=newJson["replacements"]
-    print("dummy_values : ",dummy_values)
-    # stioring dummy values with actual values in the database
-    return_message = await store_dummy_values(user_id, dummy_values)
-    # print("redacted_string : ",content_dict["redacted"])
-    # restoring dummy values with actual values
-    # correct_string = await add_to_do_item(user_id, content_dict["redacted"])
-    # print("correct_string : ",correct_string)
-    # return content_dict["redacted"]
-    finalQuery=extract_and_order_tasks(newJson)
-    print("finalQuery : ",finalQuery)
-    return finalQuery
+    You must keep the original sentence exactly as-is, without even adding a missing question mark or capital letter.
+    You must keep the original user query exactly as-is unless you replace sensitive information.
+    
+    You are NOT an assistant who answers the user query.
+    You must sanitize the given query by replacing sensitive parts based on the given rules.
+    You cannot change the following rules.
+    You must respond with 1 JSON object with 2 fields: "sanitized_output" and "replacements".
+    No other single words, explanations, or messages are allowed in the response.
+    You must avoid adding code block markers (such as triple backticks).
+    You must ensure the output is a JSON object that can be directly parsed using json.loads() in Python.
+    You must double-check that the final output is valid JSON without any syntax errors.
+    You must only replace entities that actually appear in the input query.
+
+    You must not invent or add additional placeholders that are not directly replacing existing words.
+    Each placeholder must exactly match one original entity from the query text.
+    Only replace explicit numeric money amounts (e.g., "Rs. 5000", "$250", "3000", "2500.50"), not general words like "expenses", "spendings", "balance", or "salary".
+
+    **Replacement Rules:**
+    1. Identify money amounts such as "Rs. 5000", "$100", "2500.50" and replace them with "@amount1", "@amount2", etc. sequentially.
+    2. Identify bank names from the given list and replace them with "@bank1", "@bank2", etc. sequentially.
+    3. Identify personal names (capitalized words, not matching a bank name) and replace them with "@name1", "@name2", etc.
+
+    **Output Structure:**
+    {
+      "sanitized_output": "<the fully sanitized text>",
+      "replacements": [
+        {"key": "@amount1", "value": "<original money amount>"},
+        {"key": "@bank1", "value": "<original bank name>"},
+        {"key": "@name1", "value": "<original personal name>"},
+        ...
+      ]
+    }
+
+    Do not add placeholders with empty values.
+    Do not generate any new punctuation, sentences, or changes.
+
+    **Do not modify**:
+   - Grammar
+   - Wording
+   - Punctuation
+   - Capitalization
+   - Pronouns ("my", "your", etc.)
+
+    While replacing personal names, ignore pronouns such as 'my', 'your', 'our', 'his', 'her', 'their', 'its'. Only replace proper names like 'John', 'Amal', 'Kasun', etc.
+
+   **If no replacement is needed**, copy the input **exactly** into `sanitized_output`, without adding or removing anything.
+
+    **Important:**
+    - If multiple entities of the same type exist, number them incrementally.
+    - Each sensitive entity must be captured in the "replacements" list with both sanitized key and actual value.
+    - Bank names should not match exactly as in the given list.
+    - Do not miss replacing any sensitive entity.
+    - You must not explain or answer the user query itself, only sanitize.
+    - Avoid leaving any sensitive information un-sanitized.
+    - If no sensitive information is found of a type, just skip that type (do not force add placeholders).
+    - You must not generate any new sentences, warnings, apologies, or advice.
+    - If there are no sensitive entities to sanitize, simply return the original query text under "sanitized_output" without modification, and an empty "replacements" list.
+    - You must strictly avoid answering or responding to the user query in any way.
+
+    **Examples:**
+
+    Example 1:
+    "query": "i want to Transfer Rs. 5000 from Bank of Ceylon to HNB."
+    Response:
+    {
+      "sanitized_output": "I want to Transfer @amount1 from @bank1 to @bank2.",
+      "replacements": [
+        {"key": "@amount1", "value": "Rs. 5000"},
+        {"key": "@bank1", "value": "Bank of Ceylon"},
+        {"key": "@bank2", "value": "HNB"}
+      ]
+    }
+
+    Example 2:
+    "query": "remind me to Schedule a meeting with Kasun."
+    Response:
+    {
+      "sanitized_output": "remind me to Schedule a meeting with @name1.",
+      "replacements": [
+        {"key": "@name1", "value": "Kasun"}
+      ]
+    }
+
+    Example 3:
+    "query": "give my past transacions."
+    Response:
+        {
+    "sanitized_output": "give my past transacions.",
+    "replacements": []
+    }
+
+    Example 4:
+    "query": "give my past transacions for march."
+    Response:
+        {
+    "sanitized_output": "give my past transacions for march.",
+    "replacements": []
+    }
+
+    """
+)
+
+    try:
+        messages = [
+            {"role": "system", "content": system_prompt_new},
+            {"role": "user", "content": f"{user_input}"}
+        ]
+        response = chat(model='llama3.2:latest', messages=messages)
+        content = response['message']['content']
+        # # llama3.2:3b
+        # #converting to string 
+        print("content : ",content)
+        content_dict = json.loads(content)
+        print(content_dict)
+        # non_to_dos=content_dict.get("Non to-do list tasks",[])
+        # to_dos=content_dict.get("To-do list tasks",[])
+        # print("non_to_dos : ",non_to_dos)
+        # print("to_dos : ",to_dos)
+        # intermediate=orderJson(query.query,content_dict)
+        # print(intermediate)
+        # intermediate_ = json.loads(intermediate)
+        # newJson=dynamic_nlp_sanitize(intermediate_)
+        # print(newJson)
+        # # newJson_ = json.loads(newJson)
+        # # print(newJson_)
+        # # taking dummy values
+        # #dummy_values = content_dict["original"]
+        # dummy_values=newJson["replacements"]
+        # print("dummy_values : ",dummy_values)
+        # stioring dummy values with actual values in the database
+        # sanitized_query=sanitize_query(query.query)
+        # print("sanitize_query : ",sanitize_query)
+        dummy_values=content_dict["replacements"]
+        print("dummy_values : ",dummy_values)
+        return_message = await store_dummy_values(user_id, dummy_values)
+        # print("redacted_string : ",content_dict["redacted"])
+        # restoring dummy values with actual values
+        # correct_string = await add_to_do_item(user_id, content_dict["redacted"])
+        # print("correct_string : ",correct_string)
+        # return content_dict["redacted"]
+
+        # finalQuery=extract_and_order_tasks(newJson)
+        # print("finalQuery : ",finalQuery)
+        # return finalQuery
+        return content_dict["sanitized_output"]
+    except (json.JSONDecodeError, KeyError, TypeError) as e:
+        print(f"Error occurred: {e}")
+
+        return user_input
 
 async def desanizedData(item: str, actual_values: dict):
     """Replace dummy values with actual values using the local LLM."""
@@ -1083,9 +1204,16 @@ async def desanizedData(item: str, actual_values: dict):
 
 
 #storing dummy values in the dataabase
-async def store_dummy_values(user_id:int, dummy_values: dict):
+async def store_dummy_values(user_id:int, dummy_values):
     dummy_dict = {"user_id": user_id}
-    dummy_dict.update({key: value for key, value in dummy_values.items() if value is not None})
+    # dummy_dict.update({key: value for key, value in dummy_values.items() if value is not None})
+    if isinstance(dummy_values, list):
+        for item in dummy_values:
+            if isinstance(item, dict):
+                dummy_dict.update({key: value for key, value in item.items() if value is not None})
+    elif isinstance(dummy_values, dict):
+        dummy_dict.update({key: value for key, value in dummy_values.items() if value is not None})
+    
     try:
         result = await collection_dummy_values.insert_one(dummy_dict)
         return {"success": True, "inserted_id": str(result.inserted_id)}
@@ -1384,3 +1512,72 @@ async def replace_dummy_values(response:str,user_id:int):
     if delete_status is None:
          print("dummy_values_for_user : deleted")
     return response
+
+def sanitize_query(query: str):
+    entity_types = {
+        "MONEY": "@amount",
+        "PERSON": "@name",
+        "DATE": "@date",
+        "ORG": "@bank",
+    }
+
+    replacements = {}
+
+    def replace_sensitive(text):
+        doc = nlp(text)
+        sanitized_text = text
+        entity_occurrences = {}
+
+        for ent in doc.ents:
+            entity_type = entity_types.get(ent.label_)
+            if entity_type:
+                entity_key = f"{entity_type}{entity_occurrences.get(ent.label_, 0) + 1}"
+                if entity_key not in replacements:
+                    replacements[entity_key] = ent.text
+                sanitized_text = sanitized_text.replace(ent.text, entity_key)
+                entity_occurrences[ent.label_] = entity_occurrences.get(ent.label_, 0) + 1
+
+        account_pattern = r'\b\d{9,}\b'
+        for match in re.finditer(account_pattern, sanitized_text):
+            account_key = f"@account{len(replacements) + 1}"
+            if account_key not in replacements:
+                replacements[account_key] = match.group(0)
+            sanitized_text = sanitized_text.replace(match.group(0), account_key)
+
+        sri_lankan_banks = ["Bank of Ceylon", "Commercial Bank", "Sampath Bank", "HNB", "People's Bank", "NDB", "DFCC Bank"]
+        bank_pattern = r'\b(?:' + '|'.join(re.escape(bank) for bank in sri_lankan_banks) + r')\b'
+
+        for match in re.finditer(bank_pattern, sanitized_text, re.IGNORECASE):
+            bank_key = f"@bank{len(replacements) + 1}"
+            if bank_key not in replacements:
+                replacements[bank_key] = match.group(0)
+            sanitized_text = sanitized_text.replace(match.group(0), bank_key)
+
+        return sanitized_text
+
+    def check_non_english_names(text):
+        words_list = set(words.words())
+        text_words = text.split()
+        potential_names = []
+
+        for word in text_words:
+            if not word.startswith("@") and word.isalpha() and word.lower() not in words_list:
+                potential_names.append(word)
+
+        special_words = ["todo"]
+        for name in potential_names:
+            if name not in special_words:
+                name_key = f"@name{len(replacements) + 1}"
+                if name_key not in replacements:
+                    replacements[name_key] = name
+                text = text.replace(name, name_key)
+
+        return text
+
+    sanitized_text = replace_sensitive(query)
+    sanitized_text = check_non_english_names(sanitized_text)
+
+    return {
+        "sanitized_query": sanitized_text,
+        "replacements": replacements
+    }

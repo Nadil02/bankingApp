@@ -4,7 +4,7 @@ from schemas.bankAccountManagement import AccountRemove, AccountAdd,BankAccount,
 
 router = APIRouter(prefix="/bankAccountManagement", tags=["bankAccountManagement"])
 
-@router.get("/accountDetails", response_model=list[BankAccount])
+@router.post("/accountDetails", response_model=list[BankAccount])
 async def get(user_id: int):
     return await getBankAccountDetails(user_id)
 

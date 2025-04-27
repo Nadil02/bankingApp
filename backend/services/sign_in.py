@@ -56,7 +56,8 @@ async def storeAndSendOtp(next_otp_id: int, phone_number: str):
 
     await collection_OTP.insert_one(otp_data.dict(by_alias=True))  # Convert OTP model to dictionary
     message="hi this is banking app. Your OTP for sign in is: "+otp
-    #send_sms(phone_number, message=message)
+    # send_sms(phone_number, message=message)
+    
 async def otp_validation(otp_request: OtpRequest) -> OtpResponse:
     
     otp_data = await collection_OTP.find_one({"otp_id": otp_request.otp_id, "otp": otp_request.otp})

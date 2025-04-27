@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import JSONResponse
 from schemas.chatbot import ChatbotRequest, ChatbotResponse
-from services.chatbotTest import get_chatbot_response
+from services.chatbotTest import get_chatbot_response, get_user_image_service
 from services.llmAgentTools import replace_dummy_values, sanizedData, desanizedData
 import ast
 import re
@@ -9,6 +10,7 @@ router= APIRouter()
 
 @router.post("/chatbot")
 async def chatbot_endpoint(query: ChatbotRequest):
+    print("query :",query.query)
     sanitizedData = await sanizedData(query)  #returns a string
     print("WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW")
     print("sanitizedData :",sanitizedData)
@@ -22,3 +24,11 @@ async def chatbot_endpoint(query: ChatbotRequest):
     # acutal_values = "{'@amount1': '1000', '@name1': 'john'}"
     # result = await desanizedData(item, acutal_values)
     return {"response" : responseText}
+
+@router.get("/health")
+async def health_check():
+    return JSONResponse(content={"status": "ok", "message": "Server is running"})
+
+@router.get("/chatbot/user_image")
+async def get_user_image(user_id: int):
+    return await get_user_image_service(user_id)

@@ -75,7 +75,7 @@ async def storeAndSendOtp(next_otp_id: int, phone_number: str):
 
     await collection_OTP.insert_one(otp_data.dict(by_alias=True))  # Convert OTP model to dictionary
     message="hi this is banking app. Your OTP for forgot password in is: "+otp
-    #send_sms(phone_number, message=message)
+    # send_sms(phone_number, message=message)
 
 async def forgot_password_otp_resend_request_service(request: ForgotPasswordOtpResendRequestSchema) -> ForgotPasswordOtpResendResponseSchema:
     nic_bytes = request.nic.encode('utf-8')
