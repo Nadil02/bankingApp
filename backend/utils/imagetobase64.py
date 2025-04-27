@@ -20,8 +20,5 @@ def convert_image_to_base64(image_path):
 image_path = '../download.png'  # change this to your image path
 base64_string = convert_image_to_base64(image_path)
 
-
-print("image to base64 : " + base64_string)  # This will print the base64 string
-
-encrypted_string = encrypt(base64_string)
-print("encrypted string : " + encrypted_string)  # This will print the encrypted string
+print(type(base64_string))  # Check the type of the base64 string
+print("Base64 String: ", base64_string) 
