@@ -2,10 +2,11 @@ import hashlib
 import json
 import random
 import bcrypt
+from typing import List
 from bson import json_util
 from utils.encrypt_and_decrypt import decrypt
 from database import collection_account, collection_bank, collection_user, collection_OTP
-from schemas.bankAccountManagement import AccountRemove, AccountAdd,BankAccount,RemoveAccountResponse,BankAccountAddResponse,OtpRequestAccountAdding,OtpResponseAccountAdding,OtpRequestAccountAddingResend,OtpResponseAccountAddingResend
+from schemas.bankAccountManagement import AccountRemove, AccountAdd,BankAccount,RemoveAccountResponse,BankAccountAddResponse,OtpRequestAccountAdding,OtpResponseAccountAdding,OtpRequestAccountAddingResend,OtpResponseAccountAddingResend, BankInfo
 from models import OTP, account
 from utils.OTP import send_sms
 # get bank account details
@@ -142,4 +143,18 @@ async def resend_otp_account_add(otp_request: OtpRequestAccountAddingResend) -> 
     await storeAndSendOtp(next_otp_id, user_phone_number)
 
     return OtpResponseAccountAddingResend(status="success", message="otp sent successfully.")
+
+
+async def get_all_banks() -> List[BankInfo]:
+    bank_list = []
+    banks = await collection_bank.find(
+        {}, 
+        {"bank_id": 1, "bank_name": 1, "logo": 1, "_id": 0}
+    ).to_list(length=100)
+    for bank in banks:
+        bank_data = {**bank}
+        bank_list.append(BankInfo(**bank_data))
+    return bank_list
+
+
 

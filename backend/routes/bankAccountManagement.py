@@ -1,6 +1,6 @@
 from fastapi import APIRouter
-from services.bankAccountManagement import getBankAccountDetails, removeBankAccount, addBankAccount, otp_validation_account_add, resend_otp_account_add
-from schemas.bankAccountManagement import AccountRemove, AccountAdd,BankAccount, BankAccountAddResponse, OtpRequestAccountAdding, OtpRequestAccountAddingResend, OtpResponseAccountAdding, OtpResponseAccountAddingResend,RemoveAccountResponse
+from services.bankAccountManagement import getBankAccountDetails, removeBankAccount, addBankAccount, otp_validation_account_add, resend_otp_account_add, get_all_banks
+from schemas.bankAccountManagement import AccountRemove, AccountAdd,BankAccount, BankAccountAddResponse, OtpRequestAccountAdding, OtpRequestAccountAddingResend, OtpResponseAccountAdding, OtpResponseAccountAddingResend,RemoveAccountResponse, BankListResponse
 
 router = APIRouter(prefix="/bankAccountManagement", tags=["bankAccountManagement"])
 
@@ -23,3 +23,25 @@ async def otpAdding(request: OtpRequestAccountAdding):
 @router.post("/resendOtpAccountAdding", response_model=OtpResponseAccountAddingResend)
 async def resendOtpAdding(request: OtpRequestAccountAddingResend):
     return await resend_otp_account_add(request)
+
+@router.get("/getAllBanks", response_model=BankListResponse)
+async def fetch_all_banks():
+    try:
+        banks = await get_all_banks()
+        if not banks:
+            return BankListResponse(
+                status="success",
+                message="No banks found",
+                data=[]
+            )
+        return BankListResponse(
+            status="success",
+            message="Banks retrieved successfully",
+            data=banks
+        )
+    except Exception as e:
+        return BankListResponse(
+            status="error",
+            message=str(e),
+            data=None
+        )
