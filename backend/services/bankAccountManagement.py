@@ -116,7 +116,8 @@ async def otp_validation_account_add(otp_request: OtpRequestAccountAdding) -> Ot
         next_account_id = last_account["account_id"] + 1
     else:
         next_account_id = 1  #from 1 if no account exist
-
+    print("last ac id",last_account["account_id"])
+    print("next ac id",next_account_id)
     print("before")    
     accountData = account(
         bank_id=bankId,
@@ -128,7 +129,7 @@ async def otp_validation_account_add(otp_request: OtpRequestAccountAdding) -> Ot
         # due_date="",
         balance=0
     )
-    print("after")
+    print("after",accountData)
     await collection_account.insert_one(accountData.dict(by_alias=True))  #convert user model to dictionary
 
     return OtpResponseAccountAdding(status="success", message="OTP verified and account added successfully.")    
