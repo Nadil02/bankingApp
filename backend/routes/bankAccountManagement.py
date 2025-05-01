@@ -18,6 +18,7 @@ async def addAccount(user_id: int, request: AccountAdd):
 
 @router.post("/otpAccountAdding", response_model=OtpResponseAccountAdding)
 async def otpAdding(request: OtpRequestAccountAdding):
+    print("at router otpAdding")
     return await otp_validation_account_add(request)
 
 @router.post("/resendOtpAccountAdding", response_model=OtpResponseAccountAddingResend)

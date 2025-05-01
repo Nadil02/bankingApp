@@ -98,7 +98,7 @@ async def storeAndSendOtp(next_otp_id: int, phone_number: str):
     send_sms(phone_number, message=message)
 
 async def otp_validation_account_add(otp_request: OtpRequestAccountAdding) -> OtpResponseAccountAdding:
-    
+    print("inside")
     otp_data = await collection_OTP.find_one({"otp_id": otp_request.otp_id, "otp": otp_request.otp})
     if not otp_data:
         return OtpResponseAccountAdding(status="error", message="Invalid OTP.")
@@ -117,7 +117,7 @@ async def otp_validation_account_add(otp_request: OtpRequestAccountAdding) -> Ot
     else:
         next_account_id = 1  #from 1 if no account exist
 
-    
+    print("before")    
     accountData = account(
         bank_id=bankId,
         account_id=next_account_id,
@@ -128,7 +128,7 @@ async def otp_validation_account_add(otp_request: OtpRequestAccountAdding) -> Ot
         # due_date="",
         balance=0
     )
-
+    print("after")
     await collection_account.insert_one(accountData.dict(by_alias=True))  #convert user model to dictionary
 
     return OtpResponseAccountAdding(status="success", message="OTP verified and account added successfully.")    
