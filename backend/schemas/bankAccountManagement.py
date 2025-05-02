@@ -52,3 +52,15 @@ class OtpResponseAccountAddingResend(BaseModel):
 class OtpRequestAccountAddingResend(BaseModel):
     user_id: int
     otp_id: int
+
+
+
+class BankInfo(BaseModel):
+    bank_id: int
+    bank_name: str
+    logo: str
+
+class BankListResponse(BaseModel):
+    status: str
+    message: Optional[str] = None
+    data: Optional[List[BankInfo]] = None

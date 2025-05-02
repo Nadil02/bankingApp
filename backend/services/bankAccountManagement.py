@@ -2,10 +2,11 @@ import hashlib
 import json
 import random
 import bcrypt
+from typing import List
 from bson import json_util
 from utils.encrypt_and_decrypt import decrypt
 from database import collection_account, collection_bank, collection_user, collection_OTP
-from schemas.bankAccountManagement import AccountRemove, AccountAdd,BankAccount,RemoveAccountResponse,BankAccountAddResponse,OtpRequestAccountAdding,OtpResponseAccountAdding,OtpRequestAccountAddingResend,OtpResponseAccountAddingResend
+from schemas.bankAccountManagement import AccountRemove, AccountAdd,BankAccount,RemoveAccountResponse,BankAccountAddResponse,OtpRequestAccountAdding,OtpResponseAccountAdding,OtpRequestAccountAddingResend,OtpResponseAccountAddingResend, BankInfo
 from models import OTP, account
 from utils.OTP import send_sms
 import os
@@ -97,7 +98,7 @@ async def storeAndSendOtp(next_otp_id: int, phone_number: str):
     send_sms(phone_number, message=message)
 
 async def otp_validation_account_add(otp_request: OtpRequestAccountAdding) -> OtpResponseAccountAdding:
-    
+    print("inside")
     otp_data = await collection_OTP.find_one({"otp_id": otp_request.otp_id, "otp": otp_request.otp})
     if not otp_data:
         return OtpResponseAccountAdding(status="error", message="Invalid OTP.")
@@ -115,8 +116,9 @@ async def otp_validation_account_add(otp_request: OtpRequestAccountAdding) -> Ot
         next_account_id = last_account["account_id"] + 1
     else:
         next_account_id = 1  #from 1 if no account exist
-
-    
+    print("last ac id",last_account["account_id"])
+    print("next ac id",next_account_id)
+    print("before")    
     accountData = account(
         bank_id=bankId,
         account_id=next_account_id,
@@ -127,7 +129,7 @@ async def otp_validation_account_add(otp_request: OtpRequestAccountAdding) -> Ot
         # due_date="",
         balance=0
     )
-
+    print("after",accountData)
     await collection_account.insert_one(accountData.dict(by_alias=True))  #convert user model to dictionary
 
     return OtpResponseAccountAdding(status="success", message="OTP verified and account added successfully.")    
@@ -146,4 +148,18 @@ async def resend_otp_account_add(otp_request: OtpRequestAccountAddingResend) -> 
     await storeAndSendOtp(next_otp_id, user_phone_number)
 
     return OtpResponseAccountAddingResend(status="success", message="otp sent successfully.")
+
+
+async def get_all_banks() -> List[BankInfo]:
+    bank_list = []
+    banks = await collection_bank.find(
+        {}, 
+        {"bank_id": 1, "bank_name": 1, "logo": 1, "_id": 0}
+    ).to_list(length=100)
+    for bank in banks:
+        bank_data = {**bank}
+        bank_list.append(BankInfo(**bank_data))
+    return bank_list
+
+
 

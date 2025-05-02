@@ -20,8 +20,8 @@ class user(BaseModel):
 
 
 class account(BaseModel):
-    bank_id: str
-    account_id: int =Field(default_factory=lambda: int(uuid4()), alias="_id")
+    bank_id: int
+    account_id: int
     user_id: int
     account_number: int
     account_type: str
