@@ -48,6 +48,7 @@ class OtpResponseAccountAdding(BaseModel):
 class OtpResponseAccountAddingResend(BaseModel):
     status: str
     message: str
+    otp_id: int
 
 class OtpRequestAccountAddingResend(BaseModel):
     user_id: int

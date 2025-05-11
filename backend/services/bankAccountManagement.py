@@ -95,7 +95,7 @@ async def storeAndSendOtp(next_otp_id: int, phone_number: str):
 
     await collection_OTP.insert_one(otp_data.dict(by_alias=True))  # Convert OTP model to dictionary
     message="hi this is banking app. Your OTP for add account is: "+otp
-    send_sms(phone_number, message=message)
+    #send_sms(phone_number, message=message)
 
 async def otp_validation_account_add(otp_request: OtpRequestAccountAdding) -> OtpResponseAccountAdding:
     print("inside")
@@ -147,7 +147,7 @@ async def resend_otp_account_add(otp_request: OtpRequestAccountAddingResend) -> 
 
     await storeAndSendOtp(next_otp_id, user_phone_number)
 
-    return OtpResponseAccountAddingResend(status="success", message="otp sent successfully.")
+    return OtpResponseAccountAddingResend(status="success", message="otp sent successfully.",otp_id=next_otp_id)
 
 
 async def get_all_banks() -> List[BankInfo]:

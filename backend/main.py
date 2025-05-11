@@ -6,7 +6,7 @@ from routes.dashboard import router as dashboard_router
 from routes import user_login  # import the combined router from routes.py
 from routes import sign_in, forgot_password,transaction_categorization
 from routes import sign_in, forgot_password, transaction_history
-from routes import sign_in, forgot_password,change_password, settings
+from routes import sign_in, forgot_password,change_password, settings, incomeExpensePredictions
 from fastapi.middleware.cors import CORSMiddleware
 
 # initialize FastAPI app
@@ -23,6 +23,7 @@ app.include_router(transaction_categorization.router)
 app.include_router(transaction_history.router)
 app.include_router(change_password.router)
 app.include_router(settings.router)
+app.include_router(incomeExpensePredictions.router)
 
 app.add_middleware(
     CORSMiddleware,
