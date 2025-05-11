@@ -180,38 +180,50 @@ async def fetch_predicted_data(
     end_date: datetime,
     days: int
 ) -> Dict[str, List[Dict[str, Any]]]:
-    start_date_future = end_date
-    end_date_future = end_date + timedelta(days=days)
+    start_date_future = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
+    end_date_future = (end_date + timedelta(days=days)).replace(hour=0, minute=0, second=0, microsecond=0)
+    print("start_date_future",start_date_future)
+    print("end_date_future",end_date_future)
+    
+    amount_pipeline = [
+        {"$match": {
+            "account_id": {"$in": account_ids},
+            "Date": {"$gte": start_date_future, "$lte": end_date_future}
+        }},
+        {"$group": {
+            "_id": "$Date",
+            "total_amount": {"$sum": "$amount"}
+        }},
+        {"$sort": {"_id": 1}}
+    ]
 
-    transaction_pipeline = [
-        {
-            "$match": {
-                "account_id": {"$in": account_ids},
-                "date": {"$gte": start_date_future, "$lte": end_date_future}
-            }
-        },
-        {
-            "$group": {
-                "_id": "$date",
-                "total_amount": {"$sum": "$amount"},  # Sum amounts across accounts
-                "total_balance": {"$sum": "$balance"}  # Sum balances across accounts
-            }
-        },
-        {
-            "$sort": {"_id": 1}
-        }
+    balance_pipeline = [
+        {"$match": {
+            "account_id": {"$in": account_ids},
+            "Date": {"$gte": start_date_future, "$lte": end_date_future}
+        }},
+        {"$group": {
+            "_id": "$Date",
+            "total_balance": {"$sum": "$balance"}
+        }},
+        {"$sort": {"_id": 1}} 
     ]
 
     # Fetch predicted data for all accounts
-    predicted_income_data = await collection_predicted_income.aggregate(transaction_pipeline).to_list(None)
-    predicted_expense_data = await collection_predicted_expense.aggregate(transaction_pipeline).to_list(None)
-    predicted_balance_data = await collection_predicted_balance.aggregate(transaction_pipeline).to_list(None)
+    predicted_income_data = await collection_predicted_income.aggregate(amount_pipeline).to_list(None)
+    predicted_expense_data = await collection_predicted_expense.aggregate(amount_pipeline).to_list(None)
+    predicted_balance_data = await collection_predicted_balance.aggregate(balance_pipeline).to_list(None)
 
+    for data in predicted_income_data:
+        if data["_id"] is None:
+            print("Warning: Aggregation result with missing date:", data)
     # Convert transaction data into dictionaries for quick lookup
     income_dict = {data["_id"].date(): data["total_amount"] for data in predicted_income_data}
     expense_dict = {data["_id"].date(): data["total_amount"] for data in predicted_expense_data}
     balance_dict = {data["_id"].date(): data["total_balance"] for data in predicted_balance_data}
 
+    print("predicted_income_data",income_dict)
+    
     income_list = []
     expense_list = []
     balance_list = []
@@ -282,8 +294,8 @@ async def load_full_details(user_id:int,start_date: Optional[str] = None,end_dat
     #take account id and account details based on user id
     account_ids, account_list = await all_accounts(user_id)
     print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-    print("account_ids", account_ids)
-    print("account_list", account_list)
+    # print("account_ids", account_ids)
+    # print("account_list", account_list)
     saving_account_ids = [account["account_id"] for account in account_list if account["account_type"] == "savings"]
     credit_card_ids = [account["account_id"] for account in account_list if account["account_type"] == "credit"]
     #get total balance of saving accounts
@@ -303,7 +315,7 @@ async def load_full_details(user_id:int,start_date: Optional[str] = None,end_dat
         predicted_transaction_7_days = await fetch_predicted_data(saving_account_ids, end_date,8)
         most_spending_category_100_days = await fetch_most_spent_category_100_days(saving_account_ids,end_date) 
         date = {"start_date": start_date, "end_date": end_date}
-        print("account_list at not start date",account_list)
+        # print("account_list at not start date",account_list)
         user_details = await collection_user.find_one({"user_id": user_id},{"_id":0,"username":1})
         userName=decrypt(user_details["username"])
         return ResponseSchema(
