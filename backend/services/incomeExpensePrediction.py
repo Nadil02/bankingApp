@@ -12,7 +12,6 @@ async def get_account_details_prediction(user_id: int) -> dict:
     if len(accounts) == 0:
         return {"message": "No accounts found"}
 
-    # Fetch bank details for each account
     for account in accounts:
         bank_id = account.get("bank_id")
         if bank_id:
@@ -44,8 +43,6 @@ async def replace_category_ids_with_names(predictions: list[dict]) -> list[dict]
 async def get_predictions_for_account(user_id: int, account_id: int) -> dict:
     today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     end_date = today + timedelta(days=31)
-
-    # Fetch and filter by date range
     expense_predictions = await collection_predicted_expense.find(
         {
             "user_id": user_id,
@@ -64,14 +61,11 @@ async def get_predictions_for_account(user_id: int, account_id: int) -> dict:
         {"_id": 0}
     ).to_list(length=None)
 
-    # Add transaction_type
     for item in expense_predictions:
         item["transaction_type"] = "debit"
 
     for item in income_predictions:
         item["transaction_type"] = "credit"
-
-    # Replace category_id with category_name
     expense_predictions = await replace_category_ids_with_names(expense_predictions)
     income_predictions = await replace_category_ids_with_names(income_predictions)
 
