@@ -188,10 +188,10 @@ async def fetch_predicted_data(
     amount_pipeline = [
         {"$match": {
             "account_id": {"$in": account_ids},
-            "Date": {"$gte": start_date_future, "$lte": end_date_future}
+            "date": {"$gte": start_date_future, "$lte": end_date_future}
         }},
         {"$group": {
-            "_id": "$Date",
+            "_id": "$date",
             "total_amount": {"$sum": "$amount"}
         }},
         {"$sort": {"_id": 1}}
@@ -200,10 +200,10 @@ async def fetch_predicted_data(
     balance_pipeline = [
         {"$match": {
             "account_id": {"$in": account_ids},
-            "Date": {"$gte": start_date_future, "$lte": end_date_future}
+            "date": {"$gte": start_date_future, "$lte": end_date_future}
         }},
         {"$group": {
-            "_id": "$Date",
+            "_id": "$date",
             "total_balance": {"$sum": "$balance"}
         }},
         {"$sort": {"_id": 1}} 
@@ -223,6 +223,8 @@ async def fetch_predicted_data(
     balance_dict = {data["_id"].date(): data["total_balance"] for data in predicted_balance_data}
 
     print("predicted_income_data",income_dict)
+    print("predicted_expense_data",expense_dict)
+    print("predicted_balance_data",balance_dict)
     
     income_list = []
     expense_list = []
