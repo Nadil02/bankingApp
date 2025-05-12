@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
-from database import collection_account, collection_bank, collection_predicted_income, collection_predicted_expense, collection_transaction_category
+from database import collection_account, collection_bank, collection_predicted_income, collection_predicted_expense, collection_transaction_category, collection_predicted_balance
 from schemas.incomeExpenseprediction import all_ac_details_response_prediction
+from collections import defaultdict
 
 
 async def get_account_details_prediction(user_id: int) -> dict:
@@ -73,3 +74,92 @@ async def get_predictions_for_account(user_id: int, account_id: int) -> dict:
         "expenses": expense_predictions,
         "income": income_predictions
     }
+
+
+async def get_account_balance(user_id: int):
+    today = datetime.today().date()
+    tomorrow = today + timedelta(days=1)
+    date_range = [(tomorrow + timedelta(days=i)).isoformat() for i in range(30)]
+
+    # Fetch predicted balances for the user
+    predicted_balances = await collection_predicted_balance.find(
+        {"user_id": user_id},
+        {"_id": 0, "account_id": 1, "balance": 1, "date": 1}
+    ).to_list(length=None)
+    print("predicted_balances", predicted_balances)
+
+    # Group balance by date
+    balance_by_date = defaultdict(float)
+    for item in predicted_balances:
+        date_obj = item.get("date")
+        if date_obj:
+            date_str = date_obj.date().isoformat()
+            balance_by_date[date_str] += item.get("balance", 0)
+    print("balance_by_date", balance_by_date)
+
+    # Get unique account IDs
+    account_ids = set(item["account_id"] for item in predicted_balances if "account_id" in item)
+
+    return_dict = {
+        "total_balance": 0,
+        "account_details": [],
+        "predicted_amounts": []
+    }
+
+    total_balance = []
+    income_by_date = defaultdict(float)
+    expense_by_date = defaultdict(float)
+
+    # Account details
+    for account_id in account_ids:
+        account_details = await collection_account.find_one(
+            {"account_id": account_id},
+            {"_id": 0, "account_number": 1, "account_type": 1, "balance": 1}
+        )
+        if account_details:
+            total_balance.append(account_details.get("balance", 0))
+            return_dict["account_details"].append({
+                "account_number": account_details.get("account_number"),
+                "account_type": account_details.get("account_type"),
+                "balance": account_details.get("balance"),
+                "account_id": account_id
+            })
+
+    # Fetch all predicted income docs for the user
+    predicted_income_docs = await collection_predicted_income.find(
+        {"user_id": user_id},
+        {"_id": 0, "Date": 1, "amount": 1}
+    ).to_list(length=None)
+
+    for doc in predicted_income_docs:
+        date_obj = doc.get("Date")
+        if date_obj:
+            date_str = date_obj.date().isoformat()
+            income_by_date[date_str] += doc.get("amount", 0)
+
+    # Fetch all predicted expense docs for the user
+    predicted_expense_docs = await collection_predicted_expense.find(
+        {"user_id": user_id},
+        {"_id": 0, "Date": 1, "amount": 1}
+    ).to_list(length=None)
+
+    for doc in predicted_expense_docs:
+        date_obj = doc.get("Date")
+        if date_obj:
+            date_str = date_obj.date().isoformat()
+            expense_by_date[date_str] += doc.get("amount", 0)
+
+    # Compose predicted amounts per date
+    for date in date_range:
+        return_dict["predicted_amounts"].append({
+            "date": date,
+            "income": income_by_date.get(date, 0),
+            "expense": expense_by_date.get(date, 0),
+            "balance": balance_by_date.get(date, 0)
+        })
+
+    return_dict["total_balance"] = sum(total_balance)
+    return return_dict
+
+
+
