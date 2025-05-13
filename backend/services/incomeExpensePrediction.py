@@ -162,4 +162,63 @@ async def get_account_balance(user_id: int):
     return return_dict
 
 
+async def get_specific_account_balance(account_id: int):
+    today = datetime.utcnow().date()
+    next_30_days = [(today + timedelta(days=i)).isoformat() for i in range(30)]
+
+    # Fetch balance
+    predicted_balance = await collection_predicted_balance.find(
+        {"account_id": account_id},
+        {"_id": 0, "balance": 1, "date": 1}
+    ).to_list(length=None)
+
+    # Fetch income
+    predicted_income = await collection_predicted_income.find(
+        {"account_id": account_id},
+        {"_id": 0, "Date": 1, "amount": 1}
+    ).to_list(length=None)
+
+    # Fetch expense
+    predicted_expense = await collection_predicted_expense.find(
+        {"account_id": account_id},
+        {"_id": 0, "Date": 1, "amount": 1}
+    ).to_list(length=None)
+
+    # Group by date
+    balance_by_date = defaultdict(float)
+    income_by_date = defaultdict(float)
+    expense_by_date = defaultdict(float)
+
+    for record in predicted_balance:
+        date_obj = record.get("date")
+        if date_obj:
+            date_str = date_obj.date().isoformat()
+            balance_by_date[date_str] = record.get("balance", 0)
+
+    for record in predicted_income:
+        date_obj = record.get("Date")
+        if date_obj:
+            date_str = date_obj.date().isoformat()
+            income_by_date[date_str] += record.get("amount", 0)
+
+    for record in predicted_expense:
+        date_obj = record.get("Date")
+        if date_obj:
+            date_str = date_obj.date().isoformat()
+            expense_by_date[date_str] += record.get("amount", 0)
+
+    # Combine into result
+    result = []
+    for date in next_30_days:
+        result.append({
+            "date": date,
+            "balance": balance_by_date.get(date, 0),
+            "income": income_by_date.get(date, 0),
+            "expense": expense_by_date.get(date, 0)
+        })
+
+    return result
+
+
+
 

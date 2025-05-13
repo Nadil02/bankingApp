@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from services.incomeExpensePrediction import get_account_details_prediction, get_account_balance
+from services.incomeExpensePrediction import get_account_details_prediction, get_account_balance, get_specific_account_balance
 from schemas.incomeExpenseprediction import AccountPredictionResponse
 
 router = APIRouter(prefix="/income_expense-prediction", tags=["Income Expense Predictions"])
@@ -23,7 +23,6 @@ async def get_predicted_account_balance(user_id: int):
     return await get_account_balance(user_id)
 
 # get predicted account balance for specific account
-@router.get("/specific_account_balance", response_model=AccountPredictionResponse)
-async def get_account_balance_by_id(user_id: int, account_id: int) -> AccountPredictionResponse:
-    from services.incomeExpensePrediction import get_account_balance
-    return await get_account_balance(user_id, account_id)
+@router.get("/specific_account_balance")
+async def get_account_balance_by_id(account_id: int):
+    return await get_specific_account_balance(account_id)

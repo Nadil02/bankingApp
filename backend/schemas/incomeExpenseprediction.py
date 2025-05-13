@@ -26,3 +26,10 @@ class PredictionItem(BaseModel):
 class AccountPredictionResponse(BaseModel):
     expenses: list[PredictionItem]
     income: list[PredictionItem]
+
+class AllAccountBalanceResponse(BaseModel):
+    account_id: int
+    account_number: int
+    account_type: str
+    balance: float
+    image_url: Optional[str] = None
