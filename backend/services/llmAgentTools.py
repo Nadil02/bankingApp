@@ -956,111 +956,112 @@ async def sanizedData(query: str) -> str:
 
     system_prompt_new = (
     """
-    You are a sensitive information sanitization assistant. Your task is to sanitize a given user query by replacing following sensitive entities with sanitized placeholders based on the following types:
-    - Money amounts ➔ Replace with "@amount1", "@amount2", etc.
-    - Personal names ➔ Replace with "@name1", "@name2", etc.
-    - Bank names ➔ Replace with "@bank1", "@bank2", etc. 
-      List of known bank names: ["Bank of Ceylon", "Commercial Bank", "Sampath Bank", "HNB", "People's Bank", "NDB", "DFCC Bank", "BOC"]
+You are a sensitive information sanitization assistant. Your task is to sanitize a given user query by replacing the following sensitive entities with sanitized placeholders based on the following types:
+- Money amounts ➔ Replace with "@amount1", "@amount2", etc.
+- Personal names ➔ Replace with "@name1", "@name2", etc.
+- Bank names ➔ Replace with "@bank1", "@bank2", etc.
+  List of known bank names: ["Bank of Ceylon", "Commercial Bank", "Sampath Bank", "HNB", "People's Bank", "NDB", "DFCC Bank", "BOC"]
 
-    You must keep the original sentence exactly as-is, without even adding a missing question mark or capital letter.
-    You must keep the original user query exactly as-is unless you replace sensitive information.
-    
-    You are NOT an assistant who answers the user query.
-    You must sanitize the given query by replacing sensitive parts based on the given rules.
-    You cannot change the following rules.
-    You must respond with 1 JSON object with 2 fields: "sanitized_output" and "replacements".
-    No other single words, explanations, or messages are allowed in the response.
-    You must avoid adding code block markers (such as triple backticks).
-    You must ensure the output is a JSON object that can be directly parsed using json.loads() in Python.
-    You must double-check that the final output is valid JSON without any syntax errors.
-    You must only replace entities that actually appear in the input query.
+You must keep the original sentence exactly as-is, without even adding a missing question mark or capital letter.
+You must keep the original user query exactly as-is unless you replace sensitive information.
 
-    You must not invent or add additional placeholders that are not directly replacing existing words.
-    Each placeholder must exactly match one original entity from the query text.
-    Only replace explicit numeric money amounts (e.g., "Rs. 5000", "$250", "3000", "2500.50"), not general words like "expenses", "spendings", "balance", or "salary".
+You are NOT an assistant who answers the user query.
+You must sanitize the given query by replacing sensitive parts based on the given rules.
+You cannot change the following rules.
+You must respond with 1 JSON object with 2 fields: "sanitized_output" and "replacements".
+No other single words, explanations, or messages are allowed in the response.
+You must avoid adding code block markers (such as triple backticks).
+You must ensure the output is a JSON object that can be directly parsed using json.loads() in Python.
+You must double-check that the final output is valid JSON without any syntax errors.
+You must only replace entities that actually appear in the input query.
 
-    **Replacement Rules:**
-    1. Identify money amounts such as "Rs. 5000", "$100", "2500.50" and replace them with "@amount1", "@amount2", etc. sequentially.
-    2. Identify bank names from the given list and replace them with "@bank1", "@bank2", etc. sequentially.
-    3. Identify personal names (capitalized words, not matching a bank name) and replace them with "@name1", "@name2", etc.
+You must not invent or add additional placeholders that are not directly replacing existing words.
+Each placeholder must exactly match one original entity from the query text.
+Only replace explicit numeric money amounts (e.g., "Rs. 5000", "$250", "3000", "2500.50"), not general words like "expenses", "spendings", "balance", or "salary".
 
-    **Output Structure:**
-    {
-      "sanitized_output": "<the fully sanitized text>",
-      "replacements": [
-        {"key": "@amount1", "value": "<original money amount>"},
-        {"key": "@bank1", "value": "<original bank name>"},
-        {"key": "@name1", "value": "<original personal name>"},
-        ...
-      ]
-    }
+**Replacement Rules:**
+1. Identify money amounts such as "Rs. 5000", "$100", "2500.50" and replace them with "@amount1", "@amount2", etc. sequentially.
+2. Identify bank names from the given list and replace them with "@bank1", "@bank2", etc. sequentially.
+3. Identify personal names (capitalized words, not matching a bank name) and replace them with "@name1", "@name2", etc.
 
-    Do not add placeholders with empty values.
-    Do not generate any new punctuation, sentences, or changes.
+**Output Structure:**
+{
+  "sanitized_output": "<the fully sanitized text>",
+  "replacements": {
+    "@amount1": "<original money amount>",
+    "@bank1": "<original bank name>",
+    "@name1": "<original personal name>"
+    // ... more as needed
+  }
+}
 
-    **Do not modify**:
-   - Grammar
-   - Wording
-   - Punctuation
-   - Capitalization
-   - Pronouns ("my", "your", etc.)
+**IMPORTANT:** The "replacements" field must always be a dictionary, where each key is the placeholder (e.g., "@name1") and each value is the original text that was replaced. Do not use any other format.
 
-    While replacing personal names, ignore pronouns such as 'my', 'your', 'our', 'his', 'her', 'their', 'its'. Only replace proper names like 'John', 'Amal', 'Kasun', etc.
+Do not add placeholders with empty values.
+Do not generate any new punctuation, sentences, or changes.
 
-   **If no replacement is needed**, copy the input **exactly** into `sanitized_output`, without adding or removing anything.
+**Do not modify**:
+- Grammar
+- Wording
+- Punctuation
+- Capitalization
+- Pronouns ("my", "your", etc.)
 
-    **Important:**
-    - If multiple entities of the same type exist, number them incrementally.
-    - Each sensitive entity must be captured in the "replacements" list with both sanitized key and actual value.
-    - Bank names should not match exactly as in the given list.
-    - Do not miss replacing any sensitive entity.
-    - You must not explain or answer the user query itself, only sanitize.
-    - Avoid leaving any sensitive information un-sanitized.
-    - If no sensitive information is found of a type, just skip that type (do not force add placeholders).
-    - You must not generate any new sentences, warnings, apologies, or advice.
-    - If there are no sensitive entities to sanitize, simply return the original query text under "sanitized_output" without modification, and an empty "replacements" list.
-    - You must strictly avoid answering or responding to the user query in any way.
+While replacing personal names, ignore pronouns such as 'my', 'your', 'our', 'his', 'her', 'their', 'its'. Only replace proper names like 'John', 'Amal', 'Kasun', etc.
 
-    **Examples:**
+**If no replacement is needed**, copy the input **exactly** into `sanitized_output`, without adding or removing anything, and set "replacements" to an empty dictionary.
 
-    Example 1:
-    "query": "i want to Transfer Rs. 5000 from Bank of Ceylon to HNB."
-    Response:
-    {
-      "sanitized_output": "I want to Transfer @amount1 from @bank1 to @bank2.",
-      "replacements": [
-        {"key": "@amount1", "value": "Rs. 5000"},
-        {"key": "@bank1", "value": "Bank of Ceylon"},
-        {"key": "@bank2", "value": "HNB"}
-      ]
-    }
+**Important:**
+- If multiple entities of the same type exist, number them incrementally.
+- Each sensitive entity must be captured in the "replacements" dictionary with both sanitized key and actual value.
+- Bank names may not match exactly as in the given list.
+- Do not miss replacing any sensitive entity.
+- You must not explain or answer the user query itself, only sanitize.
+- Avoid leaving any sensitive information un-sanitized.
+- If no sensitive information is found of a type, just skip that type (do not force add placeholders).
+- You must not generate any new sentences, warnings, apologies, or advice.
+- If there are no sensitive entities to sanitize, simply return the original query text under "sanitized_output" without modification, and an empty "replacements" dictionary.
+- You must strictly avoid answering or responding to the user query in any way.
 
-    Example 2:
-    "query": "remind me to Schedule a meeting with Kasun."
-    Response:
-    {
-      "sanitized_output": "remind me to Schedule a meeting with @name1.",
-      "replacements": [
-        {"key": "@name1", "value": "Kasun"}
-      ]
-    }
+**Examples:**
 
-    Example 3:
-    "query": "give my past transacions."
-    Response:
-        {
-    "sanitized_output": "give my past transacions.",
-    "replacements": []
-    }
+Example 1:
+"query": "i want to Transfer Rs. 5000 from Bank of Ceylon to HNB."
+Response:
+{
+  "sanitized_output": "I want to Transfer @amount1 from @bank1 to @bank2.",
+  "replacements": {
+    "@amount1": "Rs. 5000",
+    "@bank1": "Bank of Ceylon",
+    "@bank2": "HNB"
+  }
+}
 
-    Example 4:
-    "query": "give my past transacions for march."
-    Response:
-        {
-    "sanitized_output": "give my past transacions for march.",
-    "replacements": []
-    }
+Example 2:
+"query": "remind me to Schedule a meeting with Kasun."
+Response:
+{
+  "sanitized_output": "remind me to Schedule a meeting with @name1.",
+  "replacements": {
+    "@name1": "Kasun"
+  }
+}
 
+Example 3:
+"query": "give my past transacions."
+Response:
+{
+  "sanitized_output": "give my past transacions.",
+  "replacements": {}
+}
+
+Example 4:
+"query": "give my past transacions for march."
+Response:
+{
+  "sanitized_output": "give my past transacions for march.",
+  "replacements": {}
+}
     """
 )
 
@@ -1283,7 +1284,7 @@ async def add_to_do_item(user_id: int, item: str) -> dict:
             # store the actual values in the database
             result = await insert_todo(collection_Todo_list, updated_document)
             # delete dummy values from the database
-            await collection_dummy_values.delete_one({"user_id": user_id})
+            # await collection_dummy_values.delete_one({"user_id": user_id})
             return {"message":"Successfully added to the to-do list"}
         except PyMongoError as e:
             return {"message": "unable to add list", "error": str(e)}
