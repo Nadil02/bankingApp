@@ -47,6 +47,7 @@ class SelectedAccountResponse(BaseModel):
     most_spent_amount: Optional[float] = 0.0
     negative_balance_prediction: Optional[List[NegativeBalance]] = None
     surplus_accounts: List[Dict[str, Any]] 
+    first_transaction_date: Optional[datetime] = None 
 
 
 ### Adding new pydantic models ###
@@ -99,6 +100,7 @@ class ResponseSchema(BaseModel):
     upcoming_7_days_predictions: Dict[str, List[Dict[str, Any]]]
     most_spending: MostSpending
     date: Date
+    first_transaction_date: Optional[datetime] = None 
 
 class CreditCardResponse(BaseModel):
     credit_limit : float
