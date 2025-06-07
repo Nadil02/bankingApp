@@ -117,6 +117,30 @@ async def fetch_financial_summary(account_ids:list, start_date:datetime, end_dat
 
 
 
+
+
+
+
+async def fetch_first_transaction_date(account_ids: Union[str, List[str]]) -> dict:
+    # Ensure account_ids is a list
+    if isinstance(account_ids, str):
+        account_ids = [account_ids]
+
+    pipeline = [
+        {"$match": {"account_id": {"$in": account_ids}}},
+        {"$sort": {"date": 1}},  # Sort by ascending date
+        {"$limit": 1},           # Get the earliest one
+        {"$project": {"_id": 0, "date": 1}}  # Only return the date field
+    ]
+
+    result = await collection_transaction.aggregate(pipeline).to_list(length=1)
+
+    return {"first_transaction_date": result[0]["date"] if result else None}
+
+
+
+
+
 async def fetch_past_transactions(
     account_ids: list, end_date: datetime, days: int
 ) -> Dict[str, List[Dict[str, Any]]]:
@@ -188,10 +212,10 @@ async def fetch_predicted_data(
     amount_pipeline = [
         {"$match": {
             "account_id": {"$in": account_ids},
-            "Date": {"$gte": start_date_future, "$lte": end_date_future}
+            "date": {"$gte": start_date_future, "$lte": end_date_future}
         }},
         {"$group": {
-            "_id": "$Date",
+            "_id": "$date",
             "total_amount": {"$sum": "$amount"}
         }},
         {"$sort": {"_id": 1}}
@@ -200,10 +224,10 @@ async def fetch_predicted_data(
     balance_pipeline = [
         {"$match": {
             "account_id": {"$in": account_ids},
-            "Date": {"$gte": start_date_future, "$lte": end_date_future}
+            "date": {"$gte": start_date_future, "$lte": end_date_future}
         }},
         {"$group": {
-            "_id": "$Date",
+            "_id": "$date",
             "total_balance": {"$sum": "$balance"}
         }},
         {"$sort": {"_id": 1}} 
@@ -223,6 +247,8 @@ async def fetch_predicted_data(
     balance_dict = {data["_id"].date(): data["total_balance"] for data in predicted_balance_data}
 
     print("predicted_income_data",income_dict)
+    print("predicted_expense_data",expense_dict)
+    print("predicted_balance_data",balance_dict)
     
     income_list = []
     expense_list = []
@@ -318,6 +344,8 @@ async def load_full_details(user_id:int,start_date: Optional[str] = None,end_dat
         # print("account_list at not start date",account_list)
         user_details = await collection_user.find_one({"user_id": user_id},{"_id":0,"username":1})
         userName=decrypt(user_details["username"])
+        first_transaction_info = await fetch_first_transaction_date(saving_account_ids)
+        first_transaction_date = first_transaction_info.get("first_transaction_date")
         return ResponseSchema(
             user_name=userName,
             accounts_list=account_list,
@@ -327,7 +355,8 @@ async def load_full_details(user_id:int,start_date: Optional[str] = None,end_dat
             past_100_days_transactions=past_transaction_100_days,
             upcoming_7_days_predictions=predicted_transaction_7_days,
             most_spending=most_spending_category_100_days,
-            date=date
+            date=date,
+            first_transaction_date=first_transaction_date
         )
     
     else:
@@ -403,7 +432,8 @@ async def load_specific_account(account_id:int,user_id:Optional[int] = None, sta
         most_spending_category_100_days = await fetch_most_spent_category_100_days(account_ids,end_date)
         negative_balance_prediction= await fetch_minus_predicted_balance(account_id)
         surplus_accounts = await check_surplus_accounts( user_id,account_id)
-        return second_header, past_transaction_100_days, predicted_transaction_7_days,most_spending_category_100_days, negative_balance_prediction,surplus_accounts
+        first_transaction_date = await fetch_first_transaction_date(account_ids)
+        return second_header, past_transaction_100_days, predicted_transaction_7_days,most_spending_category_100_days, negative_balance_prediction,surplus_accounts,first_transaction_date
     else:
         print("start_date",start_date)
         print("end_date",end_date)
@@ -454,8 +484,8 @@ async def fetch_most_spent_categories(account_id: int, total_expenses: float,tim
         
         period_id = period["period_id"]
         current_period_start_date = due_date - timedelta(days=30)
-        start_date = current_period_start_date - timedelta(days=period_id * 30)
-        end_date = start_date + timedelta(days=30)
+        start_date = period["start_date"]
+        start_date = period["end_date"]
     else:
         last_period_id =await collection_credit_periods.find_one({"account_id": account_id}, sort=[("period_id", -1)])
         print("last_period_id",last_period_id)
