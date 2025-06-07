@@ -101,8 +101,6 @@ async def get_account_balance(user_id: int):
     account_ids = set(item["account_id"] for item in predicted_balances if "account_id" in item)
 
     return_dict = {
-        "total_balance": 0,
-        "account_details": [],
         "predicted_amounts": []
     }
 
@@ -116,14 +114,14 @@ async def get_account_balance(user_id: int):
             {"account_id": account_id},
             {"_id": 0, "account_number": 1, "account_type": 1, "balance": 1}
         )
-        if account_details:
-            total_balance.append(account_details.get("balance", 0))
-            return_dict["account_details"].append({
-                "account_number": account_details.get("account_number"),
-                "account_type": account_details.get("account_type"),
-                "balance": account_details.get("balance"),
-                "account_id": account_id
-            })
+        # if account_details:
+            # total_balance.append(account_details.get("balance", 0))
+            # return_dict["account_details"].append({
+            #     "account_number": account_details.get("account_number"),
+            #     "account_type": account_details.get("account_type"),
+            #     "balance": account_details.get("balance"),
+            #     "account_id": account_id
+            # })
 
     # Fetch all predicted income docs for the user
     predicted_income_docs = await collection_predicted_income.find(
@@ -157,14 +155,13 @@ async def get_account_balance(user_id: int):
             "expense": expense_by_date.get(date, 0),
             "balance": balance_by_date.get(date, 0)
         })
-
-    return_dict["total_balance"] = sum(total_balance)
     return return_dict
 
 
 async def get_specific_account_balance(account_id: int):
-    today = datetime.utcnow().date()
-    next_30_days = [(today + timedelta(days=i)).isoformat() for i in range(30)]
+    today = datetime.today().date()
+    tomorrow = today + timedelta(days=1)
+    next_30_days = [(tomorrow + timedelta(days=i)).isoformat() for i in range(30)]
 
     # Fetch balance
     predicted_balance = await collection_predicted_balance.find(
@@ -183,6 +180,10 @@ async def get_specific_account_balance(account_id: int):
         {"account_id": account_id},
         {"_id": 0, "Date": 1, "amount": 1}
     ).to_list(length=None)
+
+    return_dict = {
+        "predicted_amounts": []
+    }
 
     # Group by date
     balance_by_date = defaultdict(float)
@@ -208,16 +209,15 @@ async def get_specific_account_balance(account_id: int):
             expense_by_date[date_str] += record.get("amount", 0)
 
     # Combine into result
-    result = []
     for date in next_30_days:
-        result.append({
+        return_dict["predicted_amounts"].append({
             "date": date,
             "balance": balance_by_date.get(date, 0),
             "income": income_by_date.get(date, 0),
             "expense": expense_by_date.get(date, 0)
         })
 
-    return result
+    return return_dict
 
 
 
