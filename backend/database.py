@@ -31,4 +31,5 @@ collection_transaction_category = db["transaction_category"]
 collection_credit_periods = db["credit_periods"]
 collection_dummy_values = db["user_dummy"]
 collection_credit_periods = db["credit_periods"]
+collection_expo_tokens = db["expo_tokens"]
 
