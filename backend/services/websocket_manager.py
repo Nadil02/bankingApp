@@ -1,7 +1,7 @@
-from typing import Dict
 from fastapi import WebSocket
-import json
 from bson import json_util
+import json
+from typing import Dict
 
 class WebSocketManager:
     def __init__(self):
@@ -18,9 +18,14 @@ class WebSocketManager:
     async def send_personal_message(self, message: dict, user_id: int):
         if user_id in self.active_connections:
             try:
-                await self.active_connections[user_id].send_json(message)
-            except:
+                # Serialize datetime-safe message using bson
+                safe_message = json.loads(json_util.dumps(message))
+                await self.active_connections[user_id].send_json(safe_message)
+            except Exception as e:
+                print(f"WebSocket send error: {e}")
                 self.disconnect(user_id)
+
+
 
 # Global instance
 websocket_manager = WebSocketManager()
