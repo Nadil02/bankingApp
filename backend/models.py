@@ -3,7 +3,7 @@ from typing import Optional, List, Dict
 from datetime import datetime
 from uuid import uuid4
 from typing import List, Dict, Any
-
+from enum import Enum
 
  
 class user(BaseModel):
@@ -98,14 +98,25 @@ class PredictedIncome(BaseModel):
 
 
 
+
+class NotificationType(str, Enum):
+    INSUFFICIENT_BALANCE = "IN"
+    TODO_REMINDER = "TO"
+
 class Notification(BaseModel):
-    user_id: str
-    notification_id: int
-    description: str
-    date: datetime
-    time: datetime
-    notification_type: str 
-    status: str  
+    type: Optional[NotificationType]
+    account_id: Optional[int]
+    minus_balance: Optional[float]
+    transaction_date: Optional[datetime]
+    todo_amount: Optional[float]
+    todo_date: Optional[datetime]
+    user_id: int
+    seen: bool = False
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class TokenPayload(BaseModel):
+    user_id: int
+    token: str
 
 
 
