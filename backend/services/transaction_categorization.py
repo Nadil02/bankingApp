@@ -1,6 +1,6 @@
 from datetime import datetime
 from schemas.transaction_categorization import CategoryDetails, Transaction, all_ac_details_response, category_details_response, categorize_transaction_confirmation_response, CategorizeTransactionConfirmationRequest, edit_category_name_request, edit_category_name_response, remove_this_transaction_from_category_response
-from database import collection_account, collection_bank, collection_transaction, collection_transaction_category
+from database import collection_account, collection_bank, collection_transaction, collection_transaction_category , collection_category_name_changes, collection_transaction_category_changes
 
 async def get_account_details(user_id: int) -> dict:
     accounts = await collection_account.find(
@@ -146,6 +146,15 @@ async def categorize_transaction_confirmation(transaction_id: int, previous_cate
         {"$set": {"category_id": new_category_id}}
     )
 
+    if result.modified_count > 0:
+        txn = await collection_transaction.find_one({"transaction_id": transaction_id})
+        await collection_transaction_category_changes.insert_one({
+            "transaction_id": transaction_id,
+            "new_category_id": new_category_id,
+            "transaction_detail": txn.get("description", "") if txn else "",
+            "transaction_date": txn.get("date") if txn else None
+        })
+
     if result.modified_count == 0:
         return categorize_transaction_confirmation_response(
             message="Transaction not found or no changes made",
@@ -163,10 +172,25 @@ async def categorize_transaction_confirmation(transaction_id: int, previous_cate
 
 async def edit_category_name(category_id: int, new_category_name: str) -> edit_category_name_response:
     # Update the category name in the database
+    old_category = await collection_transaction_category.find_one({"category_id": category_id})
+    old_category_name = old_category["category_name"] if old_category else None
+
     result = await collection_transaction_category.update_one(
         {"category_id": category_id},
         {"$set": {"category_name": new_category_name}}
     )
+
+    if result.modified_count > 0 and old_category_name:
+        transactions = await collection_transaction.find({"category_id": category_id}).to_list(length=None)
+        for txn in transactions:
+            await collection_category_name_changes.insert_one({
+                "category_id": category_id,
+                "transaction_id": txn["transaction_id"],
+                "old_category_name": old_category_name,
+                "new_category_name": new_category_name,
+                "transaction_detail": txn.get("description", ""),
+                "transaction_date": txn.get("date")
+            })
 
     if result.modified_count == 0:
         return edit_category_name_response(
@@ -187,6 +211,15 @@ async def remove_this_transaction_from_category(transaction_id: int, category_id
         {"transaction_id": transaction_id},
         {"$set": {"category_id": -1}} #uncategorized -1 
     )
+
+    if result.modified_count > 0:
+        txn = await collection_transaction.find_one({"transaction_id": transaction_id})
+        await collection_transaction_category_changes.insert_one({
+            "transaction_id": transaction_id,
+            "new_category_id": -1,
+            "transaction_detail": txn.get("description", "") if txn else "",
+            "transaction_date": txn.get("date") if txn else None
+        })
 
     if result.modified_count == 0:
         return remove_this_transaction_from_category_response(
