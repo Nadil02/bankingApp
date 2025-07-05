@@ -41,6 +41,7 @@ class categorize_transaction_confirmation_response(BaseModel):
 class edit_category_name_request(BaseModel):
     category_id: int
     new_category_name: str
+    account_id: int
 
 class edit_category_name_response(BaseModel):
     message: str

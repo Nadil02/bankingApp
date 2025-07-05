@@ -59,7 +59,7 @@ async def get_category_details(user_id: int, account_id: int) -> category_detail
 
         if category_id not in income_categories:
             category_name = await collection_transaction_category.find_one(
-            {"category_id": category_id},
+            {"category_id": category_id, "account_id": account_id},
             {"_id": 0, "category_name": 1}
         )
             income_categories[category_id] = {
@@ -81,7 +81,7 @@ async def get_category_details(user_id: int, account_id: int) -> category_detail
 
         if category_id not in expense_categories:
             category_name = await collection_transaction_category.find_one(
-            {"category_id": category_id},
+            {"category_id": category_id, "account_id": account_id},
             {"_id": 0, "category_name": 1}
         )
             expense_categories[category_id] = {
@@ -145,12 +145,17 @@ async def categorize_transaction_confirmation(transaction_id: int, previous_cate
         {"transaction_id": transaction_id},
         {"$set": {"category_id": new_category_id}}
     )
+    account= await collection_transaction.find_one({"transaction_id": transaction_id}, {"_id": 0, "account_id": 1})
+    old_category = await collection_transaction_category.find_one({"category_id": previous_category_id, "account_id": account["account_id"]}) if account else None
+    new_category = await collection_transaction_category.find_one({"category_id": new_category_id, "account_id": account["account_id"]}) if account else None
 
     if result.modified_count > 0:
         txn = await collection_transaction.find_one({"transaction_id": transaction_id})
         await collection_transaction_category_changes.insert_one({
             "transaction_id": transaction_id,
-            "new_category_id": new_category_id,
+            "account_id": txn.get("account_id"),
+            "new_category": new_category,
+            "previous_category": old_category,
             "transaction_detail": txn.get("description", "") if txn else "",
             "transaction_date": txn.get("date") if txn else None
         })
@@ -170,13 +175,13 @@ async def categorize_transaction_confirmation(transaction_id: int, previous_cate
         new_category_id=new_category_id
     )
 
-async def edit_category_name(category_id: int, new_category_name: str) -> edit_category_name_response:
+async def edit_category_name(category_id: int, new_category_name: str, account_id: int) -> edit_category_name_response:
     # Update the category name in the database
-    old_category = await collection_transaction_category.find_one({"category_id": category_id})
+    old_category = await collection_transaction_category.find_one({"category_id": category_id, "account_id": account_id})
     old_category_name = old_category["category_name"] if old_category else None
 
     result = await collection_transaction_category.update_one(
-        {"category_id": category_id},
+        {"category_id": category_id, "account_id": account_id},
         {"$set": {"category_name": new_category_name}}
     )
 
@@ -186,6 +191,7 @@ async def edit_category_name(category_id: int, new_category_name: str) -> edit_c
             await collection_category_name_changes.insert_one({
                 "category_id": category_id,
                 "transaction_id": txn["transaction_id"],
+                "account_id": txn.get("account_id"),
                 "old_category_name": old_category_name,
                 "new_category_name": new_category_name,
                 "transaction_detail": txn.get("description", ""),
@@ -211,12 +217,17 @@ async def remove_this_transaction_from_category(transaction_id: int, category_id
         {"transaction_id": transaction_id},
         {"$set": {"category_id": -1}} #uncategorized -1 
     )
+    account= await collection_transaction.find_one({"transaction_id": transaction_id}, {"_id": 0, "account_id": 1})
+    account_id = account["account_id"] if account else None
+    old_category = await collection_transaction_category.find_one({"category_id": category_id,account_id: account_id}) if account_id else None
 
     if result.modified_count > 0:
         txn = await collection_transaction.find_one({"transaction_id": transaction_id})
         await collection_transaction_category_changes.insert_one({
             "transaction_id": transaction_id,
-            "new_category_id": -1,
+            "account_id": txn.get("account_id"),
+            "new_category": "Uncategorized",
+            "previous_category": old_category,
             "transaction_detail": txn.get("description", "") if txn else "",
             "transaction_date": txn.get("date") if txn else None
         })
