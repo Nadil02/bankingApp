@@ -1,5 +1,5 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException
-from database import collection_notification, collection_expo_tokens
+from database import collection_notification, collection_expo_tokens, collection_account
 from schemas.notification import Notification
 from models import TokenPayload
 from services.websocket_manager import websocket_manager  # Fixed import path
@@ -19,8 +19,15 @@ async def websocket_notification(websocket: WebSocket, user_id: int):
             {"user_id": user_id}
         ).sort("created_at", -1).to_list(length=None)
         
+        # Add account details to each notification
         for notif in notifications:
             notif["_id"] = str(notif["_id"])
+            if notif.get("account_id"):
+                account = await collection_account.find_one({"account_id": notif["account_id"]})
+                if account:
+                    notif["account_number"] = account["account_number"]
+                    notif["account_type"] = account["account_type"]
+                    notif["bank_id"] = account["bank_id"]
         
         await websocket.send_json({
             "event": "initial_notifications",
@@ -36,10 +43,19 @@ async def websocket_notification(websocket: WebSocket, user_id: int):
         print(f"WebSocket error: {e}")
         websocket_manager.disconnect(user_id)
 
+
 @router.post("/create-notification")
 async def create_notification(notification: Notification):
     notification_dict = notification.dict()
     notification_dict["created_at"] = datetime.utcnow()
+    
+    # If notification has an account_id, fetch account details
+    if notification_dict.get("account_id"):
+        account = await collection_account.find_one({"account_id": notification_dict["account_id"]})
+        if account:
+            notification_dict["account_number"] = account["account_number"]
+            notification_dict["account_type"] = account["account_type"]
+            notification_dict["bank_id"] = account["bank_id"]
     
     result = await collection_notification.insert_one(notification_dict)
     notification_dict["_id"] = str(result.inserted_id)
@@ -52,16 +68,25 @@ async def create_notification(notification: Notification):
     
     return {"status": "success", "notification": notification_dict}
 
+
 @router.get("/notification/{user_id}")
 async def get_all_notifications(user_id: int):
     notifications = await collection_notification.find(
         {"user_id": user_id}
     ).sort("created_at", -1).to_list(length=None)
     
+    # Add account details to each notification
     for notif in notifications:
         notif["_id"] = str(notif["_id"])
+        if notif.get("account_id"):
+            account = await collection_account.find_one({"account_id": notif["account_id"]})
+            if account:
+                notif["account_number"] = account["account_number"]
+                notif["account_type"] = account["account_type"]
+                notif["bank_id"] = account["bank_id"]
     
     return notifications
+
 
 @router.get("/notification/unread-count/{user_id}")
 async def get_unread_notification_count(user_id: int):
