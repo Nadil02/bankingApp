@@ -18,7 +18,7 @@ async def categorize_transaction_confirmation_endpoint(request: CategorizeTransa
 
 @router.post("/edit_category_name")
 async def edit_category_name_endpoint(request: edit_category_name_request) -> edit_category_name_response:
-    return await edit_category_name(request.category_id, request.new_category_name)
+    return await edit_category_name(request.category_id, request.new_category_name, request.account_id)
 
 @router.post("/remove_this_transaction_from_category")
 async def remove_this_transaction_from_category_endpoint(request: remove_this_transaction_from_category_request) -> remove_this_transaction_from_category_response:

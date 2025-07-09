@@ -7,7 +7,11 @@ from routes import user_login  # import the combined router from routes.py
 from routes import sign_in, forgot_password,transaction_categorization
 from routes import sign_in, forgot_password, transaction_history
 from routes import sign_in, forgot_password,change_password, settings, incomeExpensePredictions
+from routes import notification
+from services.notification_watcher import watch_notifications
 from fastapi.middleware.cors import CORSMiddleware
+import asyncio
+from services.websocket_manager import websocket_manager
 
 # initialize FastAPI app
 app = FastAPI()
@@ -24,6 +28,7 @@ app.include_router(transaction_history.router)
 app.include_router(change_password.router)
 app.include_router(settings.router)
 app.include_router(incomeExpensePredictions.router)
+app.include_router(notification.router)
 
 app.add_middleware(
     CORSMiddleware,
@@ -32,3 +37,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(watch_notifications())
+
