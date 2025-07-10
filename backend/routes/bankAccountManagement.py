@@ -1,8 +1,13 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from utils.auth import verify_token
 from services.bankAccountManagement import getBankAccountDetails, removeBankAccount, addBankAccount, otp_validation_account_add, resend_otp_account_add, get_all_banks
 from schemas.bankAccountManagement import AccountRemove, AccountAdd,BankAccount, BankAccountAddResponse, OtpRequestAccountAdding, OtpRequestAccountAddingResend, OtpResponseAccountAdding, OtpResponseAccountAddingResend,RemoveAccountResponse, BankListResponse
 
-router = APIRouter(prefix="/bankAccountManagement", tags=["bankAccountManagement"])
+router = APIRouter(
+    prefix="/bankAccountManagement", 
+    tags=["bankAccountManagement"],
+    dependencies=[Depends(verify_token)]
+    )
 
 @router.post("/accountDetails", response_model=list[BankAccount])
 async def get(user_id: int):

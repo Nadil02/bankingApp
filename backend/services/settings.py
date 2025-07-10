@@ -2,30 +2,44 @@ import random
 from typing import Optional
 from models import OTP
 from utils.encrypt_and_decrypt import decrypt, encrypt
-from schemas.settings import OtpRequestEditTphone, OtpResendRequestEditTphone, OtpResponseEditTphone, UserNotificationStatus, UserEditProfile, EditProfileResponse
+from schemas.settings import OtpRequestEditTphone, OtpResendRequestEditTphone, OtpResponseEditTphone, getUserNotificationStatus,updateUserNotificationStatus, UserEditProfile, EditProfileResponse
 from schemas.sign_in import SignInRequest, OtpResponse, SignInResponse
 from database import collection_user, collection_OTP
 from utils.OTP import send_sms
 from utils.encrypt_and_decrypt import decrypt, encrypt, decrypt_user_data
 
 
-async def get_user_notification_status(user_id: int) -> Optional[UserNotificationStatus]:
+async def get_user_notification_status(user_id: int) -> Optional[getUserNotificationStatus]:
     user = await collection_user.find_one({"user_id": user_id})  
     if user:
-        return UserNotificationStatus(
+        # Decrypt the user image
+        encrypted_user_image = user["user_image"]
+        base64_image = decrypt(encrypted_user_image)
+
+        # Decrypt the first and last name
+        user_f_name = user["first_name"]
+        user_l_name = user["last_name"]
+        user_f_name_dycrypted = decrypt(user_f_name)
+        user_l_name_dycrypted = decrypt(user_l_name)
+        full_name = user_f_name_dycrypted + " " + user_l_name_dycrypted
+
+        return getUserNotificationStatus(
             user_id=user["user_id"],
-            notification_status=user["notification_status"]
+            notification_status=user["notification_status"],
+            name=full_name,
+            user_image=base64_image
         )
     return None
 
-async def update_user_notification_status(user_id: int, status: bool) -> Optional[UserNotificationStatus]:
+async def update_user_notification_status(user_id: int, status: bool) -> Optional[updateUserNotificationStatus]:
     user = await collection_user.find_one({"user_id": user_id})  
     if user:
         await collection_user.update_one(  
             {"user_id": user_id},
             {"$set": {"notification_status": status}}
         )
-        return UserNotificationStatus(
+        print("******************************************")
+        return updateUserNotificationStatus(
             user_id=user["user_id"],
             notification_status=status
         )
@@ -38,8 +52,7 @@ async def load_edit_profile(user_id: int) -> UserEditProfile:
     user_info = {
         #get user information from the database with decrypting the data
         "user_id" : user_details["user_id"],
-        "fname" : decrypt(user_details["first_name"]),
-        "lname" : decrypt(user_details["last_name"]),
+        "user_full_name" : decrypt(user_details["first_name"]) + " " + decrypt(user_details["last_name"]),
         "phone_number" : decrypt(user_details["phone_number"]),
         "user_name" : decrypt(user_details["username"]),
         "user_image": decrypt(user_details["user_image"])
@@ -88,7 +101,7 @@ async def storeAndSendOtp(next_otp_id: int, phone_number: str):
 
     await collection_OTP.insert_one(otp_data.dict(by_alias=True))  # Convert OTP model to dictionary
     message="hi this is banking app. Your OTP for phone number change in is: "+otp
-    send_sms(phone_number, message=message)
+    # send_sms(phone_number, message=message)
 
 async def otp_validation_Tphone_edit(otp_request: OtpRequestEditTphone) -> OtpResponseEditTphone:
         

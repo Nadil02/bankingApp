@@ -24,7 +24,6 @@ async def send_push_notification(token: str, title: str, body: str, data: dict):
 
 async def watch_notifications():
     try:
-        # Add full_document='updateLookup' to get complete documents
         async with db.notification.watch(
             full_document='updateLookup',
             pipeline=[{
@@ -37,24 +36,30 @@ async def watch_notifications():
             }]
         ) as stream:
             async for change in stream:
-                # Handle both insert and update cases
                 notif = change.get('fullDocument') or change['documentKey']
                 if not notif:
                     continue
                     
-                # For updates, we may need to fetch the full document
                 if isinstance(notif, dict) and '_id' in notif:
                     notif = await db.notification.find_one({"_id": notif["_id"]})
                 
                 user_id = notif["user_id"]
                 notif["_id"] = str(notif["_id"])
                 
+                # Add account details if exists
+                if notif.get("account_id"):
+                    account = await db.account.find_one({"account_id": notif["account_id"]})
+                    if account:
+                        notif["account_number"] = account["account_number"]
+                        notif["account_type"] = account["account_type"]
+                        notif["bank_id"] = account["bank_id"]
+                
                 await websocket_manager.send_personal_message({
                     "event": "new_notification",
                     "data": notif
                 }, user_id)
                 
-                # Rest of your push notification logic...
+                # Push notification logic...
     except Exception as e:
         print(f"Watcher error: {str(e)}")
         await asyncio.sleep(5)

@@ -1,15 +1,26 @@
 from pydantic import BaseModel
 from typing import Optional
 
-class UserNotificationStatus(BaseModel):
+class updateUserNotificationStatus(BaseModel):
     user_id: int
     notification_status: bool
+    # name: str
+    # user_image: str
+
+class getUserNotificationStatus(BaseModel):
+    user_id: int
+    notification_status: bool
+    name: str
+    user_image: str
+    
 
 class UserEditProfile(BaseModel):
     user_id: int
     phone_number: str
     user_name: str
+    user_full_name: str
     user_image: str
+
 class EditProfileResponse(BaseModel):
     message: str
     otp_id: int
