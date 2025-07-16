@@ -9,6 +9,7 @@ router = APIRouter(
     dependencies=[Depends(verify_token)]
     )
 
+# display all bank accounts for a user
 @router.post("/accountDetails", response_model=list[BankAccount])
 async def get(user_id: int):
     return await getBankAccountDetails(user_id)

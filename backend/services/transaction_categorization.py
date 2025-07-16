@@ -3,10 +3,14 @@ from schemas.transaction_categorization import CategoryDetails, Transaction, all
 from database import collection_account, collection_bank, collection_transaction, collection_transaction_category , collection_category_name_changes, collection_transaction_category_changes
 
 async def get_account_details(user_id: int) -> dict:
+    print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
     accounts = await collection_account.find(
         {"user_id": user_id},
         {"_id": 0, "account_id": 1, "account_number": 1, "account_type": 1, "balance": 1, "bank_id": 1}
     ).to_list(length=None)
+
+    print("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
+    print("accounts", accounts)
 
     if len(accounts) == 0:
         return {"message": "No accounts found"}
@@ -22,6 +26,8 @@ async def get_account_details(user_id: int) -> dict:
             account["image_url"] = bank["logo"] if bank else None
         else:
             account["image_url"] = None
+    print("accounts after adding image_url", accounts)
+    print("EEEEEEEEEEEEEEEEEEEEEEEEE")
 
     return {"accounts": [all_ac_details_response(**account) for account in accounts]}
 

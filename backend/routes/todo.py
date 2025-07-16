@@ -34,8 +34,6 @@ async def create_todo(todo: TodoCreate):
     return await add_todo(todo)
 
 
-
-
 @router.post("/mark-completed/")
 async def mark_as_completed(request: MarkCompletedRequest):
     result = await mark_task_completed(request.user_id, request.todo_id)
@@ -65,8 +63,6 @@ async def remove_todo_item(request: ConfirmTaskDeletion):
 @router.get("/task/", response_model=TaskSchema)
 async def fetch_task_details(user_id: int, todo_id: int):
     return await get_task_details(user_id, todo_id)
-
-
 
 
 @router.post("/tasks/", response_model=ResponseMessage)
