@@ -13,12 +13,12 @@ from pymongo import DESCENDING
 async def get_todos_by_status(user_id: int) -> TodoListsResponse:
     ongoing_todos = await collection_Todo_list.find(
         {"user_id": user_id, "status": "ongoing"},
-        {"_id": 0, "description": 1, "date": 1, "time": 1, "repeat_frequency": 1, "amount": 1}
+        {"_id": 0, "description": 1, "date": 1, "time": 1, "repeat_frequency": 1, "amount": 1, "todo_id": 1}
     ).to_list(length=100)
     
     completed_todos = await collection_Todo_list.find(
         {"user_id": user_id, "status": "Completed"},
-        {"_id": 0, "description": 1, "date": 1, "time": 1, "repeat_frequency": 1, "amount": 1}
+        {"_id": 0, "description": 1, "date": 1, "time": 1, "repeat_frequency": 1, "amount": 1, "todo_id": 1}
     ).to_list(length=100)
     
     return TodoListsResponse(
