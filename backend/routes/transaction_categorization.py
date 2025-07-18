@@ -6,6 +6,7 @@ router = APIRouter(prefix="/transaction_categorization", tags=["Transaction Cate
 
 @router.get("/all_accounts")
 async def get_all_account_details(user_id: int) -> dict:
+    
     return await get_account_details(user_id)
 
 @router.get("/get_category_details")

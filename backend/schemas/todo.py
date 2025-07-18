@@ -9,6 +9,7 @@ class TodoView(BaseModel):
     time: Optional[str]
     repeat_frequency: Optional[str]
     amount: Optional[float]
+    todo_id: int
 
 class TodoListsResponse(BaseModel):
     ongoing: List[TodoView]
