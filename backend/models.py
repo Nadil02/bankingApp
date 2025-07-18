@@ -75,6 +75,7 @@ class PredictedBalance(BaseModel):
     description: str
     explanation: str
     balance: float
+    user_id: int
 
 
 class PredictedExpense(BaseModel):
@@ -84,6 +85,7 @@ class PredictedExpense(BaseModel):
     description: str
     explanation: str
     amount: float
+    user_id: int
 
 
 
@@ -94,7 +96,7 @@ class PredictedIncome(BaseModel):
     description: str
     explanation: str
     amount: float
-
+    user_id: int
 
 
 
