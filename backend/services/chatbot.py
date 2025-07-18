@@ -11,7 +11,7 @@ import json
 
 # import functions from llmAgentTools.py
 # from .llmAgentTools import get_week_summary, get_month_summary
-from .llmAgentTools import get_bank_rates,get_total_spendings_for_given_time_period,get_total_spendings_for_given_time_period,get_total_incomes_for_given_time_period,get_last_transaction,get_monthly_summary_for_given_month,get_all_transactions_for_given_date,get_next_month_total_incomes,get_next_month_total_spendings,get_next_income,get_next_spending,handle_incomplete_time_periods,get_greeting_response
+from .llmAgentTools import chatbot_system_answer, get_bank_rates,get_total_spendings_for_given_time_period,get_total_spendings_for_given_time_period,get_total_incomes_for_given_time_period,get_last_transaction,get_monthly_summary_for_given_month,get_all_transactions_for_given_date,get_next_month_total_incomes,get_next_month_total_spendings,get_next_income,get_next_spending,handle_incomplete_time_periods,get_greeting_response
 from datetime import datetime
 
 
@@ -89,7 +89,13 @@ tools = [
         "name": "get_bank_rates", 
         "func": get_bank_rates, 
         "description": "Helps manage queries asked about bank rates. Required parameters: user_id (int). Use this when the user's query is based on bank rates."
+    },
+    {
+        "name": "chatbot_system_answer",
+        "func": chatbot_system_answer,
+        "description": "Use this tool to answer user questions about system information. Required parameters are user_query (string)"
     }
+
 ]
 
 

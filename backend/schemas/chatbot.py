@@ -52,3 +52,5 @@ class GreetingResponseArgs(BaseModel):
 class BankRatesArgs(BaseModel):
     user_id:int
     
+class GetSystemAnswerArgs(BaseModel):
+    query: str
