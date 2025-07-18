@@ -40,7 +40,7 @@ async def mark_as_completed(request: MarkCompletedRequest):
     if result["message"] == "Task not found.":
         raise HTTPException(status_code=404, detail=result["message"])
     if result["message"] == "Task is already completed.":
-        raise HTTPException(status_code=400, detail=result["message"])
+        raise HTTPException(status_code=200, detail=result["message"])
     return {"message": result["message"]}
 
 
