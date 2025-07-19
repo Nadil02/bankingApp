@@ -89,5 +89,5 @@ jobs:
         id: deploy-to-webapp
         with:
           app-name: 'banking-backend'
-          slot-name: 'Production'
+          #slot-name: 'Production'
           
