@@ -44,6 +44,6 @@ async def startup_event():
 
 @app.get("/health")
 def health_check():
-    return {"status": "okk"}
+    return {"status": "okks"}
 
 
