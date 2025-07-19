@@ -8,7 +8,12 @@ on:
   push:
     branches:
       - dev
+    paths:
+      - 'backend/**'
   workflow_dispatch:
+
+env:
+  WORKING_DIR: './backend'
 
 jobs:
   build:
@@ -24,17 +29,24 @@ jobs:
         with:
           python-version: '3.13'
 
+      - name: Change to backend directory
+        working-directory: ${{ env.WORKING_DIR }}
+        run: echo "Working in backend directory"
+
       - name: Create and start virtual environment
+        working-directory: ${{ env.WORKING_DIR }}
         run: |
           python -m venv venv
           source venv/bin/activate
       
       - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIR }}
         run: pip install -r requirements.txt
         
       # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
 
       - name: Zip artifact for deployment
+        working-directory: ${{ env.WORKING_DIR }}
         run: zip release.zip ./* -r
 
       - name: Upload artifact for deployment jobs
