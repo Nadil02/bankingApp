@@ -5,6 +5,7 @@ from typing import Tuple
 from schemas.dashboard import ResponseSchemaUsernameProfilePic, SpendingCategory, ResponseSchema, CreditCardResponse, CategorySpending, Summary
 from typing import List, Dict,Union,Optional,Any
 from datetime import datetime, timedelta
+import math
 
 def serialize_document(document):
     document["_id"] = str(document["_id"])
@@ -135,14 +136,25 @@ async def fetch_financial_summary(account_ids:list, start_date:datetime, end_dat
 
     result = await collection_transaction.aggregate(pipeline).to_list(length=1)
     if not result:
+        print("No data found for the given date range.")
         return {"total_income": 0.0, "total_expenses": 0.0, "total_savings": 0.0} # Default values
+
     print("VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV")
     print("Result:", result)
     
     aggregated_data = result[0]
     total_income = aggregated_data.get("total_income", 0.0)
     total_expenses = aggregated_data.get("total_expenses", 0.0)
+
+    # Replace NaN with 0
+    if math.isnan(total_income):
+        total_income = 0.0
+    if math.isnan(total_expenses):
+        total_expenses = 0.0
+
+
     total_savings = max(total_income - total_expenses, 0.0)
+    
     result = Summary(total_income=total_income, total_expenses=total_expenses, total_savings=total_savings)
     result=result.dict()
     return result
@@ -306,7 +318,7 @@ async def update_second_header(account_id:Union[int, List[int]],start_date:Union
     total_expenses = financial_summery["total_expenses"]
 
     print("total_expenses",total_expenses)
-    print("total_expenses category " ,total_expenses)
+    # print("total_expenses category " ,total_expenses)
     spending_category = await fetch_top_spending_categories(account_ids,start_date, end_date, total_expenses)
     #return as a touple
     return financial_summery,spending_category
@@ -459,17 +471,20 @@ async def check_surplus_accounts(user_id: int, account_id: int) -> List[Dict[str
 async def load_specific_account(account_id:int, user_id:Optional[int] = None, start_date: Optional[Union[str, datetime]] = None, end_date: Optional[Union[str, datetime]] = None):
     account_ids = [account_id]
 
-    print("KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK")
-    print("account_ids",account_ids)
-    print("user_id",user_id)
+    # print("KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK")
+    # print("account_ids",account_ids)
+    # print("user_id",user_id)
 
     if not start_date:
         end_date = datetime.now(timezone.utc)
         start_date = end_date - timedelta(days=30)
         second_header = await update_second_header(account_ids,start_date,end_date)
+        print("second_header",second_header)
         
         past_transaction_100_days = await fetch_past_transactions(account_ids,end_date,100)
+        # print("past_transaction_100_days", past_transaction_100_days)
         predicted_transaction_7_days = await fetch_predicted_data(account_ids, end_date,8)
+        print("predicted_transaction_7_days", predicted_transaction_7_days)
         
 
         most_spending_category_100_days = await fetch_most_spent_category_100_days(account_ids,end_date)
