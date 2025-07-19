@@ -1,9 +1,14 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from typing import Optional
 from schemas.transaction_history import dashboard_request
 from services.transaction_history import get_credit_card_timeframes, load_all_accounts, select_one_account, get_transactions_details, get_transactions_credit_card_details
+from utils.auth import verify_token
 
-router = APIRouter(prefix="/transaction_history", tags=["Transaction History"])
+router = APIRouter(
+    prefix="/transaction_history", 
+    tags=["Transaction History"],
+    dependencies=[Depends(verify_token)]
+    )
 
 #load account list in transaction history page
 @router.get("/")
