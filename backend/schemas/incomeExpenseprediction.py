@@ -7,7 +7,7 @@ class all_ac_details_response_prediction(BaseModel):
     account_id: int
     account_number: int
     account_type: str
-    balance: int
+    balance: float
     image_url: Optional[str] = None
 
 
