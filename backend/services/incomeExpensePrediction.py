@@ -43,6 +43,7 @@ async def replace_category_ids_with_names(predictions: list[dict]) -> list[dict]
 
 
 async def get_predictions_for_account(user_id: int, account_id: int) -> dict:
+    
     today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     end_date = today + timedelta(days=31)
     expense_predictions = await collection_predicted_expense.find(
