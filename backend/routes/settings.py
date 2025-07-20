@@ -4,9 +4,12 @@ from services.settings import get_user_notification_status, otp_validation_Tphon
 from schemas.sign_in import SignInRequest, OtpRequest, SignInResponse
 from fastapi.responses import JSONResponse
 
+from utils.auth import verify_token
+
 router = APIRouter(
     prefix="/settings",
     tags=["settings"],
+    dependencies=[Depends(verify_token)]
 )
 
 @router.get("/", response_model=getUserNotificationStatus)
