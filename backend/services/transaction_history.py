@@ -1,8 +1,11 @@
 from database import collection_account, collection_transaction, collection_credit_periods, collection_bank
 from schemas.transaction_history import Dashboard_response, Select_one_account_response, TimeFrameResponse
 from datetime import datetime
+from typing import Optional
+from typing import Union
 
 async def load_all_accounts(user_id: int) -> dict:
+    print("WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW")
     accounts = await collection_account.find(
         {"user_id": user_id},
         {"_id": 0, "account_id": 1, "account_number": 1, "account_type": 1, "balance": 1, "bank_id": 1}
@@ -22,6 +25,7 @@ async def load_all_accounts(user_id: int) -> dict:
             account["image_url"] = bank["logo"] if bank else None
         else:
             account["image_url"] = None
+    print("accounts", accounts)
 
     return {"accounts": [Dashboard_response(**account) for account in accounts]}
 
@@ -53,8 +57,7 @@ async def select_one_account(user_id: int, account_id: int) -> Select_one_accoun
         return Select_one_account_response(max_value=None,
             first_transaction_date=None)
     
-
-async def get_transactions_details(account_id: int, start_date: str, end_date: str, range_start: float=None, range_end: float=None, value: float=None):
+async def get_transactions_details(account_id: int, start_date: Union[str, datetime], end_date: Union[str, datetime], range_start: Optional[float]=None, range_end: Optional[float]=None, value: Optional[float]=None):
     # convert date string to datetime object
     if isinstance(start_date, str):
         start_date = datetime.strptime(start_date, "%Y-%m-%d")
@@ -63,6 +66,11 @@ async def get_transactions_details(account_id: int, start_date: str, end_date: s
 
     print("start_date", start_date)
     print("end_date", end_date)
+    print("account_id", account_id)
+
+    print("date type", type(start_date))
+    print("date type", type(end_date))
+    print("account_id type", type(account_id))
 
     pipeline = [
         # Match stage to filter by account_id and date range
@@ -74,7 +82,8 @@ async def get_transactions_details(account_id: int, start_date: str, end_date: s
         },
     ]
     print("MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM")
-    print("value", value)   
+    print("value", value)  
+
     if value is not None:
         pipeline.append({
         "$match": {
@@ -115,9 +124,13 @@ async def get_transactions_details(account_id: int, start_date: str, end_date: s
 #when user select date and range for credit card
 async def get_transactions_credit_card_details(user_id:int, account_id: int, time_period:int):
     result_1 = await collection_credit_periods.find_one({"account_id": account_id,"period_id":time_period},{"_id":0, "start_date":1,"end_date":1})
+    if not result_1:
+        return {"transactions": "No credit period found"}
     start_date = result_1["start_date"]
     end_date = result_1["end_date"]
+    print("result_1", result_1)
     result_2 = await collection_transaction.find({"account_id": account_id, "date": {"$gte": start_date, "$lte": end_date}}).to_list(length=None)
+    print("result_2", result_2)
     return await format_document(result_2)
 
 async def format_document(result):
@@ -148,6 +161,7 @@ async def get_credit_card_timeframes(user_id: int, account_id: int) -> TimeFrame
         }
     ]
     result = await collection_credit_periods.aggregate(pipeline).to_list(length=None)
+    print("result", result)
     current_period_id = result[-1]["period_id"]
     available_past_time_frames = []
     for item in result:
@@ -158,10 +172,12 @@ async def get_credit_card_timeframes(user_id: int, account_id: int) -> TimeFrame
             "start_date": item["start_date"].strftime("%Y-%m-%d"),
             "end_date": item["end_date"].strftime("%Y-%m-%d")
         })
-    current_time_frame = {
-        "period_id": current_period_id,
-        "start_date": result[-1]["start_date"].strftime("%Y-%m-%d"),
-        "end_date": result[-1]["end_date"].strftime("%Y-%m-%d")
-    }
+    from schemas.transaction_history import TimeFrame  # Ensure this import exists at the top if not already
+
+    current_time_frame = TimeFrame(
+        period_id=current_period_id,
+        start_date=result[-1]["start_date"].strftime("%Y-%m-%d"),
+        end_date=result[-1]["end_date"].strftime("%Y-%m-%d")
+    )
     return TimeFrameResponse(available_past_time_frames=available_past_time_frames, current_time_frame=current_time_frame)
 

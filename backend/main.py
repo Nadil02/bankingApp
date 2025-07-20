@@ -42,3 +42,8 @@ app.add_middleware(
 async def startup_event():
     asyncio.create_task(watch_notifications())
 
+@app.get("/health")
+def health_check():
+    return {"status": "okks"}
+
+

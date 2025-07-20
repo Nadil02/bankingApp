@@ -60,7 +60,7 @@ class TaskSchema(BaseModel):
     date: Optional[str] 
     time: Optional[str] 
     repeat_frequency: Optional[str] = None
-    amount:int
+    amount: Optional[float] = None
 
 
     #class Config:

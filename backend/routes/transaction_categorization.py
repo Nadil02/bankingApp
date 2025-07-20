@@ -1,8 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from services.transaction_categorization import get_account_details, get_category_details, categorize_transaction_confirmation, edit_category_name, remove_this_transaction_from_category
 from schemas.transaction_categorization import category_details_response,CategorizeTransactionConfirmationRequest,categorize_transaction_confirmation_response,all_ac_details_response,edit_category_name_response,edit_category_name_request,remove_this_transaction_from_category_request,remove_this_transaction_from_category_response
+from utils.auth import verify_token
 
-router = APIRouter(prefix="/transaction_categorization", tags=["Transaction Categorization"])
+router = APIRouter(
+    prefix="/transaction_categorization", 
+    tags=["Transaction Categorization"],
+    dependencies=[Depends(verify_token)]
+    )
 
 @router.get("/all_accounts")
 async def get_all_account_details(user_id: int) -> dict:

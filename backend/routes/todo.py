@@ -1,15 +1,15 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from services.todo import get_todos_by_status, add_todo
 from typing import List
-"""from models import TodoList
-from fastapi import status"""
+from utils.auth import verify_token
 from schemas.todo import MarkCompletedRequest, RemoveTaskRequest, ConfirmTaskDeletion, TaskSchema, ResponseMessage, TodoCreate, TodoResponse, TodoListsResponse
 from services.todo import mark_task_completed, remove_task, check_task_existence, get_task_details, edit_task_details
 
 
 router = APIRouter(
     prefix="/todo",
-    tags=["todo"]
+    tags=["todo"],
+    dependencies=[Depends(verify_token)]
 )
 
 # GET endpoint to retrieve all ongoing todos for a particular user.
@@ -40,7 +40,7 @@ async def mark_as_completed(request: MarkCompletedRequest):
     if result["message"] == "Task not found.":
         raise HTTPException(status_code=404, detail=result["message"])
     if result["message"] == "Task is already completed.":
-        raise HTTPException(status_code=400, detail=result["message"])
+        raise HTTPException(status_code=200, detail=result["message"])
     return {"message": result["message"]}
 
 

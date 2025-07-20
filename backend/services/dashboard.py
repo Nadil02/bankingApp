@@ -4,10 +4,13 @@ from database import collection_transaction, collection_transaction_category, co
 from typing import Tuple
 from schemas.dashboard import ResponseSchemaUsernameProfilePic, SpendingCategory, ResponseSchema, CreditCardResponse, CategorySpending, Summary
 from typing import List, Dict,Union,Optional,Any
+from datetime import datetime, timedelta
+import math
 
 def serialize_document(document):
     document["_id"] = str(document["_id"])
     return document
+
 
 # convert account id into id list
 def account_list(account_id: Union[int, List[int]]):
@@ -16,6 +19,7 @@ def account_list(account_id: Union[int, List[int]]):
     else:
         account_ids = account_id
     return account_ids
+
 
 # get user all acount ids and account lits for dashboard drop down
 async def all_accounts(user_id:int):
@@ -97,28 +101,63 @@ async def fetch_financial_summary(account_ids:list, start_date:datetime, end_dat
     # make pipeline
     pipeline = [
         {"$match": {"account_id":{"$in": account_ids},"date":{"$gte":start_date, "$lte":end_date}}},
-        {"$group": {"_id": None, "total_income": {"$sum": "$receipt"}, "total_expenses": {"$sum": "$payment"}}}
+        {"$group": {"_id": None, "total_income": {"$sum": {
+                    "$cond": [
+                        {"$or": [{"$eq": ["$receipt", None]}, {"$eq": ["$receipt", float("NaN")]}]},
+                        0,
+                        {
+                            "$convert": {
+                                "input": "$receipt",
+                                "to": "double",
+                                "onError": 0,
+                                "onNull": 0
+                            }
+                        }
+                    ]
+                }}, "total_expenses": { "$sum": {
+                    "$cond": [
+                        {"$or": [{"$eq": ["$payment", None]}, {"$eq": ["$payment", float("NaN")]}]},
+                        0,
+                        {
+                            "$convert": {
+                                "input": "$payment",
+                                "to": "double",
+                                "onError": 0,
+                                "onNull": 0
+                            }
+                        }
+                    ]
+                }}}}
     
     ]
     print("start date",start_date)
     print("end date",end_date)
     print("Pipeline:", pipeline)
+
     result = await collection_transaction.aggregate(pipeline).to_list(length=1)
     if not result:
+        print("No data found for the given date range.")
         return {"total_income": 0.0, "total_expenses": 0.0, "total_savings": 0.0} # Default values
+
+    print("VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV")
+    print("Result:", result)
     
     aggregated_data = result[0]
     total_income = aggregated_data.get("total_income", 0.0)
     total_expenses = aggregated_data.get("total_expenses", 0.0)
+
+    # Replace NaN with 0
+    if math.isnan(total_income):
+        total_income = 0.0
+    if math.isnan(total_expenses):
+        total_expenses = 0.0
+
+
     total_savings = max(total_income - total_expenses, 0.0)
+    
     result = Summary(total_income=total_income, total_expenses=total_expenses, total_savings=total_savings)
     result=result.dict()
     return result
-
-
-
-
-
 
 
 async def fetch_first_transaction_date(account_ids: Union[str, List[str]]) -> dict:
@@ -136,9 +175,6 @@ async def fetch_first_transaction_date(account_ids: Union[str, List[str]]) -> di
     result = await collection_transaction.aggregate(pipeline).to_list(length=1)
 
     return {"first_transaction_date": result[0]["date"] if result else None}
-
-
-
 
 
 async def fetch_past_transactions(
@@ -194,9 +230,6 @@ async def fetch_past_transactions(
         payments.append({"date": current_date.strftime("%Y-%m-%d"), "total_payment": total_payment})
         balances.append({"date": current_date.strftime("%Y-%m-%d"), "final_balance": last_balance if last_balance is not None else 0})
     return {"receipts": receipts, "payments": payments, "balances": balances}
-
-
-
 
 
 async def fetch_predicted_data(
@@ -267,6 +300,7 @@ async def fetch_predicted_data(
         "predicted_balance": balance_list
     }
 
+
 async def update_second_header(account_id:Union[int, List[int]],start_date:Union[datetime,str], end_date:Union[datetime,str]):
 
     account_ids = account_list([account_id] if isinstance(account_id, int) else account_id)
@@ -284,10 +318,11 @@ async def update_second_header(account_id:Union[int, List[int]],start_date:Union
     total_expenses = financial_summery["total_expenses"]
 
     print("total_expenses",total_expenses)
-    print("total_expenses category " ,total_expenses)
+    # print("total_expenses category " ,total_expenses)
     spending_category = await fetch_top_spending_categories(account_ids,start_date, end_date, total_expenses)
     #return as a touple
     return financial_summery,spending_category
+
 
 # Most spent category for the past 100 days
 async def fetch_most_spent_category_100_days(account_id: list, end_date: datetime) -> list:
@@ -314,26 +349,30 @@ async def fetch_most_spent_category_100_days(account_id: list, end_date: datetim
     most_spent_category_name = category_data["category_name"] if category_data else "Unknown"
     return {"most_spending_category": most_spent_category_name, "most_spending_amount": most_spent_amount}
 
+
 # load full details
-async def load_full_details(user_id:int,start_date: Optional[str] = None,end_date: Optional[str] = None):
+async def load_full_details(user_id:int, start_date: Optional[Union[str, datetime]] = None, end_date: Optional[Union[str, datetime]] = None):
 
     #take account id and account details based on user id
     account_ids, account_list = await all_accounts(user_id)
     print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-    # print("account_ids", account_ids)
-    # print("account_list", account_list)
+
     saving_account_ids = [account["account_id"] for account in account_list if account["account_type"] == "savings"]
     credit_card_ids = [account["account_id"] for account in account_list if account["account_type"] == "credit"]
+
     #get total balance of saving accounts
     total_balance = sum(account["balance"] for account in account_list if account["account_type"] == "savings")
     # if date is string convert it into datetime (if user provide date)
     if isinstance(start_date, str):
-        start_date = datetime.strptime(start_date, "%Y-%m-%d")
+        parsed_start_date = datetime.strptime(start_date, "%Y-%m-%d")
     if isinstance(end_date, str):    
         end_date = datetime.strptime(end_date, "%Y-%m-%d")
+
+    # print("SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS")
     
     # if date is not provided the user
     if not start_date:
+        # print("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT")
         end_date = datetime.now(timezone.utc)
         start_date = end_date - timedelta(days=30)
         financial_summery, spending_category = await update_second_header(saving_account_ids,start_date,end_date)
@@ -343,7 +382,10 @@ async def load_full_details(user_id:int,start_date: Optional[str] = None,end_dat
         date = {"start_date": start_date, "end_date": end_date}
         # print("account_list at not start date",account_list)
         user_details = await collection_user.find_one({"user_id": user_id},{"_id":0,"username":1})
-        userName=decrypt(user_details["username"])
+        if user_details and "username" in user_details:
+            userName = decrypt(user_details["username"])
+        else:
+            userName = "Unknown"
         first_transaction_info = await fetch_first_transaction_date(saving_account_ids)
         first_transaction_date = first_transaction_info.get("first_transaction_date")
         return ResponseSchema(
@@ -360,7 +402,11 @@ async def load_full_details(user_id:int,start_date: Optional[str] = None,end_dat
         )
     
     else:
-        return await update_second_header(saving_account_ids,start_date,end_date)
+        # print("RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR")
+        if start_date is None or end_date is None:
+            raise ValueError("start_date and end_date must not be None")
+        # Ensure start_date and end_date are not None before calling update_second_header
+        return await update_second_header(saving_account_ids, start_date, end_date)
     
 
 async def fetch_minus_predicted_balance(account_id: int) -> List[Dict[str, Any]]:
@@ -420,19 +466,37 @@ async def check_surplus_accounts(user_id: int, account_id: int) -> List[Dict[str
 
     return surplus_accounts
 
+
 # load specific account details
-async def load_specific_account(account_id:int,user_id:Optional[int] = None, start_date: Optional[str] = None,end_date: Optional[str] = None):
+async def load_specific_account(account_id:int, user_id:Optional[int] = None, start_date: Optional[Union[str, datetime]] = None, end_date: Optional[Union[str, datetime]] = None):
     account_ids = [account_id]
+
+    # print("KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK")
+    # print("account_ids",account_ids)
+    # print("user_id",user_id)
+
     if not start_date:
         end_date = datetime.now(timezone.utc)
         start_date = end_date - timedelta(days=30)
         second_header = await update_second_header(account_ids,start_date,end_date)
+        print("second_header",second_header)
+        
         past_transaction_100_days = await fetch_past_transactions(account_ids,end_date,100)
+        # print("past_transaction_100_days", past_transaction_100_days)
         predicted_transaction_7_days = await fetch_predicted_data(account_ids, end_date,8)
+        print("predicted_transaction_7_days", predicted_transaction_7_days)
+        
+
         most_spending_category_100_days = await fetch_most_spent_category_100_days(account_ids,end_date)
         negative_balance_prediction= await fetch_minus_predicted_balance(account_id)
-        surplus_accounts = await check_surplus_accounts( user_id,account_id)
-        first_transaction_date = await fetch_first_transaction_date(account_ids)
+        
+
+        surplus_accounts = []
+        if user_id is not None:
+            surplus_accounts = await check_surplus_accounts(user_id, account_id)
+        first_transaction_date = await fetch_first_transaction_date([str(aid) for aid in account_ids])
+        print("DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD")
+
         return second_header, past_transaction_100_days, predicted_transaction_7_days,most_spending_category_100_days, negative_balance_prediction,surplus_accounts,first_transaction_date
     else:
         print("start_date",start_date)
@@ -473,6 +537,7 @@ async def fetch_credit_financial_summary(account_id: int, timeperiod: Optional[i
     # result = {"credit_limit": credit_limit, "total_expenses": total_expenses, "remaining_balance": remaining_balance}
     return CreditCardResponse(credit_limit=credit_limit, total_expenses=total_expenses, remaining_balance=remaining_balance)
 
+
 #most spending categories
 async def fetch_most_spent_categories(account_id: int, total_expenses: float,timeperiod: Optional[int] = None):
     
@@ -507,6 +572,7 @@ async def fetch_most_spent_categories(account_id: int, total_expenses: float,tim
     category_precentage = (spending_category[0]["total_spent"] / total_expenses) * 100 if total_expenses > 0 else 0.0
 
     return CategorySpending(category_name=spending_category[0]["category_name"], total_spent=spending_category[0]["total_spent"],category_precentage=category_precentage) 
+
 
 #current period data
 async def fetch_current_period_data(account_id:int):
@@ -590,9 +656,6 @@ async def check_surplus_accounts_for_creditcard( account_id: int,insufficient_cr
     return sufficient_accounts 
 
 
-
-from datetime import datetime, timedelta
-
 async def get_previous_expenses(account_id: int, start_date: datetime, period_begin_date: datetime) -> list:
     # Previous expenses pipeline
     past_expenses_pipeline = [
@@ -651,10 +714,6 @@ async def get_predicted_expenses(account_id: int, start_date: datetime, end_date
         })
     
     return predicted_expenses
-
-
-
-
 
 
 async def get_previous_account_balances(account_id: int, start_date: datetime, period_begin_date: datetime) -> list:
@@ -751,8 +810,6 @@ async def graph_data(account_id: int) -> dict:
     }
 
 
-
-
 # Handling Credit Card
 async def get_credit_summary(account_id: int,timeperiod:int | None=None):
 
@@ -769,7 +826,8 @@ async def get_credit_summary(account_id: int,timeperiod:int | None=None):
         credit_card_summery = await fetch_credit_financial_summary(account_id, timeperiod)
         top_categories=await fetch_most_spent_categories(account_id,credit_card_summery["total_expenses"],timeperiod=None)
         return credit_card_summery,top_categories
-    
+
+
 async def get_user_name_profile_pic(user_id : int) -> ResponseSchemaUsernameProfilePic:
     user = await collection_user.find_one({"user_id": user_id}, {"_id": 0, "username": 1, "user_image": 1})
     if user:
