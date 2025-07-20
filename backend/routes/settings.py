@@ -32,7 +32,7 @@ async def get_edit_profile(user_id: int):
 
 # route for updating the user's profile details without changing the phone number
 @router.post("/edit_profile", response_model=EditProfileResponse)
-async def update_edit_profile(request: UserEditProfile):
+async def update_edit_profile(request: UserEditProfile):    
     return await update_new_details(request)
 
 @router.post("/edit_phone_number_otp", response_model=OtpResponseEditTphone)
