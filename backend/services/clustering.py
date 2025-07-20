@@ -18,8 +18,9 @@ from database import collection_transaction_category_changes, collection_categor
 # df = pd.read_excel(r'C:\level2Sem1\AI_software_project\testing\ShiharaFinalizedDatasetExpenses.xlsx') # type: ignore
 # df = pd.read_excel(r'C:\level2Sem1\AI_software_project\testing\nadilFinalizedDatasetExpenses.xlsx') # type: ignore
 # df = pd.read_excel(r'C:\level2Sem1\AI_software_project\testing\nadilFinalizedDatasetIncomes.xlsx') # type: ignore
+df = pd.read_excel(r'C:\level2Sem1\AI_software_project\testing\credit_card_monthly_cycle.xlsx') # type: ignore
 
-account_id = 2
+account_id = 3
 
 pd.set_option('display.max_rows', None)  
 pd.set_option('display.max_columns', None) 
@@ -326,7 +327,7 @@ async def apply_stored_changes_by_account(df, account_id: int):
     return df
 
 df['account_id'] = account_id
-df.to_excel('nadilDataSetWithmin5expensesv4.xlsx',index=False) 
+df.to_excel('creditCardDataSetWithmin5expensesv4.xlsx',index=False) 
 
 async def update_mongodb_with_transactions(df, account_id):
 
