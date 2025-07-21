@@ -1,4 +1,5 @@
 import json
+import os
 import re
 from ollama import chat
 from models import transaction, TodoList
@@ -14,6 +15,7 @@ from nltk.corpus import words
 import nltk
 import ast
 from collections import Counter
+from dotenv import load_dotenv
 
 try:
     words.words("en")
@@ -1071,7 +1073,53 @@ Response:
             {"role": "system", "content": system_prompt_new},
             {"role": "user", "content": f"{user_input}"}
         ]
-        response = chat(model='llama3.2:latest', messages=messages)
+        # use gemini api here
+        import google.generativeai as genai
+        # Load environment variables
+        load_dotenv()
+        GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+        # Configure Gemini
+        genai.configure(api_key=GEMINI_API_KEY)
+        def clean_gemini_response(response_text):
+            """Remove code block markers from Gemini response"""
+            # Remove ```json at the start and ``` at the end
+            cleaned = response_text.strip()
+            if cleaned.startswith('```json'):
+                cleaned = cleaned[7:]  # Remove ```json
+            elif cleaned.startswith('```'):
+                cleaned = cleaned[3:]   # Remove ```
+            
+            if cleaned.endswith('```'):
+                cleaned = cleaned[:-3]  # Remove trailing ```
+            
+            return cleaned.strip()
+
+        # Replace the Ollama chat call with:
+        def call_gemini_api(messages):
+            try:
+                model = genai.GenerativeModel('gemini-1.5-flash')
+                
+                # Convert messages to Gemini format
+                prompt = ""
+                for message in messages:
+                    if message["role"] == "system":
+                        prompt += f"System: {message['content']}\n"
+                    elif message["role"] == "user":
+                        prompt += f"User: {message['content']}\n"
+                
+                response = model.generate_content(prompt)
+                cleaned_content = clean_gemini_response(response.text)
+                return {"message": {"content": cleaned_content}}
+            except Exception as e:
+                print(f"Gemini API error: {e}")
+                # Fallback to local model
+                return chat(model='llama3.2:latest', messages=messages)
+
+        # Then in your sanizedData function:
+        # response = chat(model='gemini-1.5-flash', messages=messages)
+        response = call_gemini_api(messages)
+        # response = chat(model='llama3.2:latest', messages=messages)
         content = response['message']['content']
         # # llama3.2:3b
         # #converting to string 

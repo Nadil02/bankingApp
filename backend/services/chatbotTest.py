@@ -12,8 +12,8 @@ from models import ChatBot,transaction
 from datetime import datetime, UTC
 from langchain_core.tools import StructuredTool
 from pydantic import BaseModel
-from schemas.chatbot import BankRatesArgs,GreetingResponseArgs,GetTotalSpendingsArgs,GetTotalIncomeArgs,GetLastTransactionArgs,GetMonthlySummaryArgs,GetAllTransactionsForDateArgs,GetNextMonthTotalIncomesArgs,GetNextMonthTotalSpendingsArgs,GetNextIncomeArgs,GetNextSpendingArgs,AddTodoItemArgs
-from services.llmAgentTools import get_bank_rates,get_greeting_response,get_total_spendings_for_given_time_period,get_total_incomes_for_given_time_period,get_last_transaction,get_monthly_summary,get_all_transactions_for_given_date,get_next_month_total_incomes,get_next_month_total_spendings,get_next_income,get_next_spending,add_to_do_item
+from schemas.chatbot import BankRatesArgs, GetSystemAnswerArgs,GreetingResponseArgs,GetTotalSpendingsArgs,GetTotalIncomeArgs,GetLastTransactionArgs,GetMonthlySummaryArgs,GetAllTransactionsForDateArgs,GetNextMonthTotalIncomesArgs,GetNextMonthTotalSpendingsArgs,GetNextIncomeArgs,GetNextSpendingArgs,AddTodoItemArgs
+from services.llmAgentTools import chatbot_system_answer, get_bank_rates,get_greeting_response,get_total_spendings_for_given_time_period,get_total_incomes_for_given_time_period,get_last_transaction,get_monthly_summary,get_all_transactions_for_given_date,get_next_month_total_incomes,get_next_month_total_spendings,get_next_income,get_next_spending,add_to_do_item
 from datetime import datetime
 from contextlib import redirect_stdout
 now=datetime.now()
@@ -298,7 +298,28 @@ tools = [
         """,
         args_schema=BankRatesArgs,
         coroutine=get_bank_rates
+    ),
+    StructuredTool(
+        name="chatbot_system_answer",
+        func=chatbot_system_answer,  
+        description="""Retrieves system details to answer user queries about the system only using the provided information.
+
+        *Parameters:*  
+        - query (str): The user's question about the system suchas: what are the ain features of this system, what is todo list used for, ...
+
+        *Usage Example:*  
+        If a user asks: "What are the features of this system?"  
+        The function will be called as:  
+        python
+        chatbot_system_answer(query="What are the features of this system?")
+        
+        *Returns:* A str containing the system details. Example:  
+        "This system includes features like a chatbot, to-do list, goal setting, transaction prediction, and categorization."
+        """,
+        args_schema=GetSystemAnswerArgs,
+        coroutine=chatbot_system_answer
     )
+
 ]
 
 SYSTEM_PROMPT = """You are a financial assistant. Use available tools in sequence when needed.
@@ -312,6 +333,7 @@ You can use multiple tools for complex requests. Follow this pattern:
 7. some tools may return amounts as @amount1, @amount2,@summay_income_amount_1,@summay_expense_amount_2,@summay_balance_amount_2 etc. use these in responses, never mind it is not a numarical value. just use it as if it is a number.
 7. if user query is containing @name1, @bank1, @account1, @date1, @amount1, @amount2,etc. then use those in tool calling as it is. dont ask for user for actual names, banks , dates, amounts etc. just use them as it is.
 8. use get_greeting_response tool to get a question to ask at the start of a conversation. you can use that tool when user start a conversation with a greeting message, when you ask user whether further assit want or not. this tool returns a question to ask based on most frequently asked questions.
+9. use chatbot_system_answer tool to answer user queries about the system. this tool returns a string containing the system details. use this tool when user asks about the system, like what are the features of this system, what is todo list used for, etc.
 """
 
 prompt = ChatPromptTemplate.from_messages([

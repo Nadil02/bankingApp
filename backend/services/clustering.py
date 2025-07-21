@@ -18,7 +18,7 @@ from database import collection_transaction_category_changes, collection_categor
 # df = pd.read_excel(r'C:\level2Sem1\AI_software_project\testing\ShiharaFinalizedDatasetExpenses.xlsx') # type: ignore
 # df = pd.read_excel(r'C:\level2Sem1\AI_software_project\testing\nadilFinalizedDatasetExpenses.xlsx') # type: ignore
 # df = pd.read_excel(r'C:\level2Sem1\AI_software_project\testing\nadilFinalizedDatasetIncomes.xlsx') # type: ignore
-df = pd.read_excel(r'C:\level2Sem1\AI_software_project\testing\credit_card_monthly_cycle.xlsx') # type: ignore
+df = pd.read_excel(r'C:\level2Sem1\AI_software_project\testing\credit_card_income.xlsx') # type: ignore
 
 account_id = 3
 
