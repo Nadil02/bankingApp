@@ -80,8 +80,8 @@ async def get_predictions_for_account(user_id: int, account_id: int) -> dict:
 
 async def get_account_balance(user_id: int):
 
-    # today = datetime.today().date()
-    today = datetime(2025, 1, 1).date()
+    today = datetime.today().date()
+    # today = datetime(2025, 1, 1).date()
     tomorrow = today + timedelta(days=1)
     date_range = [(tomorrow + timedelta(days=i)).isoformat() for i in range(30)]
 
@@ -165,7 +165,8 @@ async def get_account_balance(user_id: int):
 
 async def get_specific_account_balance(account_id: int):
 
-    today = datetime(2025, 1, 1).date()
+    today = datetime.today().date()
+    # today = datetime(2025, 1, 1).date()
     tomorrow = today + timedelta(days=1)
     next_30_days = [(tomorrow + timedelta(days=i)).isoformat() for i in range(30)]
 
