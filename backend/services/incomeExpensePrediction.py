@@ -5,14 +5,24 @@ from collections import defaultdict
 
 
 async def get_account_details_prediction(user_id: int) -> dict:
+    # Fetch accounts for the user
     accounts = await collection_account.find(
         {"user_id": user_id},
-        {"_id": 0, "account_id": 1, "account_number": 1, "account_type": 1, "balance": 1, "bank_id": 1}
+        {
+            "_id": 0,
+            "account_id": 1,
+            "account_number": 1,
+            "account_type": 1,
+            "balance": 1,
+            "bank_id": 1
+        }
     ).to_list(length=None)
 
-    if len(accounts) == 0:
+    # Return message if no accounts are found
+    if not accounts:
         return {"message": "No accounts found"}
 
+    # Attach bank logo to each account
     for account in accounts:
         bank_id = account.get("bank_id")
         if bank_id:
@@ -20,12 +30,14 @@ async def get_account_details_prediction(user_id: int) -> dict:
                 {"bank_id": bank_id},
                 {"_id": 0, "logo": 1}
             )
-            account["image_url"] = bank["logo"] if bank else None
+            account["image_url"] = bank["logo"] if bank and "logo" in bank else None
         else:
             account["image_url"] = None
 
-    return {"accounts": [all_ac_details_response_prediction(**account) for account in accounts]}
-
+    # Convert to response model
+    return {
+        "accounts": [all_ac_details_response_prediction(**account) for account in accounts]
+    }
 
 
 async def replace_category_ids_with_names(predictions: list[dict]) -> list[dict]:
@@ -47,8 +59,7 @@ async def get_predictions_for_account(user_id: int, account_id: int) -> dict:
     expense_predictions = await collection_predicted_expense.find(
         {
             "user_id": user_id,
-            "account_id": account_id,
-            "Date": {"$gte": today, "$lte": end_date}
+            "account_id": account_id
         },
         {"_id": 0}
     ).to_list(length=None)
@@ -56,11 +67,11 @@ async def get_predictions_for_account(user_id: int, account_id: int) -> dict:
     income_predictions = await collection_predicted_income.find(
         {
             "user_id": user_id,
-            "account_id": account_id,
-            "Date": {"$gte": today, "$lte": end_date}
+            "account_id": account_id
         },
         {"_id": 0}
     ).to_list(length=None)
+
 
     for item in expense_predictions:
         item["transaction_type"] = "debit"
@@ -126,11 +137,11 @@ async def get_account_balance(user_id: int):
     # Fetch all predicted income docs for the user
     predicted_income_docs = await collection_predicted_income.find(
         {"user_id": user_id},
-        {"_id": 0, "Date": 1, "amount": 1}
+        {"_id": 0, "date": 1, "amount": 1}
     ).to_list(length=None)
 
     for doc in predicted_income_docs:
-        date_obj = doc.get("Date")
+        date_obj = doc.get("date")
         if date_obj:
             date_str = date_obj.date().isoformat()
             income_by_date[date_str] += doc.get("amount", 0)
@@ -138,11 +149,11 @@ async def get_account_balance(user_id: int):
     # Fetch all predicted expense docs for the user
     predicted_expense_docs = await collection_predicted_expense.find(
         {"user_id": user_id},
-        {"_id": 0, "Date": 1, "amount": 1}
+        {"_id": 0, "date": 1, "amount": 1}
     ).to_list(length=None)
 
     for doc in predicted_expense_docs:
-        date_obj = doc.get("Date")
+        date_obj = doc.get("date")
         if date_obj:
             date_str = date_obj.date().isoformat()
             expense_by_date[date_str] += doc.get("amount", 0)
@@ -172,13 +183,13 @@ async def get_specific_account_balance(account_id: int):
     # Fetch income
     predicted_income = await collection_predicted_income.find(
         {"account_id": account_id},
-        {"_id": 0, "Date": 1, "amount": 1}
+        {"_id": 0, "date": 1, "amount": 1}
     ).to_list(length=None)
 
     # Fetch expense
     predicted_expense = await collection_predicted_expense.find(
         {"account_id": account_id},
-        {"_id": 0, "Date": 1, "amount": 1}
+        {"_id": 0, "date": 1, "amount": 1}
     ).to_list(length=None)
 
     return_dict = {
@@ -197,13 +208,13 @@ async def get_specific_account_balance(account_id: int):
             balance_by_date[date_str] = record.get("balance", 0)
 
     for record in predicted_income:
-        date_obj = record.get("Date")
+        date_obj = record.get("date")
         if date_obj:
             date_str = date_obj.date().isoformat()
             income_by_date[date_str] += record.get("amount", 0)
 
     for record in predicted_expense:
-        date_obj = record.get("Date")
+        date_obj = record.get("date")
         if date_obj:
             date_str = date_obj.date().isoformat()
             expense_by_date[date_str] += record.get("amount", 0)
