@@ -4,9 +4,12 @@ from services.settings import get_user_notification_status, otp_validation_Tphon
 from schemas.sign_in import SignInRequest, OtpRequest, SignInResponse
 from fastapi.responses import JSONResponse
 
+from utils.auth import verify_token
+
 router = APIRouter(
     prefix="/settings",
     tags=["settings"],
+    dependencies=[Depends(verify_token)]
 )
 
 @router.get("/", response_model=getUserNotificationStatus)
@@ -32,7 +35,7 @@ async def get_edit_profile(user_id: int):
 
 # route for updating the user's profile details without changing the phone number
 @router.post("/edit_profile", response_model=EditProfileResponse)
-async def update_edit_profile(request: UserEditProfile):
+async def update_edit_profile(request: UserEditProfile):    
     return await update_new_details(request)
 
 @router.post("/edit_phone_number_otp", response_model=OtpResponseEditTphone)

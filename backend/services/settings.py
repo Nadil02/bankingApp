@@ -10,10 +10,13 @@ from utils.encrypt_and_decrypt import decrypt, encrypt, decrypt_user_data
 
 
 async def get_user_notification_status(user_id: int) -> Optional[getUserNotificationStatus]:
-    user = await collection_user.find_one({"user_id": user_id})  
+    user = await collection_user.find_one({"user_id": user_id}) 
+     
     if user:
+        print("SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS")
         # Decrypt the user image
         encrypted_user_image = user["user_image"]
+        print(repr(encrypted_user_image))
         base64_image = decrypt(encrypted_user_image)
 
         # Decrypt the first and last name
@@ -60,18 +63,27 @@ async def load_edit_profile(user_id: int) -> UserEditProfile:
     return user_info
 
 async def update_new_details(request: UserEditProfile) -> dict:
+
     userName=encrypt(request.user_name)
     userImage=encrypt(request.user_image)
+
     await collection_user.update_one(
             {"user_id": request.user_id},
             {"$set": {"username": userName, "user_image": userImage}}
         )
+    
     user_tp = request.phone_number
     user_saved_tp = await collection_user.find_one({"user_id": request.user_id},{"_id":0,"phone_number":1})
-    user_tp_number=decrypt(user_saved_tp["phone_number"])
-    print("user_tp_number : ",user_tp_number)
-    print("user_tp : ",user_tp)
-    if user_tp != user_tp_number:
+
+    if user_saved_tp and "phone_number" in user_saved_tp:
+        user_tp_number = decrypt(user_saved_tp["phone_number"])
+    else:
+        user_tp_number = None
+
+    print("user_tp_number : ", user_tp_number)
+    print("user_tp : ", user_tp)
+
+    if user_tp_number is not None and user_tp != user_tp_number:
         # send otp to the new number
         last_otp =await collection_OTP.find_one(sort=[("otp_id", -1)])  #  last otpid 
         if last_otp and "otp_id" in last_otp:
@@ -82,9 +94,9 @@ async def update_new_details(request: UserEditProfile) -> dict:
             next_otp_id = int(1) #from 1 if no otp exist
 
         await storeAndSendOtp(next_otp_id, request.phone_number)
-        return EditProfileResponse(message="OTP sent to the new phone number",otp_id=next_otp_id)
+        return EditProfileResponse(message="OTP sent to the new phone number", otp_id=next_otp_id).dict()
     else:
-        return EditProfileResponse(message="Profile updated successfully",otp_id=-1)
+        return EditProfileResponse(message="Profile updated successfully", otp_id=-1).dict()
 
 
 def generate_otp():
