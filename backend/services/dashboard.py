@@ -315,12 +315,14 @@ async def update_second_header(account_id:Union[int, List[int]],start_date:Union
     financial_summery = await fetch_financial_summary(account_ids,start_date, end_date)
     print("financial_summery_type",type(financial_summery))
     print("MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM")
+    print("financial_summery", financial_summery)
     total_expenses = financial_summery["total_expenses"]
 
     print("total_expenses",total_expenses)
     # print("total_expenses category " ,total_expenses)
     spending_category = await fetch_top_spending_categories(account_ids,start_date, end_date, total_expenses)
     #return as a touple
+    print("spending_category", spending_category)
     return financial_summery,spending_category
 
 
