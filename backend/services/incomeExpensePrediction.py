@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from database import collection_account, collection_bank, collection_predicted_income, collection_predicted_expense, collection_transaction_category, collection_predicted_balance
 from schemas.incomeExpenseprediction import all_ac_details_response_prediction
 from collections import defaultdict
@@ -17,6 +17,7 @@ async def get_account_details_prediction(user_id: int) -> dict:
             "bank_id": 1
         }
     ).to_list(length=None)
+    print("accounts", accounts)
 
     # Return message if no accounts are found
     if not accounts:
@@ -54,6 +55,7 @@ async def replace_category_ids_with_names(predictions: list[dict]) -> list[dict]
 
 
 async def get_predictions_for_account(user_id: int, account_id: int) -> dict:
+    
     today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     end_date = today + timedelta(days=31)
     expense_predictions = await collection_predicted_expense.find(
@@ -88,7 +90,9 @@ async def get_predictions_for_account(user_id: int, account_id: int) -> dict:
 
 
 async def get_account_balance(user_id: int):
-    today = datetime.today().date()
+
+    # today = datetime.today().date()
+    today = datetime(2025, 1, 1).date()
     tomorrow = today + timedelta(days=1)
     date_range = [(tomorrow + timedelta(days=i)).isoformat() for i in range(30)]
 
@@ -97,7 +101,7 @@ async def get_account_balance(user_id: int):
         {"user_id": user_id},
         {"_id": 0, "account_id": 1, "balance": 1, "date": 1}
     ).to_list(length=None)
-    print("predicted_balances", predicted_balances)
+    # print("predicted_balances", predicted_balances)
 
     # Group balance by date
     balance_by_date = defaultdict(float)
@@ -138,7 +142,9 @@ async def get_account_balance(user_id: int):
     predicted_income_docs = await collection_predicted_income.find(
         {"user_id": user_id},
         {"_id": 0, "date": 1, "amount": 1}
+        {"_id": 0, "date": 1, "amount": 1}
     ).to_list(length=None)
+    print("predicted_income_docs", predicted_income_docs)
 
     for doc in predicted_income_docs:
         date_obj = doc.get("date")
@@ -150,9 +156,11 @@ async def get_account_balance(user_id: int):
     predicted_expense_docs = await collection_predicted_expense.find(
         {"user_id": user_id},
         {"_id": 0, "date": 1, "amount": 1}
+        {"_id": 0, "date": 1, "amount": 1}
     ).to_list(length=None)
 
     for doc in predicted_expense_docs:
+        date_obj = doc.get("date")
         date_obj = doc.get("date")
         if date_obj:
             date_str = date_obj.date().isoformat()
@@ -170,7 +178,8 @@ async def get_account_balance(user_id: int):
 
 
 async def get_specific_account_balance(account_id: int):
-    today = datetime.today().date()
+
+    today = datetime(2025, 1, 1).date()
     tomorrow = today + timedelta(days=1)
     next_30_days = [(tomorrow + timedelta(days=i)).isoformat() for i in range(30)]
 
@@ -184,11 +193,14 @@ async def get_specific_account_balance(account_id: int):
     predicted_income = await collection_predicted_income.find(
         {"account_id": account_id},
         {"_id": 0, "date": 1, "amount": 1}
+        {"_id": 0, "date": 1, "amount": 1}
     ).to_list(length=None)
+    print("predicted_income", predicted_income)
 
     # Fetch expense
     predicted_expense = await collection_predicted_expense.find(
         {"account_id": account_id},
+        {"_id": 0, "date": 1, "amount": 1}
         {"_id": 0, "date": 1, "amount": 1}
     ).to_list(length=None)
 
@@ -209,11 +221,13 @@ async def get_specific_account_balance(account_id: int):
 
     for record in predicted_income:
         date_obj = record.get("date")
+        date_obj = record.get("date")
         if date_obj:
             date_str = date_obj.date().isoformat()
             income_by_date[date_str] += record.get("amount", 0)
 
     for record in predicted_expense:
+        date_obj = record.get("date")
         date_obj = record.get("date")
         if date_obj:
             date_str = date_obj.date().isoformat()
