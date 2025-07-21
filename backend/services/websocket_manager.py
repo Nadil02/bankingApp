@@ -1,31 +1,31 @@
+# services/websocket_manager.py
+from typing import Dict, List
 from fastapi import WebSocket
-from bson import json_util
 import json
-from typing import Dict
 
 class WebSocketManager:
     def __init__(self):
-        self.active_connections: Dict[int, WebSocket] = {}
+        self.active_connections: Dict[int, List[WebSocket]] = {}
 
     async def connect(self, websocket: WebSocket, user_id: int):
         await websocket.accept()
-        self.active_connections[user_id] = websocket
+        if user_id not in self.active_connections:
+            self.active_connections[user_id] = []
+        self.active_connections[user_id].append(websocket)
 
-    def disconnect(self, user_id: int):
+    def disconnect(self, user_id: int, websocket: WebSocket):
         if user_id in self.active_connections:
-            del self.active_connections[user_id]
+            self.active_connections[user_id].remove(websocket)
+            if not self.active_connections[user_id]:
+                del self.active_connections[user_id]
 
-    async def send_personal_message(self, message: dict, user_id: int):
+    async def broadcast_to_user(self, user_id: int, message: dict):
         if user_id in self.active_connections:
-            try:
-                # Serialize datetime-safe message using bson
-                safe_message = json.loads(json_util.dumps(message))
-                await self.active_connections[user_id].send_json(safe_message)
-            except Exception as e:
-                print(f"WebSocket send error: {e}")
-                self.disconnect(user_id)
+            for connection in self.active_connections[user_id]:
+                try:
+                    await connection.send_json(message)
+                except Exception as e:
+                    self.disconnect(user_id, connection)
+                    print(f"Error sending message: {e}")
 
-
-
-# Global instance
 websocket_manager = WebSocketManager()

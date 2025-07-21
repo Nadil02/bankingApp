@@ -15,7 +15,7 @@ class all_ac_details_response_prediction(BaseModel):
 class PredictionItem(BaseModel):
     user_id: int
     account_id: int
-    Date: datetime
+    date: datetime
     amount: float
     category_name: str
     explanation: str

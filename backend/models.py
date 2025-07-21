@@ -86,6 +86,9 @@ class PredictedExpense(BaseModel):
     explanation: str
     amount: float
     user_id: int
+    category_id: int
+    clasification_uncertainity: float
+    regression_uncertainity: float
 
 
 
@@ -96,8 +99,10 @@ class PredictedIncome(BaseModel):
     explanation: str
     amount: float
     user_id: int
-    clasification_uncertainity:float
-    regression_uncertainity:float
+    category_id: int
+    clasification_uncertainity: float
+    regression_uncertainity: float
+
 
 
 
