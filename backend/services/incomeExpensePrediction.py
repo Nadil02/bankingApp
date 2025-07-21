@@ -141,8 +141,8 @@ async def get_account_balance(user_id: int):
     # Fetch all predicted income docs for the user
     predicted_income_docs = await collection_predicted_income.find(
         {"user_id": user_id},
-        {"_id": 0, "date": 1, "amount": 1}
-        {"_id": 0, "date": 1, "amount": 1}
+        {"_id": 0, "date": 1, "amount": 1},
+        # {"_id": 0, "date": 1, "amount": 1}
     ).to_list(length=None)
     print("predicted_income_docs", predicted_income_docs)
 
@@ -155,8 +155,8 @@ async def get_account_balance(user_id: int):
     # Fetch all predicted expense docs for the user
     predicted_expense_docs = await collection_predicted_expense.find(
         {"user_id": user_id},
-        {"_id": 0, "date": 1, "amount": 1}
-        {"_id": 0, "date": 1, "amount": 1}
+        {"_id": 0, "date": 1, "amount": 1},
+        # {"_id": 0, "date": 1, "amount": 1}
     ).to_list(length=None)
 
     for doc in predicted_expense_docs:
@@ -193,16 +193,16 @@ async def get_specific_account_balance(account_id: int):
     # Fetch income
     predicted_income = await collection_predicted_income.find(
         {"account_id": account_id},
-        {"_id": 0, "date": 1, "amount": 1}
-        {"_id": 0, "date": 1, "amount": 1}
+        {"_id": 0, "date": 1, "amount": 1},
+        # {"_id": 0, "date": 1, "amount": 1}
     ).to_list(length=None)
     print("predicted_income", predicted_income)
 
     # Fetch expense
     predicted_expense = await collection_predicted_expense.find(
         {"account_id": account_id},
-        {"_id": 0, "date": 1, "amount": 1}
-        {"_id": 0, "date": 1, "amount": 1}
+        {"_id": 0, "date": 1, "amount": 1},
+        # {"_id": 0, "date": 1, "amount": 1}
     ).to_list(length=None)
 
     return_dict = {
