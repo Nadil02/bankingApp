@@ -6,7 +6,7 @@ from utils.auth import verify_token
 router = APIRouter(
     prefix="/dashboard",
     tags=["Dashboard"],
-    dependencies=[Depends(verify_token)]
+    # dependencies=[Depends(verify_token)]
     )
 
 @router.get("/")
