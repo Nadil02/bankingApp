@@ -8,7 +8,7 @@ import re
 from utils.auth import verify_token
 
 router= APIRouter(
-    dependencies=[Depends(verify_token)]
+    # dependencies=[Depends(verify_token)]
 )
 
 @router.post("/chatbot")
