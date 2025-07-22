@@ -80,9 +80,8 @@ class PredictedBalance(BaseModel):
 
 class PredictedExpense(BaseModel):
     account_id: int
-    prediction_id: int
+    category_id: int
     date: datetime
-    description: str
     explanation: str
     amount: float
     user_id: int
