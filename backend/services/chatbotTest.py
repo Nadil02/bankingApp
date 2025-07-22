@@ -25,7 +25,7 @@ load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 llm = ChatGoogleGenerativeAI(
-    model="gemini-1.5-flash",
+    model="gemini-2.5-flash",
     temperature=0.7,
     google_api_key=GEMINI_API_KEY
 )
@@ -330,11 +330,13 @@ You can use multiple tools for complex requests. Follow this pattern:
 4. Use tools sequentially
 5. Combine results for final answer
 6. if user does not provide enough information for tool parameters, ask for it.
-7. some tools may return amounts as @amount1, @amount2,@summay_income_amount_1,@summay_expense_amount_2,@summay_balance_amount_2 etc. use these in responses, never mind it is not a numarical value. just use it as if it is a number. dont change it, use it as it is. for an example if tool return "@amount1" dont make it "@amount2" or any other changed value. use it as it is.
+7. CRITICAL: some tools may return amounts as @amount1, @amount2, @summary_income_amount_1, @summary_expense_amount_2, @summary_balance_amount_2 etc. You MUST use these EXACT variable names in responses. NEVER change the numbers or modify these variables in any way. For example: if tool returns "@summary_income_amount_1" you must use "@summary_income_amount_1" exactly - DO NOT change it to "@summary_income_amount_2" or any other variation.
 7. if user query is containing @name1, @bank1, @account1, @date1, @amount1, @amount2,etc. then use those in tool calling as it is. dont ask for user for actual names, banks , dates, amounts etc. just use them as it is.
 8. use get_greeting_response tool to get a question to ask at the start of a conversation. you can use that tool when user start a conversation with a greeting message, when you ask user whether further assit want or not. this tool returns a question to ask based on most frequently asked questions.
 9. use chatbot_system_answer tool to answer user queries about the system. this tool returns a string containing the system details. use this tool when user asks about the system, like what are the features of this system, what is todo list used for, etc.
 10. if user query use something that can get from a tool, dont use previous messages instead of tools. use tools.
+11. IMPORTANT: When copying tool responses that contain @ variables, copy them EXACTLY as they appear. Do not increment numbers, do not modify the variable names in any way.
+12. RULE: Always preserve the exact format and numbering of @ variables returned by tools. Copy them character-for-character without any modifications.
 """
 
 prompt = ChatPromptTemplate.from_messages([
