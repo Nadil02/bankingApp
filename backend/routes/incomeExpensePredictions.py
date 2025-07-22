@@ -7,7 +7,7 @@ from utils.auth import verify_token
 router = APIRouter(
     prefix="/income_expense-prediction", 
     tags=["Income Expense Predictions"],
-    # dependencies=[Depends(verify_token)]
+    dependencies=[Depends(verify_token)]
     )
 
 

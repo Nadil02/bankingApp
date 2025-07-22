@@ -1,8 +1,13 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from services.dashboard import get_user_name_profile_pic, load_full_details,load_specific_account,get_credit_summary
 from schemas.dashboard import ResponseSchema, ResponseSchemaUsernameProfilePic
+from utils.auth import verify_token
 
-router = APIRouter(prefix="/dashboard",tags=["Dashboard"])
+router = APIRouter(
+    prefix="/dashboard",
+    tags=["Dashboard"],
+    dependencies=[Depends(verify_token)]
+    )
 
 @router.get("/")
 async def All_Account_DashBoard(user_id:int):

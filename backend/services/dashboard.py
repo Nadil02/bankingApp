@@ -65,6 +65,8 @@ async def fetch_top_spending_categories(account_ids:list, start_date:datetime, e
         {"$limit":6}
     ]
     category_result = await collection_transaction.aggregate(category_pipeline).to_list(length=6)
+    print(".............................................")
+    print("category_result",category_result)
     category_ids = [item["_id"] for item in category_result]
 
 
@@ -508,8 +510,9 @@ async def load_specific_account(account_id:int, user_id:Optional[int] = None, st
 
 # Financial summaries for credit account
 async def fetch_credit_financial_summary(account_id: int, timeperiod: Optional[int] = None):
-    
+    print("NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN")
     if timeperiod:
+        print("JJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJ")
         # Fetch data from credit_periods collection based on given timeperiod
         credit_summary = await collection_credit_periods.find_one(
             {"account_id": account_id, "period_id": timeperiod},  
@@ -523,12 +526,16 @@ async def fetch_credit_financial_summary(account_id: int, timeperiod: Optional[i
             }
     
     # If timeperiod is not given, fetch data from account_collection
+    print("LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL")
     account_data = await collection_account.find_one(
         {"account_id": account_id},
         {"credit_limit": 1, "balance": 1, "due_date": 1, "_id": 0}
     )
+    print("account_data", account_data)
+    # account_data {'credit_limit': 100000, 'due_date': datetime.datetime(2025, 7, 30, 0, 0), 'balance': 1047.92}
     
     if not account_data:  # Check if account_data is None
+        print("OOOOOOOOOOOOOOOOOOOOOOO")
         return {"credit_limit": 0.0, "total_expenses": 0.0, "remaining_balance": 0.0}
 
     # Convert to float before performing subtraction
@@ -547,6 +554,7 @@ async def fetch_most_spent_categories(account_id: int, total_expenses: float,tim
     due_date = account_data["due_date"]
 
     if timeperiod:
+        print("----------------------------------")
         period = await collection_credit_periods.find_one({"account_id": account_id, "period_id": timeperiod})
         
         period_id = period["period_id"]
@@ -554,6 +562,7 @@ async def fetch_most_spent_categories(account_id: int, total_expenses: float,tim
         start_date = period["start_date"]
         start_date = period["end_date"]
     else:
+        print("==================================")
         last_period_id =await collection_credit_periods.find_one({"account_id": account_id}, sort=[("period_id", -1)])
         print("last_period_id",last_period_id)
         period = await collection_credit_periods.find_one({"account_id": account_id, "period_id": last_period_id['period_id']})
@@ -565,6 +574,10 @@ async def fetch_most_spent_categories(account_id: int, total_expenses: float,tim
 
     # call the fucntion of dashboard_new.py
     account_ids = [account_id]
+    print("account_ids", account_ids)
+    print("start_date", start_date)
+    print("end_date", end_date)
+    print("total_expenses", total_expenses)
     spending_category = await fetch_top_spending_categories(account_ids, start_date, end_date, total_expenses)
     print("spent_category : ",spending_category)
     
@@ -817,7 +830,12 @@ async def get_credit_summary(account_id: int,timeperiod:int | None=None):
 
     if not timeperiod:
         credit_card_summery = await fetch_credit_financial_summary(account_id, timeperiod)
+        print("********************************")
+        print("credit_card_summery", credit_card_summery)
         top_categories=await fetch_most_spent_categories(account_id,credit_card_summery.total_expenses,timeperiod=None) 
+        # print("*************************************************")
+        # print("top_categories",top_categories)
+
         current_period_data=await fetch_current_period_data(account_id)
         insufficient_credit = await calculate_insufficient_credit(account_id)
         sufficient_accounts=await check_surplus_accounts_for_creditcard(account_id,insufficient_credit["insufficient_credit"])# for account suggestion

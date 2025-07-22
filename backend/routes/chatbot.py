@@ -5,8 +5,11 @@ from services.chatbotTest import get_chatbot_response, get_user_image_service
 from services.llmAgentTools import replace_dummy_values, sanizedData, desanizedData
 import ast
 import re
+from utils.auth import verify_token
 
-router= APIRouter()
+router= APIRouter(
+    # dependencies=[Depends(verify_token)]
+)
 
 @router.post("/chatbot")
 async def chatbot_endpoint(query: ChatbotRequest):
