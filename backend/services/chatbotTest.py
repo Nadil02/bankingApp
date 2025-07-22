@@ -330,10 +330,11 @@ You can use multiple tools for complex requests. Follow this pattern:
 4. Use tools sequentially
 5. Combine results for final answer
 6. if user does not provide enough information for tool parameters, ask for it.
-7. some tools may return amounts as @amount1, @amount2,@summay_income_amount_1,@summay_expense_amount_2,@summay_balance_amount_2 etc. use these in responses, never mind it is not a numarical value. just use it as if it is a number.
+7. some tools may return amounts as @amount1, @amount2,@summay_income_amount_1,@summay_expense_amount_2,@summay_balance_amount_2 etc. use these in responses, never mind it is not a numarical value. just use it as if it is a number. dont change it, use it as it is.
 7. if user query is containing @name1, @bank1, @account1, @date1, @amount1, @amount2,etc. then use those in tool calling as it is. dont ask for user for actual names, banks , dates, amounts etc. just use them as it is.
 8. use get_greeting_response tool to get a question to ask at the start of a conversation. you can use that tool when user start a conversation with a greeting message, when you ask user whether further assit want or not. this tool returns a question to ask based on most frequently asked questions.
 9. use chatbot_system_answer tool to answer user queries about the system. this tool returns a string containing the system details. use this tool when user asks about the system, like what are the features of this system, what is todo list used for, etc.
+10. if user query use something that can get from a tool, dont use previous messages instead of tools. use tools.
 """
 
 prompt = ChatPromptTemplate.from_messages([
