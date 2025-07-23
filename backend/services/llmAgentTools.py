@@ -554,46 +554,138 @@ async def get_greeting_response(user_id: int) -> str:
     # Create a response based on the most common tool
     return f"Hello! Would you like to know about {user_friendly_tool}?"
 
-
 async def get_bank_rates(user_id):
     try:
         # Find all accounts belonging to the user
         user_accounts = await collection_account.find({"user_id": user_id}).to_list(length=None)
         if not user_accounts:
-            return {"error": "User accounts not found. Please check the user ID."}
+            return "User accounts not found. Please check the user ID."
         
         # Get unique bank_ids from the user's accounts
         bank_ids = list(set(account.get("bank_id") for account in user_accounts if account.get("bank_id")))
         if not bank_ids:
-            return {"error": "No associated banks found for the given user."}
+            return "No associated banks found for the given user."
         
         # Fetch bank details for all associated banks
         banks = await collection_bank.find({"bank_id": {"$in": bank_ids}}).to_list(length=None)
         if not banks:
-            return {"error": "No banks found for the given criteria."}
+            return "No banks found for the given criteria."
         
-        # Extract rates for each bank
-        bank_rates = {}
+        # Extract rates for each bank with proper error handling
+        bank_rates_list = []
         for bank in banks:
             bank_name = bank.get("bank_name", "Unknown Bank")
-            bank_rates[bank_name] = {
-                "Savings Accounts": [
-                    {"account_type": rate.get("account_type", "Unknown"), "interest_rate": rate.get("interest_rate", 0)}
-                    for rate in bank.get("rates", []) if rate.get("type") == "savings"
-                ],
-                "Fixed Deposits": [
-                    {"term": rate.get("term", "Unknown"), "interest_rate": rate.get("interest_rate", 0)}
-                    for rate in bank.get("rates", []) if rate.get("type") == "fixed_deposit"
-                ],
-                "Loans": [
-                    {"term": rate.get("term", "Unknown"), "interest_rate": rate.get("interest_rate", 0)}
-                    for rate in bank.get("rates", []) if rate.get("type") == "loan"
-                ]
+            rates = bank.get("rates", [])
+            
+            # Ensure rates is a list
+            if not isinstance(rates, list):
+                continue
+            
+            bank_info = {
+                "bank_name": bank_name,
+                "savings_accounts": [],
+                "fixed_deposits": [],
+                "loans": []
             }
+            
+            for rate in rates:
+                # Ensure each rate is a dictionary
+                if not isinstance(rate, dict):
+                    continue
+                    
+                rate_type = rate.get("type", "").lower()
+                account_type = rate.get("account_type", "Unknown")
+                term = rate.get("term", "Unknown")
+                interest_rate = rate.get("interest_rate", 0)
+                
+                if rate_type == "savings":
+                    bank_info["savings_accounts"].append({
+                        "account_type": account_type,
+                        "interest_rate": f"{interest_rate}%"
+                    })
+                elif rate_type == "fixed_deposit":
+                    bank_info["fixed_deposits"].append({
+                        "term": term,
+                        "interest_rate": f"{interest_rate}%"
+                    })
+                elif rate_type == "loan":
+                    bank_info["loans"].append({
+                        "term": term,
+                        "interest_rate": f"{interest_rate}%"
+                    })
+            
+            bank_rates_list.append(bank_info)
         
-        return bank_rates
+        # Format the response as a readable string
+        if not bank_rates_list:
+            return "No bank rate information available for your accounts."
+        
+        response_lines = ["Here are the available bank rates for your accounts:\n"]
+        
+        for bank_info in bank_rates_list:
+            response_lines.append(f"🏦 **{bank_info['bank_name']}**")
+            
+            if bank_info["savings_accounts"]:
+                response_lines.append("  💰 Savings Accounts:")
+                for acc in bank_info["savings_accounts"]:
+                    response_lines.append(f"    • {acc['account_type']}: {acc['interest_rate']}")
+            
+            if bank_info["fixed_deposits"]:
+                response_lines.append("  🏆 Fixed Deposits:")
+                for fd in bank_info["fixed_deposits"]:
+                    response_lines.append(f"    • {fd['term']}: {fd['interest_rate']}")
+            
+            if bank_info["loans"]:
+                response_lines.append("  💳 Loans:")
+                for loan in bank_info["loans"]:
+                    response_lines.append(f"    • {loan['term']}: {loan['interest_rate']}")
+            
+            response_lines.append("")  # Empty line between banks
+        
+        return "\n".join(response_lines)
+        
     except Exception as e:
-        return {"error": f"An error occurred: {str(e)}"}
+        print(f"Error in get_bank_rates: {e}")
+        return f"An error occurred while fetching bank rates: {str(e)}"
+# async def get_bank_rates(user_id):
+#     try:
+#         # Find all accounts belonging to the user
+#         user_accounts = await collection_account.find({"user_id": user_id}).to_list(length=None)
+#         if not user_accounts:
+#             return {"error": "User accounts not found. Please check the user ID."}
+        
+#         # Get unique bank_ids from the user's accounts
+#         bank_ids = list(set(account.get("bank_id") for account in user_accounts if account.get("bank_id")))
+#         if not bank_ids:
+#             return {"error": "No associated banks found for the given user."}
+        
+#         # Fetch bank details for all associated banks
+#         banks = await collection_bank.find({"bank_id": {"$in": bank_ids}}).to_list(length=None)
+#         if not banks:
+#             return {"error": "No banks found for the given criteria."}
+        
+#         # Extract rates for each bank
+#         bank_rates = {}
+#         for bank in banks:
+#             bank_name = bank.get("bank_name", "Unknown Bank")
+#             bank_rates[bank_name] = {
+#                 "Savings Accounts": [
+#                     {"account_type": rate.get("account_type", "Unknown"), "interest_rate": rate.get("interest_rate", 0)}
+#                     for rate in bank.get("rates", []) if rate.get("type") == "savings"
+#                 ],
+#                 "Fixed Deposits": [
+#                     {"term": rate.get("term", "Unknown"), "interest_rate": rate.get("interest_rate", 0)}
+#                     for rate in bank.get("rates", []) if rate.get("type") == "fixed_deposit"
+#                 ],
+#                 "Loans": [
+#                     {"term": rate.get("term", "Unknown"), "interest_rate": rate.get("interest_rate", 0)}
+#                     for rate in bank.get("rates", []) if rate.get("type") == "loan"
+#                 ]
+#             }
+        
+#         return bank_rates
+#     except Exception as e:
+#         return {"error": f"An error occurred: {str(e)}"}
     
 
 
