@@ -1,57 +1,66 @@
 from pydantic import BaseModel,Field
-from typing import Optional
+from typing import Optional, List, Dict
 from datetime import datetime
 from uuid import uuid4
+from typing import List, Dict, Any
+from enum import Enum
 
  
 class user(BaseModel):
     first_name: str
     last_name: str
-    nic: str
+    username: str
+    NIC: str
+    login_nic:str
     phone_number: str
     passcode: str
-    user_id: str =Field(default_factory=lambda: str(uuid4()), alias="_id")
+    user_id: int 
     notification_status: bool
+    user_image: str
 
 
 class account(BaseModel):
-    bank_id: str
-    account_id: str =Field(default_factory=lambda: str(uuid4()), alias="_id")
-    user_id: str
-    account_number: str
+    bank_id: int
+    account_id: int
+    user_id: int
+    account_number: int
     account_type: str
     credit_limit: float
-    due_date: datetime
+    due_date: Optional[datetime]=None
     balance: float
 
 
 class bank(BaseModel):
     bank_name: str
     logo: str
-    bank_id: str =Field(default_factory=lambda: str(uuid4()), alias="_id")
+    bank_id: int
+    #rates as array of dictionaries
+    rates: List[dict] = []  # Assuming you want to store multiple rates
 
 
 class OTP(BaseModel):
     otp: str
-    user_id: str
-    otp_id: str =Field(default_factory=lambda: str(uuid4()), alias="_id")
-    expiry_time: datetime
-    verification_count: int
+    # user_id: int
+    otp_id: int
+    # expiry_time: datetime
+    # verification_count: int
 
 
 class TodoList(BaseModel):
     description: str
-    todo_id: str =Field(default_factory=lambda: str(uuid4()), alias="_id")
-    user_id: str
+    todo_id: Optional[int] = None 
+    user_id: int
     date: datetime
     time: datetime
     repeat_frequency: Optional[str] = None
+    amount: Optional[float] = None
+    status: str = Field(default="ongoing")
 
 
 class transaction(BaseModel):
-    transaction_id: str =Field(default_factory=lambda: str(uuid4()), alias="_id")
-    category_id: str
-    account_id: str
+    transaction_id: int
+    category_id: int
+    account_id: int
     date: datetime
     description: str
     balance: float
@@ -60,55 +69,72 @@ class transaction(BaseModel):
 
 
 class PredictedBalance(BaseModel):
-    account_id: str
-    prediction_id: str =Field(default_factory=lambda: str(uuid4()), alias="_id")
+    account_id: int
+    prediction_id: int
     date: datetime
     description: str
     explanation: str
     balance: float
+    user_id: int
 
 
 class PredictedExpense(BaseModel):
-    account_id: str
-    prediction_id: str =Field(default_factory=lambda: str(uuid4()), alias="_id")
+    account_id: int
+    category_id: int
     date: datetime
-    description: str
     explanation: str
     amount: float
+    user_id: int
+    category_id: int
+    clasification_uncertainity: float
+    regression_uncertainity: float
 
 
 
 class PredictedIncome(BaseModel):
-    account_id: str
-    prediction_id: str =Field(default_factory=lambda: str(uuid4()), alias="_id")
+    account_id: int
+    category_id: int
     date: datetime
-    description: str
     explanation: str
     amount: float
+    user_id: int
+    category_id: int
+    clasification_uncertainity: float
+    regression_uncertainity: float
 
 
 
+
+class NotificationType(str, Enum):
+    INSUFFICIENT_BALANCE = "IN"
+    TODO_REMINDER = "TO"
 
 class Notification(BaseModel):
-    user_id: str
-    notification_id: str =Field(default_factory=lambda: str(uuid4()), alias="_id")
-    description: str
-    date: datetime
-    time: datetime
-    notification_type: str 
-    status: str  
+    type: Optional[NotificationType]
+    account_id: Optional[int]
+    minus_balance: Optional[float]
+    transaction_date: Optional[datetime]
+    todo_amount: Optional[float]
+    todo_date: Optional[datetime]
+    user_id: int
+    seen: bool = False
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class TokenPayload(BaseModel):
+    user_id: int
+    token: str
 
 
 
 class TransactionCategory(BaseModel):
     category_name: str
-    category_id: str =Field(default_factory=lambda: str(uuid4()), alias="_id")
+    category_id: int
 
 
 
 class Goal(BaseModel):
-    account_id: str
-    goal_id: str =Field(default_factory=lambda: str(uuid4()), alias="_id")
+    account_id: int
+    goal_id: int
     goal_name: str
     goal_amount: float
     start_date: datetime
@@ -116,5 +142,24 @@ class Goal(BaseModel):
 
 
 class ChatBot(BaseModel):
-    user_id: str
+    user_id: int
     chat_summary: str
+    tool_history: List[str] 
+
+
+class credit_periods(BaseModel):
+    acocunt_id: int
+    period_id: int
+    credit_limit: float
+    total_expenses: float
+    remaining_balance: float
+    start_date: datetime
+    end_date: datetime
+
+
+class UserDummy(BaseModel):
+    user_id: int
+    amount: Optional[float] = None
+    accountNumber: Optional[str] = None
+    name: Optional[str] = None
+
