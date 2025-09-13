@@ -1,1 +1,1 @@
-# bankingApp README
+#spendless-proactive financial assistant
