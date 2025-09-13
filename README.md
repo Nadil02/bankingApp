@@ -19,10 +19,48 @@
 16. [Contact](#contact)
 
 ## Project Overview
-- Brief description of what SpendLess does
-- Problem it solves
-- Target audience
-- Key value propositions
+
+**SpendLess** is a comprehensive proactive financial assistant that leverages advanced AI and machine learning technologies to provide intelligent banking solutions and financial predictions. Built as a modern banking application, SpendLess combines traditional banking features with cutting-edge predictive analytics to help users make informed financial decisions.
+
+### What SpendLess Does
+
+SpendLess serves as a complete banking ecosystem that offers:
+
+- **Multi-Bank Account Management**: Seamlessly manage accounts across multiple banks with unified dashboard views
+- **AI-Powered Financial Predictions**: Advanced machine learning models predict future expenses, income, and account balances
+- **Intelligent Transaction Categorization**: Automatic categorization of transactions using AI clustering techniques
+- **Proactive Notifications**: Smart alerts for insufficient balance, upcoming payments, and financial insights
+- **Interactive Financial Chatbot**: Natural language interface for financial queries and assistance
+- **Comprehensive Dashboard**: Real-time financial overview with analytics and insights
+- **Todo & Reminder System**: Financial task management with automated reminders
+
+### Problem It Solves
+
+Traditional banking applications provide basic transaction history and account management, but lack intelligent insights and predictive capabilities. SpendLess addresses key pain points:
+
+- **Reactive Financial Management**: Users often discover financial issues after they occur
+- **Lack of Predictive Insights**: No visibility into future financial trends or potential problems
+- **Fragmented Banking Experience**: Managing multiple bank accounts across different platforms
+- **Limited Financial Intelligence**: Basic transaction categorization without meaningful insights
+- **Poor Financial Planning**: No proactive assistance for financial decision-making
+
+### Target Audience
+
+- **Individual Users**: Personal banking customers seeking intelligent financial management
+- **Small Business Owners**: Entrepreneurs needing comprehensive financial oversight
+- **Financial Advisors**: Professionals requiring advanced analytics for client management
+- **Tech-Savvy Consumers**: Users who appreciate AI-driven financial insights
+
+### Key Value Propositions
+
+1. **Predictive Financial Intelligence**: Advanced N-BEATS and TFT models provide accurate future financial predictions
+2. **Proactive Financial Management**: Early warning systems prevent financial issues before they occur
+3. **Unified Banking Experience**: Single platform for managing multiple bank accounts and financial data
+4. **AI-Driven Insights**: Machine learning algorithms provide personalized financial recommendations
+5. **Real-Time Notifications**: Instant alerts and updates via WebSocket connections
+6. **Natural Language Interface**: Conversational AI for intuitive financial interactions
+7. **Comprehensive Analytics**: Detailed financial reports and trend analysis
+8. **Secure & Scalable**: Enterprise-grade security with MongoDB and modern authentication
 
 ## Features
 - User Authentication & Management
