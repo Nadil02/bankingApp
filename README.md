@@ -3073,6 +3073,285 @@ async def get_ai_insights(user_id: int, query: str) -> str:
 - **Causal Reasoning**: Understanding cause-effect relationships in financial decisions
 - **Federated Learning**: Privacy-preserving model improvements across users
 
+## Model Accuracy & Results
+
+This section documents the actual model performance, evaluation metrics, and results achieved by our AI/ML models based on the implemented code and optimization processes.
+
+### Model Configurations & Implementations
+
+#### 1. Balance Prediction Model (N-BEATSx)
+
+**Model Configuration:**
+```python
+model = NBEATSx(
+    h=horizon,
+    input_size=input_size,
+    futr_exog_list=future_features,
+    hist_exog_list=historical_features,
+    random_seed=42,
+    scaler_type='standard',
+    learning_rate=learning_rate,
+    max_steps=max_steps,
+    batch_size=batch_size,
+    stack_types=['identity', 'trend', 'seasonality'],
+    n_blocks=n_blocks,
+    n_harmonics=n_harmonics,
+    n_polynomials=n_polynomials,
+    loss=DistributionLoss(
+        distribution='Normal',
+        level=[80, 95]
+    )
+)
+```
+
+**Features Used:**
+- Cyclic encoding for day of week and month
+- Rolling statistics (mean, std) for 7, 30-day windows
+- Balance change indicators
+- Historical balance values (1d, 7d, 30d ago)
+
+#### 2. Expense Amount Regression Model (N-BEATSx)
+
+**Model Configuration:**
+```python
+model = NBEATSx(
+    h=horizon,
+    input_size=input_size,
+    loss=MQLoss(level=[90]),
+    scaler_type='minmax',
+    dropout_prob_theta=dropout_prob_theta,
+    futr_exog_list=f_exog_vars,
+    hist_exog_list=h_exog_vars,
+    max_steps=max_steps,
+    val_check_steps=20,
+    early_stop_patience_steps=5
+)
+```
+
+**Features Used:**
+- Payment frequency indicators
+- Days since last payment
+- Rolling average payments (7d, 30d)
+- Cumulative payment features
+- Balance change indicators
+
+#### 3. Expense Occurrence Classification Model (N-BEATSx)
+
+**Model Configuration:**
+```python
+model = NBEATSx(
+    h=horizon,
+    input_size=trial.suggest_int("input_size", 80, 200),
+    loss=DistributionLoss(distribution='Bernoulli', level=[80, 90]),
+    dropout_prob_theta=trial.suggest_float("dropout_prob", 0.0, 0.3, step=0.05),
+    scaler_type='robust',
+    futr_exog_list=futr_exog_vars,
+    hist_exog_list=hist_exog_vars,
+    max_steps=trial.suggest_int("max_steps", 500, 1500),
+    learning_rate=trial.suggest_float("learning_rate", 1e-4, 1e-2, log=True),
+    batch_size=trial.suggest_categorical("batch_size", [16, 32, 64]),
+    val_check_steps=20,
+    early_stop_patience_steps=5,
+    random_seed=42 
+)
+```
+
+**Features Used:**
+- Binary payment indicators
+- Payment frequency features
+- Temporal features (day of week, month)
+- Balance correlation features
+
+#### 4. Category-wise Forecasting Models (TFT)
+
+**Model Configuration:**
+```python
+# TFT model with hyperparameter optimization
+best_params = {
+    'hidden_size': 103,
+    'lstm_layers': 1,
+    'num_attention_heads': 4,
+    'dropout': 0.1309169746169452,
+    'learning_rate': 0.00018856750491026464,
+    'max_epochs': 46
+}
+```
+
+**Features Used:**
+- Transaction clustering features
+- Days since last transaction
+- Past transaction statistics (3, 60-day windows)
+- Cyclic date encoding
+- Time index features
+
+### Hyperparameter Optimization Results
+
+#### Optuna Optimization Process
+
+**Optimization Framework:**
+- **Library**: Optuna with multiple samplers (TPE, CMA-ES, Grid Search)
+- **Pruners**: Median, Successive Halving, Hyperband
+- **Validation**: Time series cross-validation
+
+**Documented Results:**
+
+**TFT Category-wise Model:**
+```python
+# From preprocessing_category_wise_expense_tft.ipynb
+print("Occurrence Prediction Optimization Results:")
+print(f"Best trial value: {study_occurrence.best_trial.value}")
+print(f"Best trial params: {study_occurrence.best_trial.params}")
+
+# Actual results found in notebook:
+# Best trial value: 0.30140021443367004
+# Best trial params: {
+#     'hidden_size': 103, 
+#     'lstm_layers': 1, 
+#     'num_attention_heads': 4, 
+#     'dropout': 0.1309169746169452, 
+#     'learning_rate': 0.00018856750491026464, 
+#     'max_epochs': 46
+# }
+```
+
+### Evaluation Metrics Implementation
+
+#### Metrics Calculated in Code
+
+**Classification Metrics:**
+```python
+from sklearn.metrics import precision_score, recall_score, f1_score, roc_auc_score, mean_absolute_error, mean_squared_error
+
+# Implementation found in notebooks:
+precision = precision_score(actual_occurrence, predicted_occurrence_eval)
+recall = recall_score(actual_occurrence, predicted_occurrence_eval)
+f1 = f1_score(actual_occurrence, predicted_occurrence_eval)
+auc = roc_auc_score(actual_occurrence, predicted_occurrence_eval)
+
+print(f"Best Model Occurrence Prediction Evaluation - Precision: {precision:.4f}, Recall: {recall:.4f}, F1-score: {f1:.4f}, AUC: {auc:.4f}")
+```
+
+**Regression Metrics:**
+```python
+# MAE and RMSE calculations for amount prediction
+mae_non_zero = mean_absolute_error(actual_amounts[non_zero_actual_mask], predicted_amounts_eval[non_zero_actual_mask])
+rmse_non_zero = np.sqrt(mean_squared_error(actual_amounts[non_zero_actual_mask], predicted_amounts_eval[non_zero_actual_mask]))
+```
+
+### Data Preprocessing & Feature Engineering
+
+#### Balance Data Preprocessing
+
+**Outlier Treatment:**
+```python
+# IQR method for outlier removal
+Q1 = df_balance['Balance'].quantile(0.25)
+Q3 = df_balance['Balance'].quantile(0.75)
+IQR = Q3 - Q1
+lower_bound = Q1 - 1.5 * IQR
+upper_bound = Q3 + 1.5 * IQR
+df_balance = df_balance[(df_balance['Balance'] > lower_bound) & (df_balance['Balance'] < upper_bound)]
+```
+
+**Normalization:**
+```python
+# Min-Max Normalization
+min_balance = df_balance['Balance'].min()
+max_balance = df_balance['Balance'].max()
+df_balance['Normalized_Balance'] = (df_balance['Balance'] - min_balance) / (max_balance - min_balance)
+```
+
+#### Payment Data Preprocessing
+
+**Feature Engineering:**
+```python
+# Cyclic encoding for temporal features
+complete_df['day_of_week_sin'] = np.sin(2 * np.pi * complete_df['day_of_week'] / 7)
+complete_df['day_of_week_cos'] = np.cos(2 * np.pi * complete_df['day_of_week'] / 7)
+complete_df['is_weekend'] = complete_df['day_of_week'].isin([5,6]).astype(int)
+
+# Rolling statistics
+complete_df['7day_avg_payment'] = complete_df['payment'].rolling(window=7, min_periods=1).mean()
+complete_df['30day_avg_payment'] = complete_df['payment'].rolling(window=30, min_periods=1).mean()
+```
+
+#### Transaction Data Preprocessing
+
+**Advanced Features:**
+```python
+# Days since last transaction
+df_final5_edit_3['Days_Since_Last_Txn'] = df_final5_edit_3.groupby('Cluster')['Date'].diff().dt.days
+
+# Past transaction statistics
+df_final5_edit_3['Total_Past_3_Txns'] = df_final5_edit_3.groupby('Cluster')['Receipts'].rolling(window=3, min_periods=1).sum().reset_index(0, drop=True)
+df_final5_edit_3['Avg_Past_3_Txns'] = df_final5_edit_3.groupby('Cluster')['Receipts'].rolling(window=3, min_periods=1).mean().reset_index(0, drop=True)
+
+# Cyclic date features
+df_final5_edit_3['DayOfWeek_sin'] = np.sin(2 * np.pi * df_final5_edit_3['DayOfWeek'] / 7)
+df_final5_edit_3['DayOfWeek_cos'] = np.cos(2 * np.pi * df_final5_edit_3['DayOfWeek'] / 7)
+df_final5_edit_3['Month_sin'] = np.sin(2 * np.pi * df_final5_edit_3['Month'] / 12)
+df_final5_edit_3['Month_cos'] = np.cos(2 * np.pi * df_final5_edit_3['Month'] / 12)
+```
+
+### Model Training & Validation
+
+#### Training Configuration
+
+**Common Training Parameters:**
+- **Horizon**: 30 days forecast window
+- **Input Size**: 80 days historical window
+- **Validation**: Time series cross-validation
+- **Early Stopping**: Implemented with patience steps
+- **Batch Size**: 16, 32, or 64 (optimized per model)
+
+#### Validation Strategy
+
+**Cross-Validation Implementation:**
+```python
+# Walk-forward validation approach
+train_df = df[:-horizon].copy()
+val_df = df[-horizon:].copy()
+
+# Time series split validation
+val_check_steps=20
+early_stop_patience_steps=5
+```
+
+### Model Deployment Architecture
+
+#### Real-time Prediction Pipeline
+
+**Model Serving Configuration:**
+- **Framework**: PyTorch Lightning models
+- **Serialization**: Model checkpoints and state dictionaries
+- **Inference**: Batch prediction with feature preprocessing
+- **Monitoring**: Validation loss tracking and performance metrics
+
+#### Performance Monitoring
+
+**Implemented Monitoring:**
+- **Validation Loss**: Tracked during training
+- **Early Stopping**: Prevents overfitting
+- **Feature Importance**: Available through model attention mechanisms
+- **Prediction Confidence**: Quantile-based uncertainty estimation
+
+### Future Enhancements
+
+#### Planned Improvements
+
+1. **Model Ensemble**: Combining N-BEATSx and TFT predictions
+2. **Online Learning**: Continuous model updates with new data
+3. **Advanced Preprocessing**: Enhanced feature engineering pipelines
+4. **Real-time Optimization**: Dynamic hyperparameter tuning
+5. **Model Interpretability**: SHAP values and attention visualization
+
+#### Research Directions
+
+- **Advanced Architectures**: Exploring newer transformer variants
+- **Multi-modal Learning**: Incorporating text and image data
+- **Federated Learning**: Privacy-preserving distributed training
+- **Causal Inference**: Understanding causal relationships in financial data
+
 ## Database Schema
 - User models
 - Account models
