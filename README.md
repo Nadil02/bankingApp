@@ -3353,11 +3353,296 @@ early_stop_patience_steps=5
 - **Causal Inference**: Understanding causal relationships in financial data
 
 ## Database Schema
-- User models
-- Account models
-- Transaction models
-- Prediction models
-- Notification models
+
+This section provides comprehensive documentation of the database structure, collections, and data models used in the SpendLess application. The system uses MongoDB as the primary database with Pydantic models for data validation and serialization.
+
+### Database Configuration
+
+**Database Details:**
+- **Database Type**: MongoDB (NoSQL)
+- **Connection**: AsyncIO Motor Client
+- **Database Name**: `project`
+- **Connection URI**: Environment variable `MONGO_URI`
+
+```python
+# Database connection setup
+client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URI)
+db = client["project"]
+```
+
+### Collections Overview
+
+The database contains the following collections:
+
+| Collection Name | Purpose | Primary Model |
+|----------------|---------|---------------|
+| `user` | User account information | `user` |
+| `account` | Bank account details | `account` |
+| `bank` | Bank information and rates | `bank` |
+| `transaction` | Financial transactions | `transaction` |
+| `transaction_category` | Transaction categories | `TransactionCategory` |
+| `predicted_balance` | AI balance predictions | `PredictedBalance` |
+| `predicted_expense` | AI expense predictions | `PredictedExpense` |
+| `predicted_income` | AI income predictions | `PredictedIncome` |
+| `Todo-list` | User todo items | `TodoList` |
+| `notification` | System notifications | `Notification` |
+| `OTP` | OTP verification codes | `OTP` |
+| `chatbot` | Chatbot interactions | `ChatBot` |
+| `goal` | Financial goals | `Goal` |
+| `credit_periods` | Credit card periods | `credit_periods` |
+| `expo_tokens` | Push notification tokens | - |
+| `chatbot_details` | Detailed chatbot data | - |
+
+### Core Data Models
+
+#### 1. User Model
+
+```python
+class user(BaseModel):
+    first_name: str
+    last_name: str
+    username: str
+    NIC: str
+    login_nic: str
+    phone_number: str
+    passcode: str
+    user_id: int 
+    notification_status: bool
+    user_image: str
+```
+
+**Collection**: `user`
+**Key Fields**:
+- `user_id`: Unique identifier
+- `NIC`: National Identity Card number
+- `login_nic`: Login identifier
+- `notification_status`: Push notification preference
+
+#### 2. Account Model
+
+```python
+class account(BaseModel):
+    bank_id: int
+    account_id: int
+    user_id: int
+    account_number: int
+    account_type: str
+    credit_limit: float
+    due_date: Optional[datetime] = None
+    balance: float
+```
+
+**Collection**: `account`
+**Key Fields**:
+- `account_id`: Unique account identifier
+- `user_id`: Foreign key to user
+- `account_type`: Type of account (savings, checking, credit)
+- `credit_limit`: Credit card limit (if applicable)
+- `balance`: Current account balance
+
+#### 3. Bank Model
+
+```python
+class bank(BaseModel):
+    bank_name: str
+    logo: str
+    bank_id: int
+    rates: List[dict] = []  # Multiple interest rates
+```
+
+**Collection**: `bank`
+**Key Fields**:
+- `bank_id`: Unique bank identifier
+- `bank_name`: Bank name
+- `logo`: Bank logo URL/path
+- `rates`: Array of interest rates and fees
+
+#### 4. Transaction Model
+
+```python
+class transaction(BaseModel):
+    transaction_id: int
+    category_id: int
+    account_id: int
+    date: datetime
+    description: str
+    balance: float
+    payment: float
+    receipt: float
+```
+
+**Collection**: `transaction`
+**Key Fields**:
+- `transaction_id`: Unique transaction identifier
+- `category_id`: Foreign key to transaction category
+- `account_id`: Foreign key to account
+- `payment`: Expense amount (negative)
+- `receipt`: Income amount (positive)
+- `balance`: Account balance after transaction
+
+#### 5. Transaction Category Model
+
+```python
+class TransactionCategory(BaseModel):
+    category_name: str
+    category_id: int
+```
+
+**Collection**: `transaction_category`
+**Purpose**: Categorizes transactions (Food, Transport, Salary, etc.)
+
+### AI Prediction Models
+
+#### 1. Predicted Balance Model
+
+```python
+class PredictedBalance(BaseModel):
+    account_id: int
+    prediction_id: int
+    date: datetime
+    description: str
+    explanation: str
+    balance: float
+    user_id: int
+```
+
+**Collection**: `predicted_balance`
+**Purpose**: Stores AI-generated balance predictions
+
+#### 2. Predicted Expense Model
+
+```python
+class PredictedExpense(BaseModel):
+    account_id: int
+    category_id: int
+    date: datetime
+    explanation: str
+    amount: float
+    user_id: int
+    category_id: int  # Duplicate field
+    clasification_uncertainity: float
+    regression_uncertainity: float
+```
+
+**Collection**: `predicted_expense`
+**Purpose**: Stores AI-generated expense predictions with uncertainty metrics
+
+#### 3. Predicted Income Model
+
+```python
+class PredictedIncome(BaseModel):
+    account_id: int
+    category_id: int
+    date: datetime
+    explanation: str
+    amount: float
+    user_id: int
+    category_id: int  # Duplicate field
+    clasification_uncertainity: float
+    regression_uncertainity: float
+```
+
+**Collection**: `predicted_income`
+**Purpose**: Stores AI-generated income predictions with uncertainty metrics
+
+### User Interface Models
+
+#### 1. Todo List Model
+
+```python
+class TodoList(BaseModel):
+    description: str
+    todo_id: Optional[int] = None 
+    user_id: int
+    date: datetime
+    time: datetime
+    repeat_frequency: Optional[str] = None
+    amount: Optional[float] = None
+    status: str = Field(default="ongoing")
+```
+
+**Collection**: `Todo-list`
+**Purpose**: User's financial reminders and tasks
+
+#### 2. Notification Model
+
+```python
+class NotificationType(str, Enum):
+    INSUFFICIENT_BALANCE = "IN"
+    TODO_REMINDER = "TO"
+
+class Notification(BaseModel):
+    type: Optional[NotificationType]
+    account_id: Optional[int]
+    minus_balance: Optional[float]
+    transaction_date: Optional[datetime]
+    todo_amount: Optional[float]
+    todo_date: Optional[datetime]
+    user_id: int
+    seen: bool = False
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+```
+
+**Collection**: `notification`
+**Purpose**: System notifications for users
+
+#### 3. OTP Model
+
+```python
+class OTP(BaseModel):
+    otp: str
+    otp_id: int
+```
+
+**Collection**: `OTP`
+**Purpose**: One-time passwords for verification
+
+### Chatbot Models
+
+#### 1. ChatBot Model
+
+```python
+class ChatBot(BaseModel):
+    user_id: int
+    chat_summary: str
+    tool_history: List[str]
+```
+
+**Collection**: `chatbot`
+**Purpose**: Stores chatbot interaction summaries
+
+### Financial Planning Models
+
+#### 1. Goal Model
+
+```python
+class Goal(BaseModel):
+    account_id: int
+    goal_id: int
+    goal_name: str
+    goal_amount: float
+    start_date: datetime
+    due_date: datetime
+```
+
+**Collection**: `goal`
+**Purpose**: User's financial goals and targets
+
+#### 2. Credit Periods Model
+
+```python
+class credit_periods(BaseModel):
+    acocunt_id: int  # Note: typo in field name
+    period_id: int
+    credit_limit: float
+    total_expenses: float
+    remaining_balance: float
+    start_date: datetime
+    end_date: datetime
+```
+
+**Collection**: `credit_periods`
+**Purpose**: Credit card billing periods and limits
 
 ## Usage Examples
 - Basic API calls
