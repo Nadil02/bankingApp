@@ -713,10 +713,353 @@ After successful installation:
 - Test WebSocket connections using tools like Postman or custom clients
 
 ## Configuration
-- Environment variables
-- API keys setup
-- Database configuration
-- AI model configuration
+
+This section covers all configuration options, environment variables, and settings for the SpendLess banking application.
+
+### Environment Variables
+
+The application uses environment variables for configuration. Create a `.env` file in the `backend` directory with the following variables:
+
+#### Database Configuration
+```env
+# MongoDB Connection
+MONGO_URI=mongodb://localhost:27017/spendless
+# For MongoDB Atlas: mongodb+srv://username:password@cluster.mongodb.net/spendless
+```
+
+#### JWT Authentication Configuration
+```env
+# JWT Secret Key (Generate a secure random string)
+SECRET_KEY=your-super-secret-jwt-key-here
+
+# JWT Algorithm
+ALGORITHM=HS256
+
+# Token Expiration Times (in minutes)
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+REFRESH_TOKEN_EXPIRE_MINUTES=10080
+```
+
+#### AI/ML Service Configuration
+```env
+# Google Gemini AI API
+GEMINI_API_KEY=your-google-gemini-api-key
+
+# Optional: Ollama Configuration (for local LLM)
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama2
+```
+
+#### SMS Service Configuration
+```env
+# Notify.lk (Sri Lanka SMS Service)
+NOTIFY_LK_USER_ID=your-notify-lk-user-id
+NOTIFY_LK_API_KEY=your-notify-lk-api-key
+NOTIFY_LK_SENDER_ID=your-approved-sender-id
+
+# Twilio (International SMS Service) - Alternative
+TWILIO_ACCOUNT_SID=your-twilio-account-sid
+TWILIO_AUTH_TOKEN=your-twilio-auth-token
+TWILIO_PHONE_NUMBER=your-twilio-phone-number
+```
+
+#### Push Notification Configuration
+```env
+# Expo Push Notifications
+EXPO_ACCESS_TOKEN=your-expo-access-token
+```
+
+#### Application Configuration
+```env
+# Application Settings
+APP_NAME=SpendLess
+APP_VERSION=1.0.0
+DEBUG=True
+LOG_LEVEL=INFO
+
+# Server Configuration
+HOST=0.0.0.0
+PORT=8000
+WORKERS=4
+
+# CORS Configuration
+CORS_ORIGINS=http://localhost:3000,http://localhost:8080
+CORS_CREDENTIALS=True
+CORS_METHODS=GET,POST,PUT,DELETE,OPTIONS
+CORS_HEADERS=*
+```
+
+### Database Configuration
+
+#### MongoDB Collections
+The application uses the following MongoDB collections:
+
+- **`user`**: User accounts and profiles
+- **`account`**: Bank account information
+- **`bank`**: Bank details and rates
+- **`transaction`**: Transaction history
+- **`transaction_category`**: Transaction categories
+- **`predicted_balance`**: AI balance predictions
+- **`predicted_expense`**: AI expense predictions
+- **`predicted_income`**: AI income predictions
+- **`notification`**: User notifications
+- **`Todo-list`**: Todo and reminder tasks
+- **`chatbot`**: Chatbot conversation history
+- **`chatbot_details`**: Chatbot configuration
+- **`OTP`**: OTP verification codes
+- **`goal`**: Financial goals
+- **`credit_periods`**: Credit card billing periods
+- **`user_dummy`**: Dummy data for testing
+- **`category_name_changes`**: Category modification history
+- **`transaction_category_changes`**: Transaction categorization changes
+- **`expo_tokens`**: Push notification tokens
+
+#### Database Indexes
+For optimal performance, create the following indexes:
+
+```javascript
+// User collection indexes
+db.user.createIndex({ "user_id": 1 }, { unique: true })
+db.user.createIndex({ "login_nic": 1 }, { unique: true })
+db.user.createIndex({ "phone_number": 1 })
+
+// Account collection indexes
+db.account.createIndex({ "user_id": 1 })
+db.account.createIndex({ "account_id": 1 }, { unique: true })
+db.account.createIndex({ "account_number": 1 })
+
+// Transaction collection indexes
+db.transaction.createIndex({ "account_id": 1 })
+db.transaction.createIndex({ "date": -1 })
+db.transaction.createIndex({ "user_id": 1, "date": -1 })
+
+// Notification collection indexes
+db.notification.createIndex({ "user_id": 1, "created_at": -1 })
+db.notification.createIndex({ "user_id": 1, "seen": 1 })
+```
+
+### AI Model Configuration
+
+#### Chatbot Configuration
+```python
+# Chatbot model settings
+CHATBOT_MODEL = "gemini-1.5-flash"  # or "gemini-2.5-flash"
+CHATBOT_TEMPERATURE = 0.7
+CHATBOT_MAX_TOKENS = 1000
+CHATBOT_MEMORY_SIZE = 10  # Number of previous messages to remember
+```
+
+#### Prediction Model Configuration
+```python
+# N-BEATS Model Configuration
+NBEATS_INPUT_SIZE = 14  # Historical data points
+NBEATS_HORIZON = 30     # Prediction horizon (days)
+NBEATS_DROPOUT = 0.1    # Dropout probability
+NBEATS_MAX_STEPS = 200  # Training steps
+
+# TFT Model Configuration
+TFT_INPUT_SIZE = 21     # Historical data points
+TFT_HORIZON = 30        # Prediction horizon (days)
+TFT_HIDDEN_SIZE = 64    # Hidden layer size
+TFT_ATTENTION_HEAD_SIZE = 4  # Attention heads
+```
+
+### Security Configuration
+
+#### Encryption Settings
+```env
+# Data Encryption
+ENCRYPTION_KEY=your-32-character-encryption-key
+ENCRYPTION_ALGORITHM=AES-256-GCM
+```
+
+#### Rate Limiting
+```python
+# API Rate Limiting
+RATE_LIMIT_REQUESTS = 100  # Requests per minute
+RATE_LIMIT_WINDOW = 60     # Time window in seconds
+RATE_LIMIT_BURST = 10      # Burst allowance
+```
+
+#### CORS Configuration
+```python
+# CORS Settings for Production
+CORS_ORIGINS = [
+    "https://yourdomain.com",
+    "https://app.yourdomain.com",
+    "https://admin.yourdomain.com"
+]
+
+# Development CORS (permissive)
+CORS_ORIGINS_DEV = ["*"]
+```
+
+### Notification Configuration
+
+#### WebSocket Settings
+```python
+# WebSocket Configuration
+WEBSOCKET_HEARTBEAT_INTERVAL = 30  # seconds
+WEBSOCKET_MAX_CONNECTIONS = 1000
+WEBSOCKET_MESSAGE_SIZE_LIMIT = 1024  # bytes
+```
+
+#### Push Notification Settings
+```python
+# Push Notification Configuration
+PUSH_NOTIFICATION_BATCH_SIZE = 100
+PUSH_NOTIFICATION_RETRY_ATTEMPTS = 3
+PUSH_NOTIFICATION_TIMEOUT = 30  # seconds
+```
+
+### Logging Configuration
+
+#### Log Levels
+```env
+# Logging Configuration
+LOG_LEVEL=INFO  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+LOG_FORMAT=%(asctime)s - %(name)s - %(levelname)s - %(message)s
+LOG_FILE=logs/spendless.log
+LOG_MAX_SIZE=10MB
+LOG_BACKUP_COUNT=5
+```
+
+#### Log Categories
+- **Authentication**: Login attempts, token generation
+- **API**: Request/response logging
+- **Database**: Query performance and errors
+- **AI/ML**: Model predictions and errors
+- **Notifications**: SMS and push notification delivery
+- **Security**: Failed authentication attempts, suspicious activity
+
+### Performance Configuration
+
+#### Caching Settings
+```python
+# Redis Cache Configuration (if using Redis)
+REDIS_URL=redis://localhost:6379/0
+CACHE_TTL=3600  # seconds
+CACHE_MAX_SIZE=1000  # items
+```
+
+#### Database Connection Pool
+```python
+# MongoDB Connection Pool
+MONGO_MAX_POOL_SIZE=100
+MONGO_MIN_POOL_SIZE=10
+MONGO_MAX_IDLE_TIME=30000  # milliseconds
+MONGO_CONNECT_TIMEOUT=20000  # milliseconds
+```
+
+### Development Configuration
+
+#### Debug Settings
+```env
+# Development Settings
+DEBUG=True
+RELOAD=True
+LOG_LEVEL=DEBUG
+ENABLE_SWAGGER=True
+ENABLE_REDOC=True
+```
+
+#### Testing Configuration
+```env
+# Testing Settings
+TEST_DATABASE_URL=mongodb://localhost:27017/spendless_test
+TEST_MODE=True
+MOCK_EXTERNAL_APIS=True
+```
+
+### Production Configuration
+
+#### Security Headers
+```python
+# Security Headers
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "X-XSS-Protection": "1; mode=block",
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+    "Content-Security-Policy": "default-src 'self'"
+}
+```
+
+#### Monitoring Configuration
+```env
+# Monitoring and Metrics
+ENABLE_METRICS=True
+METRICS_PORT=9090
+HEALTH_CHECK_INTERVAL=30  # seconds
+```
+
+### Configuration Validation
+
+#### Environment Variable Validation
+The application validates required environment variables on startup:
+
+```python
+# Required variables
+REQUIRED_VARS = [
+    "MONGO_URI",
+    "SECRET_KEY",
+    "GEMINI_API_KEY"
+]
+
+# Optional variables with defaults
+OPTIONAL_VARS = {
+    "ACCESS_TOKEN_EXPIRE_MINUTES": 30,
+    "REFRESH_TOKEN_EXPIRE_MINUTES": 10080,
+    "LOG_LEVEL": "INFO",
+    "DEBUG": False
+}
+```
+
+### Configuration Management
+
+#### Environment-Specific Configs
+- **Development**: `.env.development`
+- **Staging**: `.env.staging`
+- **Production**: `.env.production`
+
+#### Configuration Loading Order
+1. Default values (hardcoded)
+2. Environment variables
+3. `.env` file
+4. Command line arguments
+
+### Best Practices
+
+1. **Never commit `.env` files** to version control
+2. **Use strong, unique secrets** for production
+3. **Rotate API keys regularly**
+4. **Monitor configuration changes**
+5. **Use environment-specific configurations**
+6. **Validate all configuration on startup**
+7. **Document all configuration options**
+8. **Use configuration management tools** for production
+
+### Configuration Examples
+
+#### Minimal Development Setup
+```env
+MONGO_URI=mongodb://localhost:27017/spendless
+SECRET_KEY=dev-secret-key-change-in-production
+GEMINI_API_KEY=your-gemini-api-key
+DEBUG=True
+```
+
+#### Production Setup
+```env
+MONGO_URI=mongodb+srv://user:pass@cluster.mongodb.net/spendless
+SECRET_KEY=super-secure-random-key-32-chars-min
+GEMINI_API_KEY=your-production-gemini-key
+NOTIFY_LK_USER_ID=your-production-user-id
+NOTIFY_LK_API_KEY=your-production-api-key
+NOTIFY_LK_SENDER_ID=your-approved-sender
+DEBUG=False
+LOG_LEVEL=WARNING
+```
 
 ## API Documentation
 - Authentication endpoints
