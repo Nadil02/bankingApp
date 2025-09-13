@@ -1791,9 +1791,9 @@ graph TB
     end
     
     subgraph "Data Preprocessing Pipeline"
-        D["Data Cleaning & Validation"]
+        D["Data Cleaning &amp; Validation"]
         E["Feature Engineering"]
-        F["Outlier Detection & Treatment"]
+        F["Outlier Detection &amp; Treatment"]
         G["Data Normalization"]
         H["Temporal Feature Creation"]
     end
@@ -1818,7 +1818,7 @@ graph TB
         S["Real-time Inference"]
     end
     
-    subgraph "Output & Integration"
+    subgraph Output["Output & Integration"]
         T["Balance Forecasts"]
         U["Expense Predictions"]
         V["Income Forecasts"]
