@@ -13,7 +13,7 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/spendless.git
+git clone https://github.com/Nadil02/bankingApp.git
 cd spendless/bankingApp
 
 # Install dependencies
