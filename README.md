@@ -1,26 +1,99 @@
-# SpendLess - Proactive Financial Assistant
+**SpendLess** is a cutting-edge proactive financial assistant that revolutionizes personal banking through advanced AI and machine learning technologies. This comprehensive banking application combines traditional financial services with intelligent predictive analytics, providing users with unprecedented insights into their financial future.
+
+### Key Highlights
+
+- 🤖 **AI-Powered Predictions**: Advanced ML models for expense, income, and balance forecasting
+- 🏦 **Multi-Bank Integration**: Unified management across multiple banking institutions
+- 💬 **Intelligent Chatbot**: Natural language financial assistant with RAG capabilities with agentic chatbot
+- 📊 **Real-time Analytics**: Comprehensive dashboard with actionable insights
+- 🔒 **Enterprise Security**: Bank-grade security with JWT authentication and encryption
+- ☁️ **Cloud-Native**: Built for Azure cloud with auto-scaling and high availability
+
+### Quick Start
+
+```bash
+# Clone the repository
+git clone https://github.com/your-username/spendless.git
+cd spendless/bankingApp
+
+# Install dependencies
+pip install -r backend/requirements.txt
+
+# Configure environment
+cp backend/.env.example backend/.env
+# Edit .env with your configuration
+
+# Run the application
+cd backend
+uvicorn main:app --reload
+```
 
 ## Table of Contents
 1. [Project Overview](#project-overview)
+   - [High-Level Solution Architecture](#high-level-solution-architecture)
+   - [What SpendLess Does](#what-spendless-does)
+   - [Problem It Solves](#problem-it-solves)
+   - [Target Audience](#target-audience)
+   - [Key Value Propositions](#key-value-propositions)
 2. [Features](#features)
+   - [User Authentication & Management](#user-authentication--management)
+   - [Bank Account Management](#bank-account-management)
+   - [Dashboard & Analytics](#dashboard--analytics)
+   - [Transaction Management](#transaction-management)
+   - [AI-Powered Transaction Categorization](#ai-powered-transaction-categorization)
+   - [Financial Predictions & AI Analytics](#financial-predictions--ai-analytics)
+   - [Interactive Financial Chatbot](#interactive-financial-chatbot)
+   - [Smart Notifications System](#smart-notifications-system)
+   - [Todo & Reminder System](#todo--reminder-system)
+   - [Settings & Preferences](#settings--preferences)
+   - [Technical Features](#technical-features)
+   - [Security Features](#security-features)
 3. [Technology Stack](#technology-stack)
+   - [Backend Framework](#backend-framework)
+   - [Database & Data Storage](#database--data-storage)
+   - [AI & Machine Learning](#ai--machine-learning)
+   - [Natural Language Processing](#natural-language-processing)
+   - [Large Language Models & AI Services](#large-language-models--ai-services)
+   - [Authentication & Security](#authentication--security)
+   - [Real-time Communication](#real-time-communication)
+   - [Data Processing & Utilities](#data-processing--utilities)
+   - [Development & Deployment](#development--deployment)
+   - [External APIs & Services](#external-apis--services)
+   - [Data Validation & Serialization](#data-validation--serialization)
+   - [Monitoring & Logging](#monitoring--logging)
 4. [Project Structure](#project-structure)
 5. [Installation & Setup](#installation--setup)
 6. [Configuration](#configuration)
 7. [API Documentation](#api-documentation)
+   - [Authentication Endpoints](#authentication-endpoints)
+   - [User Registration](#user-registration)
+   - [Bank Account Management](#bank-account-management)
+   - [Dashboard Endpoints](#dashboard-endpoints)
+   - [Transaction Management](#transaction-management)
+   - [AI Predictions](#ai-predictions)
+   - [Chatbot Integration](#chatbot-integration)
+   - [Todo & Reminder System](#todo--reminder-system)
+   - [Notification System](#notification-system)
+   - [System Endpoints](#system-endpoints)
+   - [Rate Limiting](#rate-limiting)
+   - [Error Codes](#error-codes)
+   - [SDK Examples](#sdk-examples)
 8. [AI/ML Services](#aiml-services)
-9. [Database Schema](#database-schema)
-10. [Usage Examples](#usage-examples)
-11. [Development](#development)
-12. [Testing](#testing)
+9. [Model Accuracy & Results](#model-accuracy--results)
+10. [Database Schema](#database-schema)
+11. [Usage Examples](#usage-examples)
+12. [Development](#development)
 13. [Deployment](#deployment)
-14. [Contributing](#contributing)
-15. [License](#license)
-16. [Contact](#contact)
 
 ## Project Overview
 
 **SpendLess** is a comprehensive proactive financial assistant that leverages advanced AI and machine learning technologies to provide intelligent banking solutions and financial predictions. Built as a modern banking application, SpendLess combines traditional banking features with cutting-edge predictive analytics to help users make informed financial decisions.
+
+### High-Level Solution Architecture
+
+![High-Level Solution Diagram](documents/high_level_solution_diagram.jpeg)
+
+*Figure 1: SpendLess High-Level Solution Architecture - Overview of the complete system architecture including user interfaces, backend services, AI/ML components, and data storage layers.*
 
 ### What SpendLess Does
 
