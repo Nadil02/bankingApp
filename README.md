@@ -2481,6 +2481,598 @@ def detect_data_drift(current_data, reference_data, threshold=0.05):
 - **Anomaly Detection**: Advanced fraud and unusual transaction detection
 - **Personalization**: User-specific model adaptation and fine-tuning
 
+### Agentic Chatbot System
+
+The SpendLess agentic chatbot represents the pinnacle of conversational AI integration, combining multiple advanced technologies to provide intelligent, context-aware financial assistance. This sophisticated system employs LangChain agents, RAG (Retrieval-Augmented Generation), data sanitization, and multi-LLM orchestration.
+
+#### System Architecture
+
+```mermaid
+graph TB
+    subgraph "User Input Processing"
+        A[User Query] --> B[Data Sanitization]
+        B --> C[Query Classification]
+        C --> D[Intent Recognition]
+    end
+    
+    subgraph "LLM Orchestration"
+        E[Google Gemini 2.5 Flash]
+        F[Local LLM - Ollama]
+        G[Fallback Models]
+    end
+    
+    subgraph "LangChain Agent System"
+        H[Agent Executor]
+        I[Tool Calling Agent]
+        J[Conversation Memory]
+        K[Prompt Templates]
+    end
+    
+    subgraph "RAG System"
+        L[ChromaDB Vector Store]
+        M[HuggingFace Embeddings]
+        N[Document Retrieval]
+        O[Context Augmentation]
+    end
+    
+    subgraph "Tool Ecosystem"
+        P[Financial Analysis Tools]
+        Q[Prediction Tools]
+        R[Todo Management Tools]
+        S[System Information Tools]
+    end
+    
+    subgraph "Data Privacy & Security"
+        T[PII Detection & Masking]
+        U[Data Encryption]
+        V[Audit Logging]
+        W[Access Control]
+    end
+    
+    subgraph "Response Generation"
+        X[Response Synthesis]
+        Y[Data Desanitization]
+        Z[Final Response]
+    end
+    
+    A --> B
+    B --> C
+    C --> D
+    D --> H
+    
+    H --> I
+    I --> J
+    I --> K
+    
+    H --> L
+    L --> M
+    M --> N
+    N --> O
+    
+    I --> P
+    I --> Q
+    I --> R
+    I --> S
+    
+    B --> T
+    T --> U
+    U --> V
+    V --> W
+    
+    H --> X
+    X --> Y
+    Y --> Z
+    
+    E --> H
+    F --> H
+    G --> H
+```
+
+#### Core Components
+
+##### 1. Multi-LLM Orchestration
+
+The system intelligently routes queries across multiple language models based on complexity, privacy requirements, and performance needs:
+
+**Primary LLM - Google Gemini 2.5 Flash:**
+```python
+llm = ChatGoogleGenerativeAI(
+    model="gemini-2.5-flash",
+    temperature=0.7,
+    google_api_key=GEMINI_API_KEY
+)
+```
+
+**Local LLM - Ollama (Privacy-Sensitive Operations):**
+```python
+# For data sanitization and sensitive operations
+def call_ollama_api(messages, model='llama3.2:latest'):
+    response = chat(model=model, messages=messages)
+    return response
+```
+
+**Fallback Strategy:**
+```python
+def call_gemini_with_fallback(messages):
+    try:
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        response = model.generate_content(prompt)
+        return response
+    except Exception as e:
+        # Fallback to local model
+        return chat(model='llama3.2:latest', messages=messages)
+```
+
+##### 2. Advanced Data Sanitization
+
+The system employs multiple layers of data sanitization to protect sensitive information:
+
+**Layer 1: NLP-Based Entity Recognition**
+```python
+def dynamic_nlp_sanitize(input_json):
+    entity_types = {
+        "MONEY": "@amount",
+        "PERSON": "@name", 
+        "DATE": "@date",
+        "ORG": "@bank"
+    }
+    
+    nlp = spacy.load("en_core_web_sm")
+    doc = nlp(text)
+    
+    for ent in doc.ents:
+        entity_type = entity_types.get(ent.label_)
+        if entity_type:
+            entity_key = f"{entity_type}{entity_occurrences.get(ent.label_, 0) + 1}"
+            replacements[entity_key] = ent.text
+            sanitized_text = sanitized_text.replace(ent.text, entity_key)
+```
+
+**Layer 2: Pattern-Based Detection**
+```python
+# Account number detection
+account_pattern = r'\b\d{9,}\b'
+for match in re.finditer(account_pattern, sanitized_text):
+    account_key = f"@account{len(replacements) + 1}"
+    replacements[account_key] = match.group(0)
+    sanitized_text = sanitized_text.replace(match.group(0), account_key)
+
+# Bank name detection
+sri_lankan_banks = ["Bank of Ceylon", "Commercial Bank", "Sampath Bank", "HNB", "People's Bank", "NDB", "DFCC Bank"]
+bank_pattern = r'\b(?:' + '|'.join(re.escape(bank) for bank in sri_lankan_banks) + r')\b'
+```
+
+**Layer 3: LLM-Based Sanitization**
+```python
+async def sanizedData(query: str) -> str:
+    system_prompt = """
+    You are a sensitive information sanitization assistant. Your task is to sanitize a given user query by replacing the following sensitive entities with sanitized placeholders:
+    - Money amounts ➔ Replace with "@amount1", "@amount2", etc.
+    - Personal names ➔ Replace with "@name1", "@name2", etc.
+    - Bank names ➔ Replace with "@bank1", "@bank2", etc.
+    
+    You must respond with 1 JSON object with 2 fields: "sanitized_output" and "replacements".
+    """
+    
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": f"Sanitize this query: {query}"}
+    ]
+    
+    response = call_gemini_api(messages)
+    return response
+```
+
+##### 3. LangChain Agent System
+
+The agent system orchestrates complex multi-step reasoning and tool usage:
+
+**Agent Configuration:**
+```python
+# Create tool-calling agent
+agent = create_tool_calling_agent(llm, tools, prompt)
+agent_executor = AgentExecutor(
+    agent=agent, 
+    tools=tools, 
+    memory=memory, 
+    verbose=True,
+    max_iterations=3,
+    handle_parsing_errors=True,
+    early_stopping_method="generate",
+    return_intermediate_steps=False
+)
+```
+
+**System Prompt:**
+```python
+SYSTEM_PROMPT = """You are a financial assistant. Use available tools in sequence when needed.
+You can use multiple tools for complex requests. Follow this pattern:
+
+1. Understand the query
+2. Identify required tools
+3. Extract parameters if needed
+4. Use tools sequentially
+5. Combine results for final answer
+6. If user does not provide enough information for tool parameters, ask for it
+7. CRITICAL: some tools may return amounts as @amount1, @amount2, @summary_income_amount_1, etc. 
+   You MUST use these EXACT variable names in responses. NEVER change the numbers or modify these variables.
+
+CRITICAL VARIABLE HANDLING RULES:
+- Tools return variables like @summary_income_amount_1, @summary_expense_amount_1
+- You MUST use these EXACT variable names - DO NOT change the numbers
+- Example: If tool returns "@summary_income_amount_1", use "@summary_income_amount_1" 
+- NEVER change it to "@summary_income_amount_2" or any other number
+"""
+```
+
+**Memory Management:**
+```python
+memory = ConversationBufferMemory(
+    memory_key="chat_history", 
+    return_messages=True
+)
+```
+
+##### 4. RAG (Retrieval-Augmented Generation) System
+
+The RAG system provides contextual information retrieval for system-related queries:
+
+**Vector Database Setup:**
+```python
+# Initialize ChromaDB client and collection
+chroma_client = chromadb.PersistentClient(path="./chroma_db")
+chroma_collection = chroma_client.get_or_create_collection(name="system_details")
+
+# Initialize embedding model
+embedding_model = HuggingFaceEmbeddings(
+    model_name="sentence-transformers/all-mpnet-base-v2"
+)
+```
+
+**Document Processing:**
+```python
+async def chatbot_system_answer(query: str) -> str:
+    # Fetch the latest document from MongoDB
+    doc = await collection_chatbot_details.find_one({}, {"_id": 0, "introduction": 1})
+    
+    if not doc or "introduction" not in doc:
+        return "No system details available."
+    
+    document_text = doc["introduction"]
+    
+    # Check if stored embeddings match the latest database entry
+    existing_count = chroma_collection.count()
+    
+    if existing_count > 0:
+        # Retrieve existing stored data to compare
+        stored_data = chroma_collection.get()
+        # Compare and update if necessary
+```
+
+**Semantic Search:**
+```python
+def perform_semantic_search(query, collection, embedding_model, top_k=3):
+    # Generate query embedding
+    query_embedding = embedding_model.embed_query(query)
+    
+    # Search in ChromaDB
+    results = collection.query(
+        query_embeddings=[query_embedding],
+        n_results=top_k
+    )
+    
+    return results
+```
+
+##### 5. Comprehensive Tool Ecosystem
+
+The system includes 12 specialized tools for different financial operations:
+
+**Financial Analysis Tools:**
+```python
+@tool
+async def get_total_spendings_for_given_time_period(
+    user_id: int, 
+    start_date: datetime, 
+    end_date: datetime
+) -> str:
+    """Retrieves the total amount spent by a user within a specified time period."""
+    # Implementation with MongoDB aggregation
+    pipeline = [
+        {
+            "$match": {
+                "account_id": {"$in": account_ids},
+                "date": {"$gte": start_date, "$lte": end_date},
+                "payment": {"$gt": 0}
+            }
+        },
+        {
+            "$group": {
+                "_id": None,
+                "total_spendings": {"$sum": "$payment"}
+            }
+        }
+    ]
+    # Return sanitized result with dummy variables
+    return f'{{"amount": {dummy_spending_amount}}}'
+```
+
+**Prediction Tools:**
+```python
+@tool
+async def get_next_month_total_spendings(user_id: int) -> str:
+    """Forecasts the total expected spending for the upcoming month based on predicted data."""
+    # Query prediction models
+    predictions = await collection_predicted_expense.find({
+        "user_id": user_id,
+        "prediction_date": {"$gte": next_month_start}
+    }).to_list(length=None)
+    
+    total_predicted = sum(pred["predicted_amount"] for pred in predictions)
+    return f'{{"predicted_amount": {total_predicted}}}'
+```
+
+**Todo Management Tools:**
+```python
+@tool
+async def add_to_do_item(
+    user_id: int,
+    item: str,
+    date: Optional[datetime] = None,
+    time: Optional[str] = None,
+    amount: Optional[float] = None
+) -> str:
+    """Adds a new todo item to the user's task list."""
+    todo_item = TodoList(
+        user_id=user_id,
+        description=item,
+        date=date or datetime.now(),
+        time=time,
+        amount=amount,
+        status="ongoing"
+    )
+    
+    await collection_Todo_list.insert_one(todo_item.dict())
+    return f"Todo item '{item}' has been added successfully."
+```
+
+##### 6. Advanced Query Processing Pipeline
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Sanitizer
+    participant Classifier
+    participant Agent
+    participant Tools
+    participant RAG
+    participant LLM
+    participant Desanitizer
+    
+    User->>Sanitizer: Raw Query
+    Sanitizer->>Sanitizer: NLP + Pattern Detection
+    Sanitizer->>Sanitizer: LLM-based Sanitization
+    Sanitizer->>Classifier: Sanitized Query
+    
+    Classifier->>Classifier: Intent Classification
+    Classifier->>Agent: Classified Query
+    
+    Agent->>Agent: Tool Selection
+    Agent->>Tools: Execute Tools
+    Tools->>Tools: Database Queries
+    Tools->>Tools: AI Model Predictions
+    Tools->>Agent: Tool Results
+    
+    Agent->>RAG: System Queries
+    RAG->>RAG: Vector Search
+    RAG->>Agent: Contextual Information
+    
+    Agent->>LLM: Generate Response
+    LLM->>Agent: Response with Variables
+    
+    Agent->>Desanitizer: Response with @variables
+    Desanitizer->>Desanitizer: Replace @variables
+    Desanitizer->>User: Final Response
+```
+
+##### 7. Data Privacy & Security Features
+
+**PII Detection & Masking:**
+```python
+def detect_and_mask_pii(text):
+    # Credit card numbers
+    cc_pattern = r'\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b'
+    text = re.sub(cc_pattern, '[CARD_MASKED]', text)
+    
+    # Phone numbers
+    phone_pattern = r'\b\d{3}[-.]?\d{3}[-.]?\d{4}\b'
+    text = re.sub(phone_pattern, '[PHONE_MASKED]', text)
+    
+    # Email addresses
+    email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+    text = re.sub(email_pattern, '[EMAIL_MASKED]', text)
+    
+    return text
+```
+
+**Audit Logging:**
+```python
+async def log_tool_usage(user_id: int, tool_name: str, query: str, response: str):
+    log_entry = {
+        "user_id": user_id,
+        "tool_name": tool_name,
+        "query": query,
+        "response": response,
+        "timestamp": datetime.now(),
+        "ip_address": get_client_ip(),
+        "session_id": get_session_id()
+    }
+    
+    await collection_audit_logs.insert_one(log_entry)
+```
+
+##### 8. Performance Optimization
+
+**Caching Strategy:**
+```python
+from functools import lru_cache
+import redis
+
+redis_client = redis.Redis(host='localhost', port=6379, db=0)
+
+@lru_cache(maxsize=1000)
+def get_cached_embeddings(text: str):
+    return embedding_model.embed_query(text)
+
+def cache_tool_results(user_id: int, tool_name: str, params: dict, result: str):
+    cache_key = f"{user_id}:{tool_name}:{hash(str(params))}"
+    redis_client.setex(cache_key, 3600, result)  # Cache for 1 hour
+```
+
+**Async Processing:**
+```python
+async def process_concurrent_queries(queries: List[str]) -> List[str]:
+    tasks = [get_chatbot_response(user_id, query) for query in queries]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    return results
+```
+
+##### 9. Error Handling & Resilience
+
+**Graceful Degradation:**
+```python
+async def get_chatbot_response_with_fallback(user_id: int, query: str) -> str:
+    try:
+        # Primary response generation
+        response = await agent_executor.ainvoke({"input": query})
+        return response["output"]
+    except Exception as e:
+        logger.error(f"Primary response failed: {e}")
+        
+        try:
+            # Fallback to simple LLM response
+            fallback_response = await llm.ainvoke(query)
+            return fallback_response.content
+        except Exception as e2:
+            logger.error(f"Fallback response failed: {e2}")
+            return "I apologize, but I'm experiencing technical difficulties. Please try again later."
+```
+
+**Circuit Breaker Pattern:**
+```python
+class CircuitBreaker:
+    def __init__(self, failure_threshold=5, timeout=60):
+        self.failure_threshold = failure_threshold
+        self.timeout = timeout
+        self.failure_count = 0
+        self.last_failure_time = None
+        self.state = "CLOSED"  # CLOSED, OPEN, HALF_OPEN
+    
+    async def call(self, func, *args, **kwargs):
+        if self.state == "OPEN":
+            if time.time() - self.last_failure_time > self.timeout:
+                self.state = "HALF_OPEN"
+            else:
+                raise Exception("Circuit breaker is OPEN")
+        
+        try:
+            result = await func(*args, **kwargs)
+            if self.state == "HALF_OPEN":
+                self.state = "CLOSED"
+                self.failure_count = 0
+            return result
+        except Exception as e:
+            self.failure_count += 1
+            self.last_failure_time = time.time()
+            
+            if self.failure_count >= self.failure_threshold:
+                self.state = "OPEN"
+            
+            raise e
+```
+
+##### 10. Monitoring & Analytics
+
+**Performance Metrics:**
+```python
+class ChatbotMetrics:
+    def __init__(self):
+        self.response_times = []
+        self.tool_usage_counts = {}
+        self.error_rates = {}
+        self.user_satisfaction_scores = []
+    
+    def record_response_time(self, duration: float):
+        self.response_times.append(duration)
+    
+    def record_tool_usage(self, tool_name: str):
+        self.tool_usage_counts[tool_name] = self.tool_usage_counts.get(tool_name, 0) + 1
+    
+    def get_performance_summary(self):
+        return {
+            "avg_response_time": sum(self.response_times) / len(self.response_times),
+            "total_queries": len(self.response_times),
+            "tool_usage_distribution": self.tool_usage_counts,
+            "error_rate": sum(self.error_rates.values()) / len(self.error_rates)
+        }
+```
+
+**Real-time Monitoring:**
+```python
+async def monitor_chatbot_performance():
+    while True:
+        metrics = chatbot_metrics.get_performance_summary()
+        
+        # Send metrics to monitoring system
+        await send_metrics_to_monitoring(metrics)
+        
+        # Check for anomalies
+        if metrics["avg_response_time"] > 5.0:  # 5 seconds threshold
+            await alert_slow_response_time(metrics["avg_response_time"])
+        
+        await asyncio.sleep(60)  # Check every minute
+```
+
+#### Integration with AI/ML Models
+
+The chatbot seamlessly integrates with all prediction models:
+
+```python
+async def get_ai_insights(user_id: int, query: str) -> str:
+    # Get balance predictions
+    balance_predictions = await get_balance_predictions(user_id)
+    
+    # Get expense predictions  
+    expense_predictions = await get_expense_predictions(user_id)
+    
+    # Get income predictions
+    income_predictions = await get_income_predictions(user_id)
+    
+    # Combine insights
+    insights = {
+        "balance_forecast": balance_predictions,
+        "expense_forecast": expense_predictions,
+        "income_forecast": income_predictions
+    }
+    
+    return format_insights_for_chatbot(insights)
+```
+
+#### Future Enhancements
+
+**Planned Improvements:**
+1. **Multi-modal Input**: Support for voice, images, and documents
+2. **Advanced Reasoning**: Integration with reasoning engines for complex financial planning
+3. **Personalization**: User-specific conversation styles and preferences
+4. **Proactive Assistance**: Predictive suggestions based on user behavior
+5. **Multi-language Support**: Support for multiple languages with cultural context
+
+**Research Directions:**
+- **Conversational Memory**: Long-term memory for better context understanding
+- **Emotional Intelligence**: Emotion-aware responses for better user experience
+- **Causal Reasoning**: Understanding cause-effect relationships in financial decisions
+- **Federated Learning**: Privacy-preserving model improvements across users
+
 ## Database Schema
 - User models
 - Account models
