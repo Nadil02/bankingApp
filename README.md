@@ -1062,13 +1062,636 @@ LOG_LEVEL=WARNING
 ```
 
 ## API Documentation
-- Authentication endpoints
-- User management
-- Bank account operations
-- Transaction management
-- AI prediction endpoints
-- Notification system
-- Chatbot integration
+
+This section provides comprehensive documentation for all API endpoints in the SpendLess banking application. The API follows RESTful principles and uses JWT authentication for secure access.
+
+### Base URL
+```
+Development: http://localhost:8000
+Production: https://your-domain.com
+```
+
+### Authentication
+
+All protected endpoints require JWT authentication. Include the token in the Authorization header:
+```
+Authorization: Bearer <your-jwt-token>
+```
+
+### Response Format
+
+All API responses follow a consistent format:
+```json
+{
+  "status": "success|error",
+  "message": "Description of the result",
+  "data": {} // Response data (if applicable)
+}
+```
+
+### Error Handling
+
+Standard HTTP status codes are used:
+- `200` - Success
+- `201` - Created
+- `400` - Bad Request
+- `401` - Unauthorized
+- `403` - Forbidden
+- `404` - Not Found
+- `500` - Internal Server Error
+
+---
+
+## Authentication Endpoints
+
+### User Login
+**POST** `/login`
+
+Authenticate user and receive JWT tokens.
+
+**Request Body:**
+```json
+{
+  "nic": "string",
+  "passcode": "string"
+}
+```
+
+**Response:**
+```json
+{
+  "access_token": "string",
+  "refresh_token": "string",
+  "token_type": "bearer",
+  "user_id": 123,
+  "expires_in": 1800
+}
+```
+
+### Refresh Token
+**POST** `/refresh-token`
+
+Refresh expired access token.
+
+**Request Body:**
+```json
+{
+  "refresh_token": "string"
+}
+```
+
+**Response:**
+```json
+{
+  "access_token": "string",
+  "token_type": "bearer",
+  "expires_in": 1800
+}
+```
+
+### Get User Info
+**GET** `/user-info`
+
+Get current user information.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Response:**
+```json
+{
+  "user_id": 123,
+  "first_name": "string",
+  "last_name": "string",
+  "username": "string",
+  "phone_number": "string",
+  "user_image": "string"
+}
+```
+
+---
+
+## User Registration
+
+### Sign Up
+**POST** `/sign_in`
+
+Register a new user account.
+
+**Request Body:**
+```json
+{
+  "first_name": "string",
+  "last_name": "string",
+  "username": "string",
+  "NIC": "string",
+  "phone_number": "string",
+  "passcode": "string"
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "User registered successfully",
+  "otp_id": 123
+}
+```
+
+### Verify OTP
+**POST** `/sing_in_otp`
+
+Verify OTP for user registration.
+
+**Request Body:**
+```json
+{
+  "otp_id": 123,
+  "otp": "string"
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "OTP verified successfully"
+}
+```
+
+---
+
+## Bank Account Management
+
+### Get Account Details
+**POST** `/bankAccountManagement/accountDetails`
+
+Get all bank accounts for a user.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Request Body:**
+```json
+{
+  "user_id": 123
+}
+```
+
+**Response:**
+```json
+[
+  {
+    "bank_id": 1,
+    "account_number": 123456789,
+    "account_type": "savings",
+    "balance": 50000.00,
+    "logo": "bank_logo_url"
+  }
+]
+```
+
+### Add Bank Account
+**POST** `/bankAccountManagement/addBankAccount`
+
+Add a new bank account.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Request Body:**
+```json
+{
+  "bank_name": "string",
+  "account_number": 123456789,
+  "account_type": "savings",
+  "NIC": "string"
+}
+```
+
+**Response:**
+```json
+{
+  "otp_id": 123,
+  "status": "success",
+  "message": "OTP sent for verification"
+}
+```
+
+### Remove Bank Account
+**POST** `/bankAccountManagement/removeBankAccount`
+
+Remove a bank account.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Request Body:**
+```json
+{
+  "user_id": 123,
+  "account_number": 123456789,
+  "NIC": "string",
+  "passcode": "string"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Account removed successfully",
+  "description": "Account 123456789 has been removed"
+}
+```
+
+---
+
+## Dashboard Endpoints
+
+### Get Dashboard Data
+**GET** `/dashboard/`
+
+Get comprehensive dashboard data for all accounts.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Query Parameters:**
+- `user_id` (int): User ID
+
+**Response:**
+```json
+{
+  "accounts": [
+    {
+      "account_id": 1,
+      "account_number": 123456789,
+      "account_type": "savings",
+      "balance": 50000.00,
+      "bank_name": "Bank Name",
+      "transactions": [...],
+      "predictions": [...]
+    }
+  ],
+  "summary": {
+    "total_balance": 100000.00,
+    "total_income": 50000.00,
+    "total_expenses": 30000.00
+  }
+}
+```
+
+### Get Dashboard with Date Range
+**GET** `/dashboard/all_account_time_period`
+
+Get dashboard data for a specific time period.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Query Parameters:**
+- `user_id` (int): User ID
+- `startdate` (string): Start date (YYYY-MM-DD)
+- `enddate` (string): End date (YYYY-MM-DD)
+
+---
+
+## Transaction Management
+
+### Get Transaction History
+**GET** `/transaction_history/load_transaction_history`
+
+Get transaction history for all accounts.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Query Parameters:**
+- `user_id` (int): User ID
+
+**Response:**
+```json
+{
+  "accounts": [
+    {
+      "account_id": 1,
+      "account_number": 123456789,
+      "transactions": [
+        {
+          "transaction_id": 1,
+          "date": "2024-01-15T10:30:00Z",
+          "description": "Purchase at Store",
+          "amount": -1500.00,
+          "balance": 48500.00,
+          "category": "Shopping"
+        }
+      ]
+    }
+  ]
+}
+```
+
+---
+
+## AI Predictions
+
+### Get All Account Predictions
+**GET** `/income_expense-prediction/all_accounts`
+
+Get predictions for all user accounts.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Query Parameters:**
+- `user_id` (int): User ID
+
+**Response:**
+```json
+{
+  "accounts": [
+    {
+      "account_id": 1,
+      "account_number": 123456789,
+      "predictions": {
+        "balance_forecast": [...],
+        "expense_forecast": [...],
+        "income_forecast": [...]
+      }
+    }
+  ]
+}
+```
+
+### Get Account Predictions
+**GET** `/income_expense-prediction/account_prediction`
+
+Get detailed predictions for a specific account.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Query Parameters:**
+- `user_id` (int): User ID
+- `account_id` (int): Account ID
+
+**Response:**
+```json
+{
+  "account_id": 1,
+  "predictions": {
+    "balance": [
+      {
+        "date": "2024-02-01",
+        "predicted_balance": 52000.00,
+        "confidence_interval": {
+          "lower": 50000.00,
+          "upper": 54000.00
+        }
+      }
+    ],
+    "expenses": [
+      {
+        "date": "2024-02-01",
+        "predicted_amount": 2000.00,
+        "category": "Groceries",
+        "probability": 0.85
+      }
+    ]
+  }
+}
+```
+
+---
+
+## Chatbot Integration
+
+### Chat with AI Assistant
+**POST** `/chatbot`
+
+Interact with the AI financial assistant.
+
+**Request Body:**
+```json
+{
+  "user_id": 123,
+  "query": "What was my total spending last month?"
+}
+```
+
+**Response:**
+```json
+{
+  "response": "Your total spending last month was $3,500.00. The main categories were groceries ($1,200), utilities ($800), and entertainment ($600)."
+}
+```
+
+---
+
+## Todo & Reminder System
+
+### Get Todos
+**GET** `/todo/TodoView`
+
+Get all ongoing todos for a user.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Query Parameters:**
+- `user_id` (int): User ID
+
+**Response:**
+```json
+{
+  "todos": [
+    {
+      "todo_id": 1,
+      "description": "Pay electricity bill",
+      "date": "2024-02-15T00:00:00Z",
+      "time": "2024-02-15T09:00:00Z",
+      "amount": 2500.00,
+      "status": "ongoing",
+      "repeat_frequency": "monthly"
+    }
+  ]
+}
+```
+
+### Create Todo
+**POST** `/todo/add_todos`
+
+Create a new todo item.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Request Body:**
+```json
+{
+  "user_id": 123,
+  "description": "Pay rent",
+  "date": "2024-02-01T00:00:00Z",
+  "time": "2024-02-01T10:00:00Z",
+  "amount": 50000.00,
+  "repeat_frequency": "monthly"
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Todo created successfully",
+  "todo_id": 123
+}
+```
+
+---
+
+## Notification System
+
+### WebSocket Connection
+**WebSocket** `/ws/{user_id}`
+
+Connect to real-time notifications.
+
+**Connection:**
+```javascript
+const ws = new WebSocket('ws://localhost:8000/ws/123');
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log(data);
+};
+```
+
+**Message Format:**
+```json
+{
+  "event": "new_notification|notifications_seen|initial_data",
+  "data": {
+    "notifications": [...],
+    "unread_count": 5
+  }
+}
+```
+
+### Get Notifications
+**GET** `/notification/{user_id}`
+
+Get all notifications for a user.
+
+**Response:**
+```json
+[
+  {
+    "_id": "notification_id",
+    "type": "IN|TO",
+    "user_id": 123,
+    "account_id": 1,
+    "message": "Low balance warning",
+    "seen": false,
+    "created_at": "2024-01-15T10:30:00Z"
+  }
+]
+```
+
+---
+
+## System Endpoints
+
+### Health Check
+**GET** `/health`
+
+Check application health status.
+
+**Response:**
+```json
+{
+  "status": "okks"
+}
+```
+
+### API Documentation
+**GET** `/docs`
+
+Interactive API documentation (Swagger UI).
+
+**GET** `/redoc`
+
+Alternative API documentation (ReDoc).
+
+---
+
+## Rate Limiting
+
+The API implements rate limiting to prevent abuse:
+- **100 requests per minute** per IP address
+- **Burst allowance**: 10 requests
+- **Rate limit headers** included in responses:
+  - `X-RateLimit-Limit`
+  - `X-RateLimit-Remaining`
+  - `X-RateLimit-Reset`
+
+## Error Codes
+
+| Code | Description |
+|------|-------------|
+| `AUTH_001` | Invalid credentials |
+| `AUTH_002` | Token expired |
+| `AUTH_003` | Insufficient permissions |
+| `USER_001` | User not found |
+| `USER_002` | User already exists |
+| `ACCOUNT_001` | Account not found |
+| `ACCOUNT_002` | Account already linked |
+| `TRANSACTION_001` | Transaction not found |
+| `PREDICTION_001` | Insufficient data for prediction |
+| `NOTIFICATION_001` | Notification service unavailable |
+
+## SDK Examples
+
+### JavaScript/TypeScript
+```javascript
+const apiClient = {
+  baseURL: 'http://localhost:8000',
+  token: null,
+  
+  async login(credentials) {
+    const response = await fetch(`${this.baseURL}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(credentials)
+    });
+    const data = await response.json();
+    this.token = data.access_token;
+    return data;
+  },
+  
+  async getDashboard(userId) {
+    const response = await fetch(`${this.baseURL}/dashboard/?user_id=${userId}`, {
+      headers: { 'Authorization': `Bearer ${this.token}` }
+    });
+    return response.json();
+  }
+};
+```
+
+### Python
+```python
+import requests
+
+class SpendLessAPI:
+    def __init__(self, base_url="http://localhost:8000"):
+        self.base_url = base_url
+        self.token = None
+    
+    def login(self, nic, passcode):
+        response = requests.post(f"{self.base_url}/login", json={
+            "nic": nic,
+            "passcode": passcode
+        })
+        data = response.json()
+        self.token = data["access_token"]
+        return data
+    
+    def get_dashboard(self, user_id):
+        headers = {"Authorization": f"Bearer {self.token}"}
+        response = requests.get(
+            f"{self.base_url}/dashboard/?user_id={user_id}",
+            headers=headers
+        )
+        return response.json()
+```
 
 ## AI/ML Services
 - Balance prediction models
