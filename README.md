@@ -1785,45 +1785,45 @@ The SpendLess AI/ML system consists of multiple interconnected models that work 
 ```mermaid
 graph TB
     subgraph "Data Sources"
-        A[Raw Transaction Data]
-        B[Account Balance Data]
-        C[User Profile Data]
+        A["Raw Transaction Data"]
+        B["Account Balance Data"]
+        C["User Profile Data"]
     end
     
     subgraph "Data Preprocessing Pipeline"
         D["Data Cleaning & Validation"]
-        E[Feature Engineering]
+        E["Feature Engineering"]
         F["Outlier Detection & Treatment"]
-        G[Data Normalization]
-        H[Temporal Feature Creation]
+        G["Data Normalization"]
+        H["Temporal Feature Creation"]
     end
     
     subgraph "AI/ML Models"
-        I[N-BEATSx Balance Model]
-        J[N-BEATSx Expense Regression]
-        K[N-BEATSx Expense Classification]
-        L[TFT Income Model]
-        M[Category-wise TFT Models]
+        I["N-BEATSx Balance Model"]
+        J["N-BEATSx Expense Regression"]
+        K["N-BEATSx Expense Classification"]
+        L["TFT Income Model"]
+        M["Category-wise TFT Models"]
     end
     
     subgraph "Hyperparameter Optimization"
-        N[Optuna Framework]
-        O[Cross-validation]
-        P[Performance Metrics]
+        N["Optuna Framework"]
+        O["Cross-validation"]
+        P["Performance Metrics"]
     end
     
     subgraph "Model Deployment"
-        Q[Model Serialization]
-        R[Prediction API]
-        S[Real-time Inference]
+        Q["Model Serialization"]
+        R["Prediction API"]
+        S["Real-time Inference"]
     end
     
     subgraph "Output & Integration"
-        T[Balance Forecasts]
-        U[Expense Predictions]
-        V[Income Forecasts]
-        W[Category Insights]
-        X[API Endpoints]
+        T["Balance Forecasts"]
+        U["Expense Predictions"]
+        V["Income Forecasts"]
+        W["Category Insights"]
+        X["API Endpoints"]
     end
     
     A --> D
