@@ -4175,16 +4175,603 @@ chatbot_response = api.send_chatbot_query(123, "What is my balance?")
 5. **Validation**: Validate input data before sending requests
 
 ## Development
-- Local development setup
-- Code structure guidelines
-- Adding new features
-- Debugging tips
 
-## Testing
-- Unit testing
-- Integration testing
-- API testing
-- Model validation
+This section provides comprehensive guidelines for setting up, developing, and maintaining the SpendLess application. It covers local development setup, code structure, best practices, and debugging techniques.
+
+### Local Development Setup
+
+#### Prerequisites
+
+**System Requirements:**
+- **Python**: 3.8+ (recommended: 3.10+)
+- **Node.js**: 16+ (for frontend development)
+- **MongoDB**: 4.4+ (local or cloud instance)
+- **Git**: Latest version
+- **Docker**: 20.10+ (optional, for containerized development)
+
+**Development Tools:**
+- **IDE**: VS Code, PyCharm, or any Python-compatible editor
+- **API Testing**: Postman, Insomnia, or curl
+- **Database GUI**: MongoDB Compass, Studio 3T
+- **Version Control**: Git with GitHub/GitLab
+
+#### Environment Setup
+
+**1. Clone the Repository**
+```bash
+git clone <repository-url>
+cd spendless/bankingApp
+```
+
+**2. Create Virtual Environment**
+```bash
+# Using venv
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Using conda
+conda create -n spendless python=3.10
+conda activate spendless
+```
+
+**3. Install Dependencies**
+```bash
+cd backend
+pip install -r requirements.txt
+```
+
+**4. Environment Variables Setup**
+Create a `.env` file in the `backend` directory:
+
+```bash
+# Database Configuration
+MONGO_URI=mongodb://localhost:27017/project
+
+# JWT Configuration
+SECRET_KEY=your-super-secret-jwt-key-here
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+REFRESH_TOKEN_EXPIRE_DAYS=7
+
+# AI/ML Configuration
+GEMINI_API_KEY=your-gemini-api-key
+OPENAI_API_KEY=your-openai-api-key
+
+# SMS Configuration (Notify.lk)
+NOTIFY_LK_API_KEY=your-notify-lk-api-key
+NOTIFY_LK_SENDER_ID=your-sender-id
+
+# Email Configuration
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
+EMAIL_USERNAME=your-email@gmail.com
+EMAIL_PASSWORD=your-app-password
+
+# Development Settings
+DEBUG=True
+LOG_LEVEL=DEBUG
+```
+
+**5. Database Setup**
+```bash
+# Start MongoDB (if running locally)
+mongod --dbpath /path/to/your/db
+
+# Or use MongoDB Atlas (cloud)
+# Update MONGO_URI in .env file
+```
+
+**6. Run the Application**
+```bash
+# Development server with auto-reload
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+# Or using FastAPI CLI
+fastapi dev main.py
+```
+
+**7. Verify Installation**
+```bash
+# Test the health endpoint
+curl http://localhost:8000/health
+
+# Expected response: {"status": "okks"}
+```
+
+### Project Structure
+
+#### Backend Architecture
+
+```
+bankingApp/backend/
+├── main.py                 # FastAPI application entry point
+├── database.py            # MongoDB connection and collections
+├── models.py              # Pydantic data models
+├── requirements.txt       # Python dependencies
+├── routes/                # API route handlers
+│   ├── __init__.py
+│   ├── user_login.py      # Authentication routes
+│   ├── dashboard.py       # Dashboard data routes
+│   ├── chatbot.py         # AI chatbot routes
+│   ├── todo.py           # Todo management routes
+│   ├── transaction_history.py
+│   ├── incomeExpensePredictions.py
+│   └── ...
+├── services/              # Business logic layer
+│   ├── __init__.py
+│   ├── user_login.py      # Authentication services
+│   ├── dashboard.py       # Dashboard services
+│   ├── chatbot.py         # AI chatbot services
+│   ├── llmAgentTools.py   # LLM agent tools
+│   ├── websocket_manager.py
+│   └── ...
+├── schemas/               # Request/Response schemas
+│   ├── __init__.py
+│   ├── user_login_schemas.py
+│   ├── dashboard.py
+│   ├── chatbot.py
+│   └── ...
+├── utils/                 # Utility functions
+│   ├── __init__.py
+│   ├── auth.py           # JWT authentication
+│   ├── OTP.py            # OTP generation
+│   ├── encrypt_and_decrypt.py
+│   └── ...
+├── AI_services/           # AI/ML model implementations
+│   ├── n_beats_total_balance.ipynb
+│   ├── amount_regression_total_expence.ipynb
+│   ├── occurence_binary_classification_total_expence.ipynb
+│   ├── preprocessing_category_wise_expense_tft.ipynb
+│   └── ...
+└── chroma_db/            # Vector database for RAG
+    ├── chroma.sqlite3
+    └── ...
+```
+
+#### Design Patterns
+
+**1. Layered Architecture**
+- **Routes Layer**: HTTP request handling and validation
+- **Services Layer**: Business logic and data processing
+- **Data Layer**: Database operations and external API calls
+- **Utils Layer**: Shared utilities and helper functions
+
+**2. Repository Pattern**
+- Database operations abstracted through service classes
+- Consistent data access patterns across the application
+- Easy testing and mocking of data operations
+
+**3. Dependency Injection**
+- FastAPI's built-in dependency injection system
+- JWT token verification as a dependency
+- Database connections injected into services
+
+**4. Schema Validation**
+- Pydantic models for request/response validation
+- Automatic API documentation generation
+- Type safety and data validation
+
+### Code Structure Guidelines
+
+#### File Naming Conventions
+
+**Python Files:**
+- Use snake_case for file names: `user_login.py`, `transaction_history.py`
+- Use descriptive names that indicate functionality
+- Group related functionality in modules
+
+**Class Naming:**
+- Use PascalCase for class names: `UserLogin`, `TransactionHistory`
+- Use descriptive names that indicate purpose
+
+**Function Naming:**
+- Use snake_case for function names: `get_user_info`, `create_transaction`
+- Use verb-noun pattern for clarity
+- Use descriptive names that indicate action
+
+#### Code Organization
+
+**1. Route Files Structure**
+```python
+from fastapi import APIRouter, Depends, HTTPException
+from services.module_name import service_function
+from schemas.module_name import RequestSchema, ResponseSchema
+from utils.auth import verify_token
+
+router = APIRouter(
+    prefix="/endpoint",
+    tags=["Tag Name"],
+    dependencies=[Depends(verify_token)]
+)
+
+@router.get("/")
+async def get_endpoint(param: int):
+    try:
+        result = await service_function(param)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+```
+
+**2. Service Files Structure**
+```python
+from database import collection_name
+from schemas.module_name import DataModel
+from typing import List, Optional
+
+async def service_function(param: int) -> List[DataModel]:
+    """
+    Service function description.
+    
+    Args:
+        param: Parameter description
+        
+    Returns:
+        List of data models
+        
+    Raises:
+        Exception: Description of when exception is raised
+    """
+    try:
+        # Business logic here
+        data = await collection_name.find({"field": param}).to_list(None)
+        return [DataModel(**item) for item in data]
+    except Exception as e:
+        # Log error and re-raise
+        raise e
+```
+
+**3. Schema Files Structure**
+```python
+from pydantic import BaseModel, Field
+from typing import Optional, List
+from datetime import datetime
+
+class RequestModel(BaseModel):
+    field1: str = Field(..., description="Field description")
+    field2: Optional[int] = Field(None, description="Optional field")
+    
+class ResponseModel(BaseModel):
+    success: bool
+    data: List[DataModel]
+    message: str
+```
+
+### Adding New Features
+
+#### 1. Creating a New API Endpoint
+
+**Step 1: Define the Schema**
+```python
+# schemas/new_feature.py
+from pydantic import BaseModel
+from typing import Optional
+
+class NewFeatureRequest(BaseModel):
+    name: str
+    description: Optional[str] = None
+
+class NewFeatureResponse(BaseModel):
+    id: int
+    name: str
+    status: str
+```
+
+**Step 2: Create the Service**
+```python
+# services/new_feature.py
+from database import collection_name
+from schemas.new_feature import NewFeatureRequest, NewFeatureResponse
+
+async def create_new_feature(request: NewFeatureRequest) -> NewFeatureResponse:
+    # Business logic here
+    result = await collection_name.insert_one(request.dict())
+    return NewFeatureResponse(id=result.inserted_id, **request.dict())
+```
+
+**Step 3: Create the Route**
+```python
+# routes/new_feature.py
+from fastapi import APIRouter, Depends, HTTPException
+from services.new_feature import create_new_feature
+from schemas.new_feature import NewFeatureRequest, NewFeatureResponse
+from utils.auth import verify_token
+
+router = APIRouter(
+    prefix="/new-feature",
+    tags=["New Feature"],
+    dependencies=[Depends(verify_token)]
+)
+
+@router.post("/", response_model=NewFeatureResponse)
+async def create_feature(request: NewFeatureRequest):
+    try:
+        return await create_new_feature(request)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+```
+
+**Step 4: Register the Router**
+```python
+# main.py
+from routes.new_feature import router as new_feature_router
+
+app.include_router(new_feature_router)
+```
+
+### Testing
+
+#### Unit Testing
+
+**1. Test Structure**
+```python
+# tests/test_user_service.py
+import pytest
+from unittest.mock import AsyncMock, patch
+from services.user_login import login_user
+
+@pytest.mark.asyncio
+async def test_login_user_success():
+    # Mock database response
+    with patch('database.collection_user.find_one') as mock_find:
+        mock_find.return_value = {
+            "user_id": 123,
+            "login_nic": "123456789V",
+            "passcode": "hashed_password"
+        }
+        
+        result = await login_user({"nic": "123456789V", "passcode": "password"})
+        
+        assert result["user_id"] == 123
+        assert "access_token" in result
+```
+
+**2. Running Tests**
+```bash
+# Install testing dependencies
+pip install pytest pytest-asyncio
+
+# Run tests
+pytest tests/
+
+# Run with coverage
+pytest --cov=backend tests/
+```
+
+#### API Testing
+
+**1. Using FastAPI TestClient**
+```python
+# tests/test_api.py
+from fastapi.testclient import TestClient
+from main import app
+
+client = TestClient(app)
+
+def test_health_endpoint():
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "okks"}
+
+def test_login_endpoint():
+    response = client.post("/login", json={
+        "nic": "123456789V",
+        "passcode": "password"
+    })
+    assert response.status_code == 200
+    assert "access_token" in response.json()
+```
+
+### Debugging Tips
+
+#### 1. Logging Configuration
+
+**Setup Logging**
+```python
+# utils/logger.py
+import logging
+import sys
+from datetime import datetime
+
+def setup_logger(name: str, level: str = "INFO"):
+    logger = logging.getLogger(name)
+    logger.setLevel(getattr(logging, level.upper()))
+    
+    # Console handler
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.DEBUG)
+    
+    # Formatter
+    formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    console_handler.setFormatter(formatter)
+    
+    logger.addHandler(console_handler)
+    return logger
+```
+
+**Using Loggers**
+```python
+# In your services
+from utils.logger import setup_logger
+
+logger = setup_logger(__name__)
+
+async def service_function():
+    logger.info("Starting service function")
+    try:
+        # Your code here
+        logger.debug("Processing data")
+        result = await process_data()
+        logger.info(f"Service completed successfully: {result}")
+        return result
+    except Exception as e:
+        logger.error(f"Service failed: {str(e)}", exc_info=True)
+        raise
+```
+
+#### 2. Common Debugging Scenarios
+
+**Database Connection Issues**
+```python
+# Check MongoDB connection
+async def test_db_connection():
+    try:
+        await client.admin.command('ping')
+        print("Database connection successful")
+    except Exception as e:
+        print(f"Database connection failed: {e}")
+```
+
+**JWT Token Issues**
+```python
+# Debug JWT token
+import jwt
+from utils.auth import SECRET_KEY, ALGORITHM
+
+def debug_token(token: str):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        print(f"Token payload: {payload}")
+    except jwt.ExpiredSignatureError:
+        print("Token has expired")
+    except jwt.InvalidTokenError:
+        print("Invalid token")
+```
+
+#### 3. Performance Debugging
+
+**Database Query Performance**
+```python
+# Profile database queries
+import time
+from pymongo import monitoring
+
+class QueryLogger(monitoring.CommandListener):
+    def started(self, event):
+        self.start_time = time.time()
+    
+    def succeeded(self, event):
+        duration = time.time() - self.start_time
+        print(f"Query took {duration:.2f}s: {event.command_name}")
+
+# Register the listener
+monitoring.register(QueryLogger())
+```
+
+**API Response Time**
+```python
+# Add timing middleware
+import time
+from fastapi import Request
+
+@app.middleware("http")
+async def add_process_time_header(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    response.headers["X-Process-Time"] = str(process_time)
+    return response
+```
+
+### Best Practices
+
+#### 1. Code Quality
+
+**Type Hints**
+```python
+from typing import List, Optional, Dict, Any
+from datetime import datetime
+
+async def process_data(
+    user_id: int, 
+    data: List[Dict[str, Any]], 
+    start_date: Optional[datetime] = None
+) -> Dict[str, Any]:
+    # Implementation
+    pass
+```
+
+**Error Handling**
+```python
+from fastapi import HTTPException
+
+async def service_function():
+    try:
+        # Your code here
+        result = await risky_operation()
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid input: {str(e)}")
+    except Exception as e:
+        logger.error(f"Unexpected error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+```
+
+#### 2. Security Best Practices
+
+**Input Validation**
+```python
+from pydantic import BaseModel, validator
+
+class UserInput(BaseModel):
+    email: str
+    age: int
+    
+    @validator('email')
+    def validate_email(cls, v):
+        if '@' not in v:
+            raise ValueError('Invalid email format')
+        return v
+    
+    @validator('age')
+    def validate_age(cls, v):
+        if v < 0 or v > 150:
+            raise ValueError('Age must be between 0 and 150')
+        return v
+```
+
+**Environment Variables**
+```python
+# Never hardcode sensitive data
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Good
+SECRET_KEY = os.getenv("SECRET_KEY")
+
+# Bad
+SECRET_KEY = "hardcoded-secret-key"
+```
+
+#### 3. Performance Optimization
+
+**Database Optimization**
+```python
+# Use projections to limit data transfer
+async def get_user_summary(user_id: int):
+    return await collection_user.find_one(
+        {"user_id": user_id},
+        {"user_id": 1, "username": 1, "balance": 1}  # Only fetch needed fields
+    )
+
+# Use aggregation for complex queries
+async def get_user_stats(user_id: int):
+    pipeline = [
+        {"$match": {"user_id": user_id}},
+        {"$group": {
+            "_id": "$category",
+            "total": {"$sum": "$amount"},
+            "count": {"$sum": 1}
+        }}
+    ]
+    return await collection_transaction.aggregate(pipeline).to_list(None)
+```
+
+This comprehensive development guide provides everything needed to set up, develop, and maintain the SpendLess application effectively.
 
 ## Deployment
 - Production setup
