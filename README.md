@@ -272,9 +272,162 @@ SpendLess is built using modern, scalable technologies that provide robust perfo
 - **Tenacity 9.0.0**: Retry library for robust operations
 
 ## Project Structure
-- Directory breakdown
-- Key files explanation
-- Architecture overview
+
+SpendLess follows a clean, modular architecture with clear separation of concerns. The project is organized into logical directories that separate different aspects of the application.
+
+```
+bankingApp/
+├── backend/                          # Main backend application
+│   ├── AI_services/                  # AI/ML prediction models and services
+│   ├── chroma_db/                    # Vector database for AI embeddings
+│   ├── routes/                       # API route handlers
+│   ├── schemas/                      # Pydantic data models and validation
+│   ├── services/                     # Business logic and service layer
+│   ├── utils/                        # Utility functions and helpers
+│   ├── database.py                   # Database connection and configuration
+│   ├── main.py                       # FastAPI application entry point
+│   ├── models.py                     # Database models and schemas
+│   ├── requirements.txt              # Python dependencies
+│   └── README.md                     # Backend documentation
+├── documents/                        # Project documentation
+│   └── Final_Report_Group_6.pdf     # Project report
+└── README.md                         # Main project documentation
+```
+
+### Backend Directory Structure
+
+#### `/backend/AI_services/`
+Contains all AI and machine learning models and prediction services:
+
+- **`n_beats_total_balance.ipynb`**: N-BEATS model for account balance predictions
+- **`amount_regression_total_expence.ipynb`**: Regression model for expense amount prediction
+- **`occurence_binary_classification_total_expence.ipynb`**: Binary classification for payment occurrence
+- **`category_wise_expense_prediction_tft.ipynb`**: TFT model for category-wise expense predictions
+- **`category_wise_expense_income_prdection_nbeats.ipynb`**: N-BEATS for income/expense predictions
+- **`add_expense_predictions_to_db.py`**: Service to store expense predictions in database
+- **`add_income_predictions_to_db.py`**: Service to store income predictions in database
+- **`balancePredict_to_db.py`**: Service to store balance predictions in database
+- **`preprocess_*.py`**: Data preprocessing scripts for different models
+
+#### `/backend/routes/`
+API route handlers following RESTful principles:
+
+- **`bankAccountManagement.py`**: Bank account CRUD operations
+- **`user_login.py`**: User authentication and login endpoints
+- **`sign_in.py`**: User registration and sign-up process
+- **`dashboard.py`**: Dashboard data and analytics endpoints
+- **`transaction_history.py`**: Transaction history and filtering
+- **`transaction_categorization.py`**: AI-powered transaction categorization
+- **`incomeExpensePredictions.py`**: AI prediction endpoints
+- **`chatbot.py`**: Conversational AI chatbot endpoints
+- **`notification.py`**: Real-time notification system
+- **`todo.py`**: Todo and reminder management
+- **`settings.py`**: User settings and preferences
+- **`change_password.py`**: Password management
+- **`forgot_password.py`**: Password recovery
+
+#### `/backend/schemas/`
+Pydantic models for data validation and serialization:
+
+- **`user_login_schemas.py`**: User authentication schemas
+- **`bankAccountManagement.py`**: Bank account data models
+- **`dashboard.py`**: Dashboard response schemas
+- **`transaction_history.py`**: Transaction data models
+- **`transaction_categorization.py`**: Categorization schemas
+- **`incomeExpenseprediction.py`**: Prediction response models
+- **`chatbot.py`**: Chatbot request/response schemas
+- **`notification.py`**: Notification data models
+- **`todo.py`**: Todo task schemas
+- **`settings.py`**: User settings schemas
+
+#### `/backend/services/`
+Business logic and service layer implementation:
+
+- **`bankAccountManagement.py`**: Bank account business logic
+- **`user_login.py`**: Authentication service logic
+- **`sign_in.py`**: Registration service logic
+- **`dashboard.py`**: Dashboard data processing
+- **`transaction_history.py`**: Transaction data processing
+- **`transaction_categorization.py`**: AI categorization logic
+- **`incomeExpensePrediction.py`**: Prediction service logic
+- **`chatbot.py`**: Chatbot conversation handling
+- **`chatbotTest.py`**: Chatbot testing and development
+- **`llmAgentTools.py`**: LLM agent tools and functions
+- **`clustering.py`**: ML clustering algorithms
+- **`notification.py`**: Notification service logic
+- **`notification_watcher.py`**: Background notification monitoring
+- **`websocket_manager.py`**: WebSocket connection management
+- **`todo.py`**: Todo management logic
+- **`settings.py`**: Settings management logic
+
+#### `/backend/utils/`
+Utility functions and helper modules:
+
+- **`auth.py`**: JWT authentication utilities
+- **`encrypt_and_decrypt.py`**: Data encryption/decryption
+- **`encrypt_key_generation.py`**: Encryption key generation
+- **`imagetobase64.py`**: Image processing utilities
+- **`json_utils.py`**: JSON handling utilities
+- **`OTP.py`**: OTP generation and validation
+
+#### `/backend/chroma_db/`
+Vector database for AI embeddings and similarity search:
+
+- **`chroma.sqlite3`**: ChromaDB SQLite database
+- **`7282ffd6-ad0a-47c9-8b74-a3593e8645a9/`**: Vector collection data
+
+### Key Files
+
+#### **`main.py`**
+- FastAPI application entry point
+- Router registration and middleware setup
+- CORS configuration
+- WebSocket initialization
+- Health check endpoints
+
+#### **`database.py`**
+- MongoDB connection configuration
+- Database and collection definitions
+- Async database client setup
+- Environment variable management
+
+#### **`models.py`**
+- Pydantic data models for all entities
+- Database schema definitions
+- Data validation models
+- Enum definitions for constants
+
+#### **`requirements.txt`**
+- Complete list of Python dependencies
+- Version-pinned packages for reproducibility
+- AI/ML, web framework, and utility libraries
+
+### Architecture Overview
+
+The application follows a **layered architecture** pattern:
+
+1. **Presentation Layer** (`routes/`): API endpoints and request handling
+2. **Business Logic Layer** (`services/`): Core business logic and data processing
+3. **Data Access Layer** (`database.py`, `models.py`): Database operations and data models
+4. **AI/ML Layer** (`AI_services/`): Machine learning models and predictions
+5. **Utility Layer** (`utils/`): Shared utilities and helper functions
+
+### Design Patterns
+
+- **Repository Pattern**: Database operations abstracted through services
+- **Dependency Injection**: FastAPI's built-in DI for route dependencies
+- **Async/Await**: Asynchronous programming throughout the application
+- **Modular Design**: Clear separation of concerns with dedicated directories
+- **Schema Validation**: Pydantic models for request/response validation
+- **Middleware Pattern**: Authentication and CORS middleware
+- **Observer Pattern**: WebSocket-based real-time notifications
+
+### Data Flow
+
+1. **Request** → Routes (validation) → Services (business logic) → Database
+2. **AI Predictions** → AI Services → Database → API Response
+3. **Real-time Updates** → WebSocket Manager → Client Notifications
+4. **Authentication** → JWT Middleware → Route Access Control
 
 ## Installation & Setup
 - Prerequisites
