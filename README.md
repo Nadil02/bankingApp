@@ -1791,9 +1791,9 @@ graph TB
     end
     
     subgraph "Data Preprocessing Pipeline"
-        D[Data Cleaning & Validation]
+        D["Data Cleaning & Validation"]
         E[Feature Engineering]
-        F[Outlier Detection & Treatment]
+        F["Outlier Detection & Treatment"]
         G[Data Normalization]
         H[Temporal Feature Creation]
     end
@@ -1996,9 +1996,9 @@ flowchart TD
     A --> C[Z-Score Method]
     A --> D[Isolation Forest]
     
-    B --> E[Q1 - 1.5*IQR < x < Q3 + 1.5*IQR]
-    C --> F[|z-score| < 3]
-    D --> G[Anomaly Score < Threshold]
+    B --> E["Q1 - 1.5*IQR < x < Q3 + 1.5*IQR"]
+    C --> F["abs(z-score) < 3"]
+    D --> G["Anomaly Score < Threshold"]
     
     E --> H[Outlier Capping]
     F --> H
@@ -2048,7 +2048,7 @@ N-BEATSx is our primary model for balance and expense predictions, offering inte
 ```mermaid
 graph TB
     subgraph "N-BEATSx Architecture"
-        A[Input Layer<br/>Historical Data + Exogenous Features] --> B[Linear Layer]
+        A["Input Layer<br/>Historical Data + Exogenous Features"] --> B[Linear Layer]
         B --> C[ReLU Activation]
         C --> D[Dropout Layer]
         D --> E[Stack 1: Identity]
@@ -2596,7 +2596,7 @@ graph TB
     end
     
     subgraph "Data Privacy & Security"
-        T[PII Detection & Masking]
+        T["PII Detection & Masking"]
         U[Data Encryption]
         V[Audit Logging]
         W[Access Control]
