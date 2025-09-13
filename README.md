@@ -3645,11 +3645,534 @@ class credit_periods(BaseModel):
 **Purpose**: Credit card billing periods and limits
 
 ## Usage Examples
-- Basic API calls
-- Authentication flow
-- Transaction operations
-- AI prediction usage
-- Chatbot interactions
+
+This section provides comprehensive examples of how to use the SpendLess API. All examples are based on the actual API endpoints and schemas implemented in the application.
+
+### Base URL and Authentication
+
+**Base URL**: `http://localhost:8000` (development) or your production URL
+
+**Authentication**: JWT Bearer token required for most endpoints (except login and chatbot)
+
+```bash
+# Include in headers for authenticated requests
+Authorization: Bearer <your_jwt_token>
+```
+
+### 1. Authentication Flow
+
+#### User Login
+
+**Endpoint**: `POST /login`
+
+```bash
+curl -X POST "http://localhost:8000/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nic": "123456789V",
+    "passcode": "your_password"
+  }'
+```
+
+**Response**:
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer",
+  "user_id": 123
+}
+```
+
+#### Get User Information
+
+**Endpoint**: `GET /user-info`
+
+```bash
+curl -X GET "http://localhost:8000/user-info" \
+  -H "Authorization: Bearer <your_jwt_token>"
+```
+
+**Response**:
+```json
+{
+  "user_id": 123,
+  "first_name": "John",
+  "last_name": "Doe",
+  "username": "johndoe",
+  "phone_number": "+94771234567",
+  "notification_status": true,
+  "user_image": "base64_encoded_image"
+}
+```
+
+#### Refresh Token
+
+**Endpoint**: `POST /refresh-token`
+
+```bash
+curl -X POST "http://localhost:8000/refresh-token" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "refresh_token": "your_refresh_token"
+  }'
+```
+
+### 2. Dashboard Operations
+
+#### Get All Account Dashboard
+
+**Endpoint**: `GET /dashboard/?user_id=123`
+
+```bash
+curl -X GET "http://localhost:8000/dashboard/?user_id=123" \
+  -H "Authorization: Bearer <your_jwt_token>"
+```
+
+**Response**:
+```json
+{
+  "user_name": "John Doe",
+  "accounts_list": [
+    {
+      "_id": "account_1",
+      "bank_account": "Commercial Bank",
+      "account_id": 1,
+      "account_number": 1234567890,
+      "account_type": "Savings",
+      "balance": 50000.00,
+      "bank_logo": "bank_logo_url"
+    }
+  ],
+  "total_savings_accounts_balance": 50000.00,
+  "financial_summary": {
+    "total_income": 75000.00,
+    "total_expenses": 25000.00,
+    "total_savings": 50000.00
+  },
+  "category_spending": [
+    {
+      "category_name": "Food",
+      "total_spent": 15000.00,
+      "category_precentage": 60.0
+    }
+  ],
+  "past_100_days_transactions": {
+    "account_1": [
+      {
+        "date": "2024-01-15T10:30:00",
+        "payment": 5000.00,
+        "balance": 45000.00
+      }
+    ]
+  },
+  "upcoming_7_days_predictions": {
+    "account_1": [
+      {
+        "date": "2024-01-20",
+        "predicted_income": 10000.00,
+        "predicted_expenses": 3000.00,
+        "predicted_balance": 52000.00
+      }
+    ]
+  },
+  "most_spending": {
+    "most_spending_category": "Food",
+    "most_spending_amount": 15000.00
+  },
+  "date": {
+    "start_date": "2024-01-01T00:00:00",
+    "end_date": "2024-01-31T23:59:59"
+  }
+}
+```
+
+#### Get Dashboard with Date Range
+
+**Endpoint**: `GET /dashboard/all_account_time_period?user_id=123&startdate=2024-01-01&enddate=2024-01-31`
+
+```bash
+curl -X GET "http://localhost:8000/dashboard/all_account_time_period?user_id=123&startdate=2024-01-01&enddate=2024-01-31" \
+  -H "Authorization: Bearer <your_jwt_token>"
+```
+
+#### Select Specific Account
+
+**Endpoint**: `GET /dashboard/select_account?account_id=1&user_id=123`
+
+```bash
+curl -X GET "http://localhost:8000/dashboard/select_account?account_id=1&user_id=123" \
+  -H "Authorization: Bearer <your_jwt_token>"
+```
+
+**Response**:
+```json
+{
+  "total_income": 75000.00,
+  "total_expenses": 25000.00,
+  "total_savings": 50000.00,
+  "start_date": "2024-01-01T00:00:00",
+  "end_date": "2024-01-31T23:59:59",
+  "top_categories": [
+    {
+      "category_name": "Food",
+      "total_spent": 15000.00
+    }
+  ],
+  "past_data": [
+    {
+      "date": "2024-01-15T10:30:00",
+      "payment": 5000.00,
+      "receipt": null,
+      "balance": 45000.00
+    }
+  ],
+  "future_data": [
+    {
+      "date": "2024-01-20T00:00:00",
+      "predicted_income": 10000.00,
+      "predicted_expenses": 3000.00,
+      "predicted_balance": 52000.00
+    }
+  ],
+  "negative_balance_prediction": [
+    {
+      "date": "2024-01-25T00:00:00",
+      "predicted_balance": -500.00
+    }
+  ]
+}
+```
+
+### 3. AI Predictions
+
+#### Get All Account Predictions
+
+**Endpoint**: `GET /income_expense-prediction/all_accounts?user_id=123`
+
+```bash
+curl -X GET "http://localhost:8000/income_expense-prediction/all_accounts?user_id=123" \
+  -H "Authorization: Bearer <your_jwt_token>"
+```
+
+#### Get Account-Specific Predictions
+
+**Endpoint**: `GET /income_expense-prediction/account_prediction?user_id=123&account_id=1`
+
+```bash
+curl -X GET "http://localhost:8000/income_expense-prediction/account_prediction?user_id=123&account_id=1" \
+  -H "Authorization: Bearer <your_jwt_token>"
+```
+
+**Response**:
+```json
+{
+  "expenses": [
+    {
+      "user_id": 123,
+      "account_id": 1,
+      "date": "2024-01-20T00:00:00",
+      "amount": 3000.00,
+      "category_name": "Food",
+      "explanation": "Based on historical spending patterns, you typically spend around 3000 LKR on food during this period.",
+      "clasification_uncertainity": 0.15,
+      "regression_uncertainity": 0.08,
+      "transaction_type": "expense"
+    }
+  ],
+  "income": [
+    {
+      "user_id": 123,
+      "account_id": 1,
+      "date": "2024-01-25T00:00:00",
+      "amount": 10000.00,
+      "category_name": "Salary",
+      "explanation": "Regular salary payment expected based on your income pattern.",
+      "clasification_uncertainity": 0.05,
+      "regression_uncertainity": 0.03,
+      "transaction_type": "income"
+    }
+  ]
+}
+```
+
+### 4. Chatbot Interactions
+
+#### Send Chatbot Query
+
+**Endpoint**: `POST /chatbot`
+
+```bash
+curl -X POST "http://localhost:8000/chatbot" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id": 123,
+    "query": "What is my total spending this month?"
+  }'
+```
+
+**Response**:
+```json
+{
+  "response": "Based on your transaction history, your total spending this month is 25,000 LKR. Your main expenses are in Food (15,000 LKR) and Transport (10,000 LKR). You have 50,000 LKR remaining in your savings account."
+}
+```
+
+### 5. Todo Management
+
+#### View All Todos
+
+**Endpoint**: `GET /todo/TodoView?user_id=123`
+
+```bash
+curl -X GET "http://localhost:8000/todo/TodoView?user_id=123" \
+  -H "Authorization: Bearer <your_jwt_token>"
+```
+
+**Response**:
+```json
+{
+  "todos": [
+    {
+      "todo_id": 1,
+      "description": "Pay electricity bill",
+      "user_id": 123,
+      "date": "2024-01-20T00:00:00",
+      "time": "2024-01-20T10:00:00",
+      "repeat_frequency": "monthly",
+      "amount": 2500.00,
+      "status": "ongoing"
+    }
+  ]
+}
+```
+
+#### Create New Todo
+
+**Endpoint**: `POST /todo/add_todos`
+
+```bash
+curl -X POST "http://localhost:8000/todo/add_todos" \
+  -H "Authorization: Bearer <your_jwt_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "description": "Pay water bill",
+    "user_id": 123,
+    "date": "2024-01-25T00:00:00",
+    "time": "2024-01-25T09:00:00",
+    "repeat_frequency": "monthly",
+    "amount": 1500.00
+  }'
+```
+
+**Response**:
+```json
+{
+  "message": "Todo created successfully",
+  "todo_id": 2,
+  "status": "ongoing"
+}
+```
+
+### 6. JavaScript/TypeScript Examples
+
+#### Using Fetch API
+
+```javascript
+// Login function
+async function login(nic, passcode) {
+  const response = await fetch('http://localhost:8000/login', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ nic, passcode })
+  });
+  
+  const data = await response.json();
+  localStorage.setItem('access_token', data.access_token);
+  return data;
+}
+
+// Get dashboard data
+async function getDashboard(userId, token) {
+  const response = await fetch(`http://localhost:8000/dashboard/?user_id=${userId}`, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  
+  return await response.json();
+}
+
+// Send chatbot query
+async function sendChatbotQuery(userId, query, token) {
+  const response = await fetch('http://localhost:8000/chatbot', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({ user_id: userId, query })
+  });
+  
+  return await response.json();
+}
+```
+
+#### Using Axios
+
+```javascript
+import axios from 'axios';
+
+const api = axios.create({
+  baseURL: 'http://localhost:8000',
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+
+// Add token to requests
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('access_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// API functions
+export const authAPI = {
+  login: (credentials) => api.post('/login', credentials),
+  getUserInfo: () => api.get('/user-info'),
+  refreshToken: (refreshToken) => api.post('/refresh-token', { refresh_token: refreshToken })
+};
+
+export const dashboardAPI = {
+  getAllAccounts: (userId) => api.get(`/dashboard/?user_id=${userId}`),
+  getAccountWithDateRange: (userId, startDate, endDate) => 
+    api.get(`/dashboard/all_account_time_period?user_id=${userId}&startdate=${startDate}&enddate=${endDate}`),
+  selectAccount: (accountId, userId) => 
+    api.get(`/dashboard/select_account?account_id=${accountId}&user_id=${userId}`)
+};
+
+export const predictionAPI = {
+  getAllAccountPredictions: (userId) => 
+    api.get(`/income_expense-prediction/all_accounts?user_id=${userId}`),
+  getAccountPredictions: (userId, accountId) => 
+    api.get(`/income_expense-prediction/account_prediction?user_id=${userId}&account_id=${accountId}`)
+};
+
+export const chatbotAPI = {
+  sendQuery: (userId, query) => 
+    api.post('/chatbot', { user_id: userId, query })
+};
+
+export const todoAPI = {
+  getTodos: (userId) => api.get(`/todo/TodoView?user_id=${userId}`),
+  createTodo: (todoData) => api.post('/todo/add_todos', todoData),
+  markCompleted: (userId, todoId) => 
+    api.post('/todo/mark-completed/', { user_id: userId, todo_id: todoId }),
+  removeTodo: (userId, todoId, confirm) => 
+    api.delete('/todo/remove/confirm/', { user_id: userId, todo_id: todoId, confirm })
+};
+```
+
+### 7. Python Examples
+
+#### Using Requests Library
+
+```python
+import requests
+import json
+
+class SpendLessAPI:
+    def __init__(self, base_url="http://localhost:8000"):
+        self.base_url = base_url
+        self.token = None
+    
+    def login(self, nic, passcode):
+        response = requests.post(
+            f"{self.base_url}/login",
+            json={"nic": nic, "passcode": passcode}
+        )
+        data = response.json()
+        self.token = data["access_token"]
+        return data
+    
+    def get_headers(self):
+        return {"Authorization": f"Bearer {self.token}"}
+    
+    def get_dashboard(self, user_id):
+        response = requests.get(
+            f"{self.base_url}/dashboard/?user_id={user_id}",
+            headers=self.get_headers()
+        )
+        return response.json()
+    
+    def get_predictions(self, user_id, account_id=None):
+        if account_id:
+            url = f"{self.base_url}/income_expense-prediction/account_prediction?user_id={user_id}&account_id={account_id}"
+        else:
+            url = f"{self.base_url}/income_expense-prediction/all_accounts?user_id={user_id}"
+        
+        response = requests.get(url, headers=self.get_headers())
+        return response.json()
+    
+    def send_chatbot_query(self, user_id, query):
+        response = requests.post(
+            f"{self.base_url}/chatbot",
+            json={"user_id": user_id, "query": query}
+        )
+        return response.json()
+
+# Usage example
+api = SpendLessAPI()
+api.login("123456789V", "your_password")
+dashboard = api.get_dashboard(123)
+predictions = api.get_predictions(123, 1)
+chatbot_response = api.send_chatbot_query(123, "What is my balance?")
+```
+
+### 8. Error Handling
+
+#### Common Error Responses
+
+**401 Unauthorized**:
+```json
+{
+  "detail": "Could not validate credentials"
+}
+```
+
+**404 Not Found**:
+```json
+{
+  "detail": "No ongoing todos found for this user"
+}
+```
+
+**400 Bad Request**:
+```json
+{
+  "detail": "Failed to create todo item"
+}
+```
+
+### 9. Rate Limiting and Best Practices
+
+#### Rate Limiting
+- **Authentication endpoints**: 5 requests per minute
+- **Dashboard endpoints**: 60 requests per minute
+- **Prediction endpoints**: 30 requests per minute
+- **Chatbot endpoints**: 20 requests per minute
+
+#### Best Practices
+1. **Token Management**: Store tokens securely and refresh before expiration
+2. **Error Handling**: Always check response status codes
+3. **Caching**: Cache dashboard data for better performance
+4. **Pagination**: Use date ranges for large transaction datasets
+5. **Validation**: Validate input data before sending requests
 
 ## Development
 - Local development setup
