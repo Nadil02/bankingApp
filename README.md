@@ -4774,20 +4774,737 @@ async def get_user_stats(user_id: int):
 This comprehensive development guide provides everything needed to set up, develop, and maintain the SpendLess application effectively.
 
 ## Deployment
-- Production setup
-- Environment configuration
-- Scaling considerations
-- Monitoring
 
-## Contributing
-- Development workflow
-- Code standards
-- Pull request process
-- Issue reporting
+This section provides comprehensive guidelines for deploying the SpendLess application to Azure cloud services. It covers production setup, environment configuration, scaling considerations, and monitoring.
 
-## License
-- License information
+### Azure Services Architecture
 
-## Contact
-- Team information
-- Support channels
+#### Recommended Azure Services Stack
+
+```mermaid
+graph TB
+    subgraph "Azure Cloud Services"
+        A[Azure App Service] --> B[Azure Cosmos DB]
+        A --> C[Azure AI Services]
+        A --> D[Azure Key Vault]
+        A --> E[Azure Storage]
+        A --> F[Azure Application Insights]
+        A --> G[Azure CDN]
+        H[Azure Container Registry] --> A
+        I[Azure DevOps] --> H
+    end
+    
+    subgraph "External Services"
+        J[Gemini API]
+        K[Notify.lk SMS]
+        L[Email Services]
+    end
+    
+    A --> J
+    A --> K
+    A --> L
+    
+    subgraph "Client Applications"
+        M[Web Frontend]
+        N[Mobile App]
+    end
+    
+    M --> A
+    N --> A
+```
+
+#### Service Mapping
+
+| Component | Azure Service | Purpose |
+|-----------|---------------|---------|
+| **Backend API** | Azure App Service | FastAPI application hosting |
+| **Database** | Azure Cosmos DB (MongoDB API) | Document storage and transactions |
+| **Vector Database** | Azure AI Search | RAG and semantic search |
+| **AI/ML Models** | Azure Machine Learning | Model hosting and inference |
+| **Secrets** | Azure Key Vault | API keys and sensitive data |
+| **File Storage** | Azure Blob Storage | Static files and model artifacts |
+| **Monitoring** | Application Insights | Performance and error tracking |
+| **CDN** | Azure CDN | Global content delivery |
+| **Container Registry** | Azure Container Registry | Docker image storage |
+| **CI/CD** | Azure DevOps | Automated deployment pipeline |
+
+### Pre-Deployment Setup
+
+#### 1. Azure CLI Installation and Configuration
+
+```bash
+# Install Azure CLI
+curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+
+# Login to Azure
+az login
+
+# Set subscription
+az account set --subscription "your-subscription-id"
+
+# Create resource group
+az group create --name spendless-rg --location "East US"
+```
+
+#### 2. Environment Variables for Production
+
+Create a production `.env` file:
+
+```bash
+# Database Configuration
+MONGO_URI=mongodb://spendless-cosmos:your-connection-string@spendless-cosmos.mongo.cosmos.azure.com:10255/project?ssl=true&replicaSet=globaldb&retrywrites=false&maxIdleTimeMS=120000&appName=@spendless-cosmos@
+
+# JWT Configuration
+SECRET_KEY=your-production-secret-key-256-bits
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+REFRESH_TOKEN_EXPIRE_DAYS=7
+
+# AI/ML Configuration
+GEMINI_API_KEY=your-gemini-api-key
+OPENAI_API_KEY=your-openai-api-key
+
+# SMS Configuration
+NOTIFY_LK_API_KEY=your-notify-lk-api-key
+NOTIFY_LK_SENDER_ID=your-sender-id
+
+# Email Configuration
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
+EMAIL_USERNAME=your-email@gmail.com
+EMAIL_PASSWORD=your-app-password
+
+# Azure Configuration
+AZURE_STORAGE_CONNECTION_STRING=your-storage-connection-string
+AZURE_KEY_VAULT_URL=https://spendless-kv.vault.azure.net/
+
+# Production Settings
+DEBUG=False
+LOG_LEVEL=INFO
+ENVIRONMENT=production
+```
+
+### Azure Services Deployment
+
+#### 1. Azure Cosmos DB (MongoDB API)
+
+**Create Cosmos DB Account:**
+```bash
+# Create Cosmos DB account
+az cosmosdb create \
+    --resource-group spendless-rg \
+    --name spendless-cosmos \
+    --kind MongoDB \
+    --locations regionName="East US" failoverPriority=0 isZoneRedundant=False \
+    --default-consistency-level Session \
+    --enable-multiple-write-locations false
+
+# Get connection string
+az cosmosdb keys list \
+    --resource-group spendless-rg \
+    --name spendless-cosmos \
+    --type connection-strings
+```
+
+**Database Configuration:**
+```python
+# database.py - Production configuration
+import motor.motor_asyncio
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Azure Cosmos DB connection
+MONGO_URI = os.getenv("MONGO_URI")
+
+client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URI)
+db = client["project"]
+
+# Collections with proper indexing
+collection_user = db["user"]
+collection_transaction = db["transaction"]
+collection_account = db["account"]
+collection_bank = db["bank"]
+collection_transaction_category = db["transaction_category"]
+collection_predicted_balance = db["predicted_balance"]
+collection_predicted_expense = db["predicted_expense"]
+collection_predicted_income = db["predicted_income"]
+collection_todo_list = db["todo_list"]
+collection_notification = db["notification"]
+collection_otp = db["otp"]
+collection_chatbot = db["chatbot"]
+collection_goal = db["goal"]
+collection_credit_periods = db["credit_periods"]
+collection_income_expense_prediction = db["income_expense_prediction"]
+collection_transaction_categorization = db["transaction_categorization"]
+```
+
+#### 2. Azure App Service
+
+**Create App Service Plan:**
+```bash
+# Create App Service plan
+az appservice plan create \
+    --name spendless-plan \
+    --resource-group spendless-rg \
+    --sku P1V2 \
+    --is-linux
+
+# Create Web App
+az webapp create \
+    --resource-group spendless-rg \
+    --plan spendless-plan \
+    --name spendless-api \
+    --runtime "PYTHON|3.10"
+```
+
+**Dockerfile for Azure App Service:**
+```dockerfile
+# Dockerfile
+FROM python:3.10-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements and install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Download spaCy model
+RUN python -m spacy download en_core_web_sm
+
+# Copy application code
+COPY . .
+
+# Create non-root user
+RUN useradd --create-home --shell /bin/bash app \
+    && chown -R app:app /app
+USER app
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Start command
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker", "main:app"]
+```
+
+**Deploy to App Service:**
+```bash
+# Build and push to Azure Container Registry
+az acr build --registry spendless-acr --image spendless-api:latest .
+
+# Configure App Service to use container
+az webapp config container set \
+    --name spendless-api \
+    --resource-group spendless-rg \
+    --docker-custom-image-name spendless-acr.azurecr.io/spendless-api:latest
+```
+
+#### 3. Azure Key Vault
+
+**Create and Configure Key Vault:**
+```bash
+# Create Key Vault
+az keyvault create \
+    --name spendless-kv \
+    --resource-group spendless-rg \
+    --location "East US"
+
+# Add secrets
+az keyvault secret set --vault-name spendless-kv --name "SECRET-KEY" --value "your-secret-key"
+az keyvault secret set --vault-name spendless-kv --name "GEMINI-API-KEY" --value "your-gemini-key"
+az keyvault secret set --vault-name spendless-kv --name "MONGO-URI" --value "your-mongo-uri"
+az keyvault secret set --vault-name spendless-kv --name "NOTIFY-LK-API-KEY" --value "your-notify-key"
+
+# Grant App Service access to Key Vault
+az webapp identity assign --name spendless-api --resource-group spendless-rg
+az keyvault set-policy --name spendless-kv --object-id <app-service-principal-id> --secret-permissions get list
+```
+
+**Key Vault Integration in Code:**
+```python
+# utils/azure_keyvault.py
+from azure.keyvault.secrets import SecretClient
+from azure.identity import DefaultAzureCredential
+import os
+
+class AzureKeyVault:
+    def __init__(self):
+        self.vault_url = os.getenv("AZURE_KEY_VAULT_URL")
+        self.credential = DefaultAzureCredential()
+        self.client = SecretClient(vault_url=self.vault_url, credential=self.credential)
+    
+    def get_secret(self, secret_name: str) -> str:
+        secret = self.client.get_secret(secret_name)
+        return secret.value
+
+# Usage in main.py
+from utils.azure_keyvault import AzureKeyVault
+
+keyvault = AzureKeyVault()
+SECRET_KEY = keyvault.get_secret("SECRET-KEY")
+GEMINI_API_KEY = keyvault.get_secret("GEMINI-API-KEY")
+```
+
+#### 4. Azure Blob Storage
+
+**Create Storage Account:**
+```bash
+# Create storage account
+az storage account create \
+    --name spendlessstorage \
+    --resource-group spendless-rg \
+    --location "East US" \
+    --sku Standard_LRS
+
+# Create containers
+az storage container create --name models --account-name spendlessstorage
+az storage container create --name data --account-name spendlessstorage
+az storage container create --name logs --account-name spendlessstorage
+```
+
+**Blob Storage Integration:**
+```python
+# utils/azure_storage.py
+from azure.storage.blob import BlobServiceClient
+import os
+
+class AzureBlobStorage:
+    def __init__(self):
+        self.connection_string = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
+        self.blob_service_client = BlobServiceClient.from_connection_string(self.connection_string)
+    
+    def upload_file(self, container_name: str, file_path: str, blob_name: str):
+        blob_client = self.blob_service_client.get_blob_client(
+            container=container_name, blob=blob_name
+        )
+        with open(file_path, "rb") as data:
+            blob_client.upload_blob(data, overwrite=True)
+    
+    def download_file(self, container_name: str, blob_name: str, download_path: str):
+        blob_client = self.blob_service_client.get_blob_client(
+            container=container_name, blob=blob_name
+        )
+        with open(download_path, "wb") as download_file:
+            download_file.write(blob_client.download_blob().readall())
+```
+
+#### 5. Azure Application Insights
+
+**Create Application Insights:**
+```bash
+# Create Application Insights
+az monitor app-insights component create \
+    --app spendless-insights \
+    --location "East US" \
+    --resource-group spendless-rg
+
+# Get instrumentation key
+az monitor app-insights component show \
+    --app spendless-insights \
+    --resource-group spendless-rg \
+    --query instrumentationKey
+```
+
+**Application Insights Integration:**
+```python
+# main.py - Add Application Insights
+from opencensus.ext.azure.log_exporter import AzureLogHandler
+from opencensus.ext.azure.trace_exporter import AzureExporter
+from opencensus.trace.samplers import ProbabilitySampler
+from opencensus.trace.tracer import Tracer
+import logging
+
+# Configure Application Insights
+instrumentation_key = os.getenv("APPINSIGHTS_INSTRUMENTATION_KEY")
+logger = logging.getLogger(__name__)
+logger.addHandler(AzureLogHandler(connection_string=f'InstrumentationKey={instrumentation_key}'))
+
+# Configure tracing
+tracer = Tracer(
+    exporter=AzureExporter(connection_string=f'InstrumentationKey={instrumentation_key}'),
+    sampler=ProbabilitySampler(1.0)
+)
+
+@app.middleware("http")
+async def trace_requests(request: Request, call_next):
+    with tracer.span(name="request"):
+        response = await call_next(request)
+        return response
+```
+
+### CI/CD Pipeline with Azure DevOps
+
+#### 1. Azure DevOps Pipeline
+
+**azure-pipelines.yml:**
+```yaml
+# azure-pipelines.yml
+trigger:
+- main
+
+variables:
+  dockerRegistryServiceConnection: 'spendless-acr-connection'
+  imageRepository: 'spendless-api'
+  containerRegistry: 'spendless-acr.azurecr.io'
+  dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
+  tag: '$(Build.BuildId)'
+  vmImageName: 'ubuntu-latest'
+
+stages:
+- stage: Build
+  displayName: Build and push stage
+  jobs:
+  - job: Build
+    displayName: Build
+    pool:
+      vmImage: $(vmImageName)
+    steps:
+    - task: Docker@2
+      displayName: Build and push an image to container registry
+      inputs:
+        command: buildAndPush
+        repository: $(imageRepository)
+        dockerfile: $(dockerfilePath)
+        containerRegistry: $(dockerRegistryServiceConnection)
+        tags: |
+          $(tag)
+          latest
+
+- stage: Deploy
+  displayName: Deploy stage
+  dependsOn: Build
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy
+    environment: 'production'
+    pool:
+      vmImage: $(vmImageName)
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureWebAppContainer@1
+            displayName: 'Azure Web App on Container Deploy'
+            inputs:
+              azureSubscription: 'spendless-azure-connection'
+              appName: 'spendless-api'
+              containers: '$(containerRegistry)/$(imageRepository):$(tag)'
+```
+
+#### 2. GitHub Actions Alternative
+
+**.github/workflows/deploy.yml:**
+```yaml
+name: Deploy to Azure
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r backend/requirements.txt
+    
+    - name: Run tests
+      run: |
+        cd backend
+        pytest tests/ --cov=.
+    
+    - name: Login to Azure
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+    
+    - name: Build and push Docker image
+      run: |
+        az acr build --registry spendless-acr --image spendless-api:${{ github.sha }} .
+    
+    - name: Deploy to Azure App Service
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: 'spendless-api'
+        images: 'spendless-acr.azurecr.io/spendless-api:${{ github.sha }}'
+```
+
+### Production Configuration
+
+#### 1. App Service Configuration
+
+**Application Settings:**
+```bash
+# Configure app settings
+az webapp config appsettings set \
+    --resource-group spendless-rg \
+    --name spendless-api \
+    --settings \
+        WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \
+        WEBSITES_PORT=8000 \
+        PYTHONPATH=/home/site/wwwroot \
+        ENVIRONMENT=production \
+        LOG_LEVEL=INFO
+```
+
+**Health Check Configuration:**
+```python
+# main.py - Enhanced health check
+@app.get("/health")
+async def health_check():
+    try:
+        # Check database connection
+        await client.admin.command('ping')
+        db_status = "healthy"
+    except Exception as e:
+        db_status = f"unhealthy: {str(e)}"
+    
+    return {
+        "status": "healthy",
+        "timestamp": datetime.utcnow().isoformat(),
+        "version": "1.0.0",
+        "database": db_status,
+        "environment": os.getenv("ENVIRONMENT", "development")
+    }
+```
+
+#### 2. Scaling Configuration
+
+**Auto-scaling Rules:**
+```bash
+# Create auto-scale settings
+az monitor autoscale create \
+    --resource-group spendless-rg \
+    --resource spendless-api \
+    --resource-type Microsoft.Web/sites \
+    --name spendless-autoscale \
+    --min-count 2 \
+    --max-count 10 \
+    --count 3
+
+# Add scale-out rule
+az monitor autoscale rule create \
+    --resource-group spendless-rg \
+    --autoscale-name spendless-autoscale \
+    --condition "CpuPercentage > 70 avg 5m" \
+    --scale out 2
+
+# Add scale-in rule
+az monitor autoscale rule create \
+    --resource-group spendless-rg \
+    --autoscale-name spendless-autoscale \
+    --condition "CpuPercentage < 30 avg 5m" \
+    --scale in 1
+```
+
+#### 3. Security Configuration
+
+**HTTPS and SSL:**
+```bash
+# Configure custom domain and SSL
+az webapp config hostname add \
+    --webapp-name spendless-api \
+    --resource-group spendless-rg \
+    --hostname api.spendless.com
+
+# Configure SSL certificate
+az webapp config ssl bind \
+    --certificate-thumbprint <certificate-thumbprint> \
+    --ssl-type SNI \
+    --name spendless-api \
+    --resource-group spendless-rg
+```
+
+**CORS Configuration for Production:**
+```python
+# main.py - Production CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://spendless.com",
+        "https://www.spendless.com",
+        "https://app.spendless.com"
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["*"],
+)
+```
+
+### Monitoring and Logging
+
+#### 1. Application Insights Queries
+
+**Performance Monitoring:**
+```kusto
+// Top slow requests
+requests
+| where timestamp > ago(1h)
+| summarize avg(duration) by name
+| order by avg_duration desc
+| take 10
+
+// Error rate
+requests
+| where timestamp > ago(1h)
+| summarize 
+    total = count(),
+    errors = countif(success == false)
+| extend error_rate = errors * 100.0 / total
+
+// Database query performance
+dependencies
+| where timestamp > ago(1h)
+| where type == "MongoDB"
+| summarize avg(duration) by name
+| order by avg_duration desc
+```
+
+#### 2. Custom Metrics
+
+**Custom Telemetry:**
+```python
+# utils/telemetry.py
+from opencensus.ext.azure import metrics_exporter
+from opencensus.stats import stats as stats_module
+from opencensus.stats import measure as measure_module
+from opencensus.stats import view as view_module
+
+# Define custom metrics
+m_prediction_accuracy = measure_module.MeasureFloat(
+    "prediction_accuracy", 
+    "AI model prediction accuracy", 
+    "percentage"
+)
+
+m_api_response_time = measure_module.MeasureFloat(
+    "api_response_time", 
+    "API response time", 
+    "milliseconds"
+)
+
+# Create views
+prediction_accuracy_view = view_module.View(
+    "prediction_accuracy",
+    "AI model prediction accuracy",
+    [],
+    m_prediction_accuracy,
+    view_module.AggregationType.DISTRIBUTION
+)
+
+# Record metrics
+stats = stats_module.stats
+view_manager = stats.view_manager
+view_manager.register_view(prediction_accuracy_view)
+
+def record_prediction_accuracy(accuracy: float):
+    mmap = stats.stats_recorder.new_measurement_map()
+    mmap.measure_float_put(m_prediction_accuracy, accuracy)
+    mmap.record()
+```
+
+### Backup and Disaster Recovery
+
+#### 1. Database Backup
+
+**Cosmos DB Backup:**
+```bash
+# Enable continuous backup
+az cosmosdb update \
+    --resource-group spendless-rg \
+    --name spendless-cosmos \
+    --backup-policy-type Continuous \
+    --backup-interval 60 \
+    --backup-retention 7
+```
+
+#### 2. Application Backup
+
+**Blob Storage Backup:**
+```bash
+# Create backup policy
+az storage account blob-service-properties update \
+    --account-name spendlessstorage \
+    --enable-change-feed true \
+    --enable-versioning true \
+    --enable-delete-retention true \
+    --delete-retention-days 30
+```
+
+### Cost Optimization
+
+#### 1. Resource Optimization
+
+**App Service Plan Optimization:**
+```bash
+# Use reserved instances for production
+az appservice plan update \
+    --name spendless-plan \
+    --resource-group spendless-rg \
+    --sku P1V2
+
+# Configure auto-shutdown for dev environments
+az webapp config set \
+    --name spendless-api-dev \
+    --resource-group spendless-rg \
+    --always-on false
+```
+
+#### 2. Monitoring Costs
+
+**Cost Management:**
+```bash
+# Set up budget alerts
+az consumption budget create \
+    --budget-name spendless-budget \
+    --resource-group spendless-rg \
+    --amount 500 \
+    --time-grain Monthly \
+    --start-date 2024-01-01 \
+    --end-date 2024-12-31
+```
+
+### Deployment Checklist
+
+#### Pre-Deployment
+- [ ] All environment variables configured in Key Vault
+- [ ] Database connection strings updated
+- [ ] SSL certificates configured
+- [ ] CORS settings updated for production domains
+- [ ] Application Insights configured
+- [ ] Auto-scaling rules set up
+- [ ] Backup policies configured
+
+#### Post-Deployment
+- [ ] Health check endpoint responding
+- [ ] Database connectivity verified
+- [ ] AI/ML models loading correctly
+- [ ] Authentication flow working
+- [ ] API endpoints responding
+- [ ] Monitoring and alerting active
+- [ ] Performance metrics within acceptable ranges
+
+This comprehensive Azure deployment guide provides everything needed to deploy and maintain the SpendLess application in a production Azure environment.
