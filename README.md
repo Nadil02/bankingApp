@@ -171,12 +171,105 @@ SpendLess offers a comprehensive suite of banking and financial management featu
 - **Audit Logging**: Track user actions and system events
 
 ## Technology Stack
-- Backend Framework
-- Database
-- AI/ML Libraries
-- Authentication
-- Real-time Features
-- External APIs
+
+SpendLess is built using modern, scalable technologies that provide robust performance, security, and AI capabilities.
+
+### Backend Framework
+- **FastAPI 0.115.11**: High-performance Python web framework with automatic API documentation
+- **Uvicorn**: ASGI server for running FastAPI applications
+- **Gunicorn**: Production WSGI server for deployment
+- **Starlette**: Lightweight ASGI framework (FastAPI dependency)
+- **Pydantic 2.11.3**: Data validation and settings management using Python type annotations
+
+### Database & Data Storage
+- **MongoDB**: NoSQL database for flexible document storage
+- **Motor 3.7.0**: Async MongoDB driver for Python
+- **PyMongo 4.11.2**: MongoDB Python driver
+- **ChromaDB**: Vector database for AI embeddings and similarity search
+- **SQLAlchemy 2.0.38**: SQL toolkit and ORM (for potential relational data needs)
+
+### AI & Machine Learning
+- **PyTorch 2.7.1**: Deep learning framework for neural networks
+- **NeuralForecast**: Time series forecasting library with N-BEATS implementation
+- **N-BEATSx**: Neural basis expansion analysis for time series forecasting
+- **Scikit-learn 1.7.0**: Machine learning library for traditional ML algorithms
+- **NumPy 2.2.5**: Numerical computing library
+- **Pandas 2.3.0**: Data manipulation and analysis
+- **SciPy 1.16.0**: Scientific computing library
+- **Optuna**: Hyperparameter optimization framework
+- **Transformers 4.53.1**: Hugging Face transformers library
+- **Sentence-Transformers 5.0.0**: Semantic embeddings for text similarity
+
+### Natural Language Processing
+- **spaCy 3.8.4**: Advanced NLP library with pre-trained models
+- **en_core_web_sm**: English language model for spaCy
+- **NLTK 3.9.1**: Natural Language Toolkit
+- **LangChain 0.3.24**: Framework for developing LLM applications
+- **LangChain Community 0.3.18**: Community integrations for LangChain
+- **LangChain Google GenAI 2.0.11**: Google Gemini integration
+- **LangGraph 0.3.2**: Graph-based workflow for LLM applications
+
+### Large Language Models & AI Services
+- **Google Generative AI**: Gemini 1.5 Flash and 2.5 Flash models
+- **Ollama 0.4.7**: Local LLM deployment and management
+- **Hugging Face Hub 0.33.2**: Access to pre-trained models
+- **Google AI Generative Language 0.6.16**: Google's generative AI API
+
+### Authentication & Security
+- **PyJWT 2.10.1**: JSON Web Token implementation
+- **bcrypt 4.3.0**: Password hashing library
+- **Argon2-cffi 23.1.0**: Modern password hashing
+- **Cryptography 44.0.2**: Cryptographic recipes and primitives
+- **Twilio 9.4.6**: SMS and OTP services
+
+### Real-time Communication
+- **WebSockets 15.0.1**: Real-time bidirectional communication
+- **FastAPI WebSocket**: Built-in WebSocket support
+- **AsyncIO**: Asynchronous programming support
+
+### Data Processing & Utilities
+- **Python-dotenv 1.0.1**: Environment variable management
+- **Pillow 11.3.0**: Python Imaging Library for image processing
+- **OpenPyXL 3.1.5**: Excel file reading and writing
+- **PyYAML 6.0.2**: YAML parser and emitter
+- **Requests 2.32.3**: HTTP library for API calls
+- **httpx 0.28.1**: Modern HTTP client with async support
+
+### Development & Deployment
+- **Python 3.x**: Programming language
+- **Docker**: Containerization (implied for deployment)
+- **Environment Variables**: Configuration management
+- **CORS Middleware**: Cross-origin resource sharing
+- **Health Check Endpoints**: System monitoring
+
+### External APIs & Services
+- **Google APIs**: Gemini AI, Google Auth
+- **Twilio API**: SMS and communication services
+- **Bank APIs**: Integration with banking systems (implied)
+- **Expo Push Notifications**: Mobile push notification service
+
+### Data Validation & Serialization
+- **Pydantic Settings 2.8.1**: Settings management
+- **Marshmallow 3.26.1**: Object serialization/deserialization
+- **Dataclasses JSON 0.6.7**: JSON serialization for dataclasses
+- **Orjson 3.10.15**: Fast JSON library
+
+### Monitoring & Logging
+- **Rich 13.9.4**: Rich text and beautiful formatting
+- **Tqdm 4.67.1**: Progress bars for loops
+- **Watchfiles 1.1.0**: File system event monitoring
+
+### Development Tools
+- **Typer 0.15.2**: CLI framework
+- **Click 8.1.8**: Command line interface creation
+- **Colorama 0.4.6**: Cross-platform colored terminal text
+
+### Performance & Optimization
+- **AsyncIO**: Asynchronous programming
+- **Motor**: Async MongoDB driver
+- **Aiohttp 3.11.13**: Async HTTP client/server
+- **Cachetools 5.5.2**: Caching utilities
+- **Tenacity 9.0.0**: Retry library for robust operations
 
 ## Project Structure
 - Directory breakdown
