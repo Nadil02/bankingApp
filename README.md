@@ -430,11 +430,287 @@ The application follows a **layered architecture** pattern:
 4. **Authentication** → JWT Middleware → Route Access Control
 
 ## Installation & Setup
-- Prerequisites
-- Environment setup
-- Dependencies installation
-- Database setup
-- Initial configuration
+
+This guide will help you set up the SpendLess banking application on your local development environment.
+
+### Prerequisites
+
+Before starting the installation, ensure you have the following installed on your system:
+
+- **Python 3.8+**: Required for running the FastAPI application
+- **MongoDB**: Database server (local installation or MongoDB Atlas)
+- **Git**: For cloning the repository
+- **Virtual Environment**: Python virtual environment (recommended)
+
+### Environment Setup
+
+1. **Clone the Repository**
+   ```bash
+   git clone <repository-url>
+   cd spendless/bankingApp/backend
+   ```
+
+2. **Create Virtual Environment**
+   ```bash
+   # Create virtual environment
+   python -m venv venv
+
+   # Activate virtual environment
+   # On Windows:
+   venv\Scripts\activate
+   # On macOS/Linux:
+   source venv/bin/activate
+   ```
+
+3. **Create Environment Variables File**
+   
+   Create a `.env` file in the `backend` directory with the following variables:
+
+   ```env
+   # Database Configuration
+   MONGO_URI=mongodb://localhost:27017/spendless
+   # For MongoDB Atlas: mongodb+srv://username:password@cluster.mongodb.net/spendless
+
+   # JWT Authentication
+   SECRET_KEY=your-super-secret-jwt-key-here
+   ALGORITHM=HS256
+   ACCESS_TOKEN_EXPIRE_MINUTES=30
+   REFRESH_TOKEN_EXPIRE_MINUTES=10080
+
+   # Google Gemini AI API
+   GEMINI_API_KEY=your-google-gemini-api-key
+
+   # SMS Service (Notify.lk)
+   NOTIFY_LK_USER_ID=your-notify-lk-user-id
+   NOTIFY_LK_API_KEY=your-notify-lk-api-key
+   NOTIFY_LK_SENDER_ID=your-approved-sender-id
+
+   # Optional: Twilio Configuration (if using Twilio instead of Notify.lk)
+   TWILIO_ACCOUNT_SID=your-twilio-account-sid
+   TWILIO_AUTH_TOKEN=your-twilio-auth-token
+   TWILIO_PHONE_NUMBER=your-twilio-phone-number
+   ```
+
+   **Important**: Add `.env` to your `.gitignore` file to prevent committing sensitive information [[memory:7097700]].
+
+### Dependencies Installation
+
+1. **Install Python Dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. **Install spaCy Language Model**
+   ```bash
+   python -m spacy download en_core_web_sm
+   ```
+
+3. **Install NLTK Data**
+   ```bash
+   python -c "import nltk; nltk.download('words')"
+   ```
+
+### Database Setup
+
+1. **MongoDB Installation**
+
+   **Option A: Local MongoDB Installation**
+   ```bash
+   # On Ubuntu/Debian:
+   sudo apt-get install mongodb
+
+   # On macOS with Homebrew:
+   brew install mongodb-community
+
+   # On Windows:
+   # Download and install from https://www.mongodb.com/try/download/community
+   ```
+
+   **Option B: MongoDB Atlas (Cloud)**
+   - Create account at [MongoDB Atlas](https://www.mongodb.com/atlas)
+   - Create a new cluster
+   - Get connection string and update `MONGO_URI` in `.env`
+
+2. **Start MongoDB Service**
+   ```bash
+   # On Ubuntu/Debian:
+   sudo systemctl start mongod
+
+   # On macOS:
+   brew services start mongodb-community
+
+   # On Windows:
+   # MongoDB should start automatically after installation
+   ```
+
+3. **Verify Database Connection**
+   ```bash
+   # Test MongoDB connection
+   mongosh
+   # or
+   mongo
+   ```
+
+### API Keys Setup
+
+1. **Google Gemini API Key**
+   - Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
+   - Create a new API key
+   - Add to `.env` file as `GEMINI_API_KEY`
+
+2. **SMS Service Setup**
+   
+   **Option A: Notify.lk (Sri Lanka)**
+   - Register at [Notify.lk](https://notify.lk)
+   - Get your User ID, API Key, and Sender ID
+   - Add to `.env` file
+
+   **Option B: Twilio (International)**
+   - Sign up at [Twilio](https://www.twilio.com)
+   - Get Account SID, Auth Token, and Phone Number
+   - Add to `.env` file
+
+### Initial Configuration
+
+1. **Generate Encryption Key**
+   ```bash
+   cd utils
+   python encrypt_key_generation.py
+   ```
+
+2. **Initialize ChromaDB**
+   ```bash
+   # ChromaDB will be initialized automatically on first run
+   # Ensure the chroma_db directory has proper permissions
+   ```
+
+3. **Create Required Directories**
+   ```bash
+   mkdir -p chroma_db
+   mkdir -p logs
+   ```
+
+### Running the Application
+
+1. **Start the Development Server**
+   ```bash
+   # Using Uvicorn directly
+   uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+   # Or using Python
+   python -m uvicorn main:app --reload
+   ```
+
+2. **Verify Installation**
+   - Open browser and navigate to `http://localhost:8000`
+   - Check health endpoint: `http://localhost:8000/health`
+   - View API documentation: `http://localhost:8000/docs`
+
+### Production Setup
+
+1. **Install Production Dependencies**
+   ```bash
+   pip install gunicorn
+   ```
+
+2. **Run with Gunicorn**
+   ```bash
+   gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+   ```
+
+3. **Environment Variables for Production**
+   - Use secure, randomly generated `SECRET_KEY`
+   - Set up proper MongoDB authentication
+   - Configure CORS origins appropriately
+   - Use environment-specific API keys
+
+### Docker Setup (Optional)
+
+1. **Create Dockerfile**
+   ```dockerfile
+   FROM python:3.9-slim
+
+   WORKDIR /app
+   COPY requirements.txt .
+   RUN pip install -r requirements.txt
+
+   COPY . .
+   EXPOSE 8000
+
+   CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+   ```
+
+2. **Create docker-compose.yml**
+   ```yaml
+   version: '3.8'
+   services:
+     app:
+       build: .
+       ports:
+         - "8000:8000"
+       environment:
+         - MONGO_URI=mongodb://mongo:27017/spendless
+       depends_on:
+         - mongo
+     
+     mongo:
+       image: mongo:latest
+       ports:
+         - "27017:27017"
+   ```
+
+3. **Run with Docker**
+   ```bash
+   docker-compose up --build
+   ```
+
+### Troubleshooting
+
+**Common Issues:**
+
+1. **MongoDB Connection Error**
+   - Verify MongoDB is running
+   - Check connection string in `.env`
+   - Ensure network connectivity
+
+2. **spaCy Model Not Found**
+   ```bash
+   python -m spacy download en_core_web_sm
+   ```
+
+3. **Import Errors**
+   - Ensure virtual environment is activated
+   - Verify all dependencies are installed
+   - Check Python path
+
+4. **API Key Issues**
+   - Verify API keys are correctly set in `.env`
+   - Check API key permissions and quotas
+   - Ensure no extra spaces in environment variables
+
+5. **Port Already in Use**
+   ```bash
+   # Find process using port 8000
+   lsof -i :8000
+   # Kill the process or use different port
+   uvicorn main:app --port 8001
+   ```
+
+### Next Steps
+
+After successful installation:
+
+1. **Test API Endpoints**: Use the interactive docs at `/docs`
+2. **Set Up Frontend**: Configure your frontend application to connect to the API
+3. **Configure AI Models**: Train and deploy your prediction models
+4. **Set Up Monitoring**: Implement logging and monitoring for production use
+
+### Development Tips
+
+- Use `--reload` flag with uvicorn for automatic reloading during development
+- Check logs in the terminal for debugging information
+- Use FastAPI's automatic documentation at `/docs` and `/redoc`
+- Test WebSocket connections using tools like Postman or custom clients
 
 ## Configuration
 - Environment variables
