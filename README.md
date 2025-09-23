@@ -1894,7 +1894,6 @@ flowchart TD
 
 Our feature engineering pipeline creates 50+ engineered features across multiple categories:
 
-```mermaid
 graph LR
     subgraph "Temporal Features"
         A1[Day of Week Sin/Cos]
@@ -1940,7 +1939,7 @@ graph LR
     D2 --> E
     D3 --> E
     D4 --> E
-```
+
 
 **Detailed Feature Categories:**
 
@@ -2048,7 +2047,7 @@ N-BEATSx is our primary model for balance and expense predictions, offering inte
 ```mermaid
 graph TB
     subgraph "N-BEATSx Architecture"
-        A["Input Layer<br/>Historical Data + Exogenous Features"] --> B[Linear Layer]
+        A["Input Layer\nHistorical Data + Exogenous Features"] --> B[Linear Layer]
         B --> C[ReLU Activation]
         C --> D[Dropout Layer]
         D --> E[Stack 1: Identity]
@@ -2087,7 +2086,7 @@ graph TB
         O --> R
         P --> R
     end
-```
+
 
 **N-BEATSx Configuration:**
 ```python
