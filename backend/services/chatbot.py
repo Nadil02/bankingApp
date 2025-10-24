@@ -19,7 +19,7 @@ from datetime import datetime
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0.7, google_api_key=GEMINI_API_KEY)
+llm = ChatGoogleGenerativeAI(model="gemini-2.5-pro", temperature=0.7, google_api_key=GEMINI_API_KEY)
 
 memory = ConversationBufferMemory(memory_keys="chat_history", return_messages=True)
 conversation = ConversationChain(

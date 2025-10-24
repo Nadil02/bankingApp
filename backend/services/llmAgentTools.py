@@ -1190,7 +1190,7 @@ Response:
         # Replace the Ollama chat call with:
         def call_gemini_api(messages):
             try:
-                model = genai.GenerativeModel('gemini-1.5-flash')
+                model = genai.GenerativeModel('gemini-2.5-pro')
                 
                 # Convert messages to Gemini format
                 prompt = ""
@@ -1209,7 +1209,7 @@ Response:
                 return chat(model='llama3.2:latest', messages=messages)
 
         # Then in your sanizedData function:
-        # response = chat(model='gemini-1.5-flash', messages=messages)
+        # response = chat(model='gemini-2.5-pro', messages=messages)
         response = call_gemini_api(messages)
         # response = chat(model='llama3.2:latest', messages=messages)
         content = response['message']['content']
@@ -1376,7 +1376,7 @@ async def desanizedData(item: str, actual_values: dict):
             return chat(model='llama3.2:latest', messages=messages)
 
     # Then in your sanizedData function:
-    # response = chat(model='gemini-1.5-flash', messages=messages)
+    # response = chat(model='gemini-2.5-pro', messages=messages)
     response = call_gemini_api(messages)
     # response = chat(model='llama3.2:latest', messages=messages)
 

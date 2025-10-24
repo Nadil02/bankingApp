@@ -75,7 +75,7 @@ murmurhash==1.0.12
 mypy-extensions==1.0.0
 networkx==3.5
 nltk==3.9.1
-numpy==2.2.5
+numpy>=1.26.4,<2.0
 ollama==0.4.7
 openpyxl==3.1.5
 orjson==3.10.15
